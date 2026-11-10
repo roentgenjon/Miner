@@ -45,7 +45,7 @@ function updateRocks(s: GameState, dt: number): void {
       r.t -= ROCK.step;
       // Spieler getroffen? (steht im Feld darunter oder im selben Feld)
       if (p.x === r.x && (p.y === r.y || p.y === r.y + 1)) {
-        damagePlayer(s, Math.max(1, ROCK.damage - s.mods.rockReduction), 'rock');
+        damagePlayer(s, Math.max(0, ROCK.damage - s.mods.rockReduction), 'rock');
         emit(s, { type: 'rockLand', x: r.x, y: r.y });
         alive = false;
         break;
@@ -88,7 +88,7 @@ function updateLava(s: GameState, dt: number): void {
     while (alive && d.t >= LAVA.dropStep) {
       d.t -= LAVA.dropStep;
       if (p.x === d.x && p.y === d.y) {
-        damagePlayer(s, LAVA.dropDamage, 'lava');
+        damagePlayer(s, s.mods.lavaReduction >= 2 ? 0 : LAVA.dropDamage, 'lava');
         alive = false;
         break;
       }

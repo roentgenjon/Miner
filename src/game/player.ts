@@ -83,17 +83,18 @@ function startAct(s: GameState, dir: Dir, carry: number): void {
   }
 
   if (cell === Block.Air) {
+    const moveDur = PLAYER.moveTime / s.mods.moveSpeed;
     p.px = p.x;
     p.py = p.y;
     p.x = tx;
     p.y = ty;
-    p.action = { kind: 'move', dur: PLAYER.moveTime, left: PLAYER.moveTime + carry };
+    p.action = { kind: 'move', dur: moveDur, left: moveDur + carry };
     return;
   }
 
   if (cell === Block.Lava) {
     // Lava berührt: Schaden, Block kühlt zu Basalt ab.
-    damagePlayer(s, Math.max(1, LAVA.contactDamage - s.mods.rockReduction), 'lava');
+    damagePlayer(s, Math.max(0, LAVA.contactDamage - s.mods.lavaReduction), 'lava');
     setCell(s.world, tx, ty, Block.Basalt);
     emit(s, { type: 'lava', x: tx, y: ty });
     p.action = { kind: 'attack', dur: 0.3, left: 0.3 + carry };
@@ -118,7 +119,7 @@ function finishAction(s: GameState): void {
 
   setCell(s.world, a.tx, a.ty, Block.Air);
   s.stats.blocks++;
-  p.energy = Math.max(0, p.energy - ENERGY.digCost);
+  p.energy = Math.max(0, p.energy - ENERGY.digCost * s.mods.digCostMult);
   emit(s, { type: 'dig', x: a.tx, y: a.ty, block: b });
 
   switch (b) {

@@ -45,8 +45,18 @@ export function computeMods(u: Upgrades): Mods {
     oreMult: 1 + per('ore') * u.ore,
     comboWindow: COMBO.window + per('combo') * u.combo,
     fallReduction: per('boots') * u.boots,
-    rockReduction: Math.floor(per('helmet') * u.helmet),
+    rockReduction: per('helmet') * u.helmet,
     lootMult: 1 + per('luck') * u.luck,
+    tntRadius: TNT.radius + per('power') * u.power,
+    blastLoot: Math.min(1, TNT.blastLoot + per('blast') * u.blast),
+    drainMult: Math.max(0.2, 1 - per('saver') * u.saver),
+    lightBonus: per('light') * u.light,
+    moveSpeed: 1 + per('legs') * u.legs,
+    lavaReduction: per('heat') * u.heat,
+    comboMax: COMBO.maxMult + per('master') * u.master,
+    revives: per('revive') * u.revive,
+    startDepth: per('lift') * u.lift,
+    digCostMult: Math.max(0.1, 1 - per('gentle') * u.gentle),
   };
 }
 
@@ -73,8 +83,28 @@ export function describeLevel(id: UpgradeId, level: number): string {
     case 'boots':
       return `−${m.fallReduction} Fallschaden`;
     case 'helmet':
-      return `−${m.rockReduction} Steinschlag/Lava`;
+      return `−${m.rockReduction} Steinschlag`;
     case 'luck':
       return `+${Math.round((m.lootMult - 1) * 100)} % Beute`;
+    case 'power':
+      return `Radius ${m.tntRadius.toFixed(1).replace('.', ',')}`;
+    case 'blast':
+      return `${Math.round(m.blastLoot * 100)} % Erz aus Sprengungen`;
+    case 'saver':
+      return `−${Math.round((1 - m.drainMult) * 100)} % Lampenverbrauch`;
+    case 'light':
+      return `+${m.lightBonus.toFixed(1).replace('.', ',')} Felder Licht`;
+    case 'legs':
+      return `+${Math.round((m.moveSpeed - 1) * 100)} % Lauftempo`;
+    case 'heat':
+      return `−${m.lavaReduction} Lavaschaden`;
+    case 'master':
+      return `Kombo bis ×${m.comboMax.toFixed(1).replace('.', ',').replace(',0', '')}`;
+    case 'revive':
+      return `${m.revives} Wiederbelebung${m.revives === 1 ? '' : 'en'}`;
+    case 'lift':
+      return `Start bei ${m.startDepth} m`;
+    case 'gentle':
+      return `−${Math.round((1 - m.digCostMult) * 100)} % Grabenergie`;
   }
 }

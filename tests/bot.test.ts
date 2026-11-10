@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STEP } from '../src/config';
+import { STEP, UPGRADES } from '../src/config';
 import { createGame } from '../src/game/game';
 import { step } from '../src/game/game';
 import { computeMods, emptyUpgrades } from '../src/meta/shop';
@@ -9,7 +9,7 @@ import { getCell } from '../src/game/world';
 /** Einfacher Bot: gräbt nach unten, weicht seitlich aus, wenn unten Grundgestein/Lava ist. */
 function playBot(seed: string, level = 0): { depth: number; status: string; time: number; wallet: number } {
   const u = emptyUpgrades();
-  for (const k of Object.keys(u) as (keyof typeof u)[]) u[k] = level;
+  for (const d of UPGRADES) u[d.id] = Math.min(level, d.maxLevel);
   const s = createGame({ seed, mods: computeMods(u) });
   for (let i = 0; i < 60 * 60 * 20 && s.status === 'playing'; i++) {
     const below = getCell(s.world, s.player.x, s.player.y + 1);

@@ -447,7 +447,7 @@ export class Renderer {
     // Lampe des Spielers
     const p = s.player;
     const f = p.maxEnergy > 0 ? p.energy / p.maxEnergy : 0;
-    let r = ENERGY.lightMin + (ENERGY.lightMax - ENERGY.lightMin) * Math.sqrt(f);
+    let r = ENERGY.lightMin + (ENERGY.lightMax - ENERGY.lightMin) * Math.sqrt(f) + s.mods.lightBonus * Math.sqrt(f);
     if (f < 0.2) r *= 0.9 + Math.sin(this.time * 17) * 0.06 + Math.sin(this.time * 5.3) * 0.04;
     const face = p.facing === 'left' ? -0.18 : 0.18;
     light(toX(vis.x + 0.5 + face), toY(vis.y + 0.5), r);

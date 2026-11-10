@@ -57,7 +57,17 @@ export type UpgradeId =
   | 'combo'
   | 'boots'
   | 'helmet'
-  | 'luck';
+  | 'luck'
+  | 'power'
+  | 'blast'
+  | 'saver'
+  | 'light'
+  | 'legs'
+  | 'heat'
+  | 'master'
+  | 'revive'
+  | 'lift'
+  | 'gentle';
 
 export type Upgrades = Record<UpgradeId, number>;
 
@@ -73,6 +83,26 @@ export interface Mods {
   fallReduction: number;
   rockReduction: number;
   lootMult: number;
+  /** Explosionsradius von Dynamit (Felder). */
+  tntRadius: number;
+  /** Wahrscheinlichkeit, dass weggesprengtes Erz eingesammelt wird. */
+  blastLoot: number;
+  /** Multiplikator auf den Lampenverbrauch (<1 = sparsamer). */
+  drainMult: number;
+  /** Zusätzlicher Lichtradius in Feldern. */
+  lightBonus: number;
+  /** Multiplikator auf die Laufgeschwindigkeit. */
+  moveSpeed: number;
+  /** Verringert Lavaschaden (Berührung -1 je Stufe, Tropfen ab Stufe 2 wirkungslos). */
+  lavaReduction: number;
+  /** Obergrenze des Kombo-Multiplikators. */
+  comboMax: number;
+  /** Wiederbelebungen pro Runde. */
+  revives: number;
+  /** Starttiefe in m (Fahrstuhl). */
+  startDepth: number;
+  /** Multiplikator auf den Energieverbrauch beim Graben. */
+  digCostMult: number;
 }
 
 export interface RunStats {
@@ -97,6 +127,7 @@ export type GameEvent =
   | { type: 'explosion'; x: number; y: number; radius: number }
   | { type: 'hurt'; amount: number; source: string }
   | { type: 'heal'; amount: number }
+  | { type: 'revive' }
   | { type: 'land'; x: number; y: number; fall: number }
   | { type: 'rockFall'; x: number; y: number }
   | { type: 'rockLand'; x: number; y: number }

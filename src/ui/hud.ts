@@ -68,7 +68,7 @@ export class Hud {
     const ck = c.count > 1 ? `${c.count}:${Math.ceil(c.timer * 4)}` : '';
     this.set('combo', ck, () => {
       if (c.count > 1) {
-        this.combo.textContent = `Kombo ×${comboMult(c.count).toFixed(2).replace(/\.?0+$/, '')}`;
+        this.combo.textContent = `Kombo ×${comboMult(c.count, s.mods.comboMax).toFixed(2).replace(/\.?0+$/, '')}`;
         this.combo.style.opacity = '1';
       } else {
         this.combo.textContent = '';

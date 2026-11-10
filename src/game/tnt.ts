@@ -32,7 +32,7 @@ export function updateTnt(s: GameState, dt: number): void {
   if (due.length === 0) return;
   s.tnts = s.tnts.filter((t) => t.fuse > 0);
   for (const t of due) {
-    explode(s, t.x, t.y, t.kind === 'crate' ? TNT.crateRadius : TNT.radius);
+    explode(s, t.x, t.y, t.kind === 'crate' ? TNT.crateRadius : s.mods.tntRadius);
   }
 }
 
@@ -64,7 +64,7 @@ export function explode(s: GameState, cx: number, cy: number, radius: number): v
         openChest(s, x, y);
       } else if (b === Block.Coal) {
         collectCoal(s, x, y);
-      } else if (isOre(b) && s.rng.next() < TNT.blastLoot) {
+      } else if (isOre(b) && s.rng.next() < s.mods.blastLoot) {
         collectOre(s, b, x, y);
       }
     }

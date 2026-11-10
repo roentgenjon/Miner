@@ -4,8 +4,9 @@ import { defaultMeta } from '../src/meta/save';
 import { buyUpgrade, computeMods, upgradeCost } from '../src/meta/shop';
 
 describe('Werkstatt', () => {
-  it('hat 10 Upgrades', () => {
-    expect(UPGRADES).toHaveLength(10);
+  it('hat mindestens 20 Upgrades mit eindeutiger ID', () => {
+    expect(UPGRADES.length).toBeGreaterThanOrEqual(20);
+    expect(new Set(UPGRADES.map((u) => u.id)).size).toBe(UPGRADES.length);
   });
 
   it('Preise steigen mit der Stufe', () => {

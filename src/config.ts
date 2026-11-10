@@ -300,8 +300,18 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: 'ore', name: 'Erzgespür', desc: 'Erze sind mehr wert', maxLevel: 10, baseCost: 60, growth: 1.55, perLevel: 0.1 },
   { id: 'combo', name: 'Kombo-Kette', desc: 'Kombo-Fenster länger offen', maxLevel: 6, baseCost: 80, growth: 1.6, perLevel: 0.4 },
   { id: 'boots', name: 'Federstiefel', desc: 'Weniger Fallschaden', maxLevel: 3, baseCost: 90, growth: 2.0, perLevel: 1 },
-  { id: 'helmet', name: 'Schutzhelm', desc: 'Weniger Steinschlagschaden', maxLevel: 4, baseCost: 100, growth: 1.9, perLevel: 0.5 },
+  { id: 'helmet', name: 'Schutzhelm', desc: 'Weniger Steinschlagschaden', maxLevel: 2, baseCost: 100, growth: 2.2, perLevel: 1 },
   { id: 'luck', name: 'Glückshände', desc: 'Bessere Beute aus Truhen', maxLevel: 8, baseCost: 70, growth: 1.55, perLevel: 0.08 },
+  { id: 'power', name: 'Sprengkraft', desc: 'Dynamit sprengt größere Bereiche', maxLevel: 4, baseCost: 150, growth: 1.9, perLevel: 0.5 },
+  { id: 'blast', name: 'Schürfsprengstoff', desc: 'Mehr Erz aus Sprengungen', maxLevel: 5, baseCost: 90, growth: 1.6, perLevel: 0.08 },
+  { id: 'saver', name: 'Sparlampe', desc: 'Lampe verbraucht weniger', maxLevel: 8, baseCost: 60, growth: 1.5, perLevel: 0.06 },
+  { id: 'light', name: 'Scheinwerfer', desc: 'Größerer Lichtkegel', maxLevel: 6, baseCost: 55, growth: 1.5, perLevel: 0.3 },
+  { id: 'legs', name: 'Laufschuhe', desc: 'Schneller zur Seite laufen', maxLevel: 6, baseCost: 45, growth: 1.5, perLevel: 0.1 },
+  { id: 'heat', name: 'Hitzeschutz', desc: 'Weniger Lavaschaden', maxLevel: 2, baseCost: 150, growth: 2.2, perLevel: 1 },
+  { id: 'master', name: 'Kombo-Meister', desc: 'Höherer Kombo-Multiplikator', maxLevel: 6, baseCost: 120, growth: 1.7, perLevel: 0.5 },
+  { id: 'revive', name: 'Zweites Leben', desc: 'Einmal pro Stufe wiederbeleben', maxLevel: 2, baseCost: 800, growth: 3.0, perLevel: 1 },
+  { id: 'lift', name: 'Fahrstuhl', desc: 'Start in größerer Tiefe (+50 m pro Stufe)', maxLevel: 10, baseCost: 100, growth: 1.7, perLevel: 50 },
+  { id: 'gentle', name: 'Schonende Hacke', desc: 'Graben kostet weniger Lampenenergie', maxLevel: 6, baseCost: 50, growth: 1.5, perLevel: 0.12 },
 ];
 
 /* ---------- Missionen ---------- */

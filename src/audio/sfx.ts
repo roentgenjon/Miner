@@ -111,6 +111,9 @@ export class Sfx {
         this.tone(660, 0.12, 'triangle', 0.2);
         this.tone(990, 0.2, 'triangle', 0.2, undefined, 0.1);
         break;
+      case 'revive':
+        [392, 523, 659, 880].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.2, undefined, i * 0.09));
+        break;
       case 'land':
         if (e.fall > 1) this.noise(0.1, 0.25, 700, 120);
         break;

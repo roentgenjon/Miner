@@ -28,7 +28,7 @@ export function step(s: GameState, dt: number): void {
 function updateEnergy(s: GameState, dt: number): void {
   const p = s.player;
   if (p.y <= 0) return;
-  p.energy = Math.max(0, p.energy - ENERGY.drain * zoneAt(p.y).drain * dt);
+  p.energy = Math.max(0, p.energy - ENERGY.drain * zoneAt(p.y).drain * s.mods.drainMult * dt);
   if (p.energy <= 0) {
     p.darkT += dt;
     if (p.darkT >= ENERGY.darkDamageEvery) {

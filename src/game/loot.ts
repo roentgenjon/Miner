@@ -2,8 +2,8 @@ import { BLOCKS, CHEST, COMBO, ENERGY } from '../config';
 import { emit, type GameState } from './state';
 import { Block, type BlockId } from './types';
 
-export function comboMult(count: number): number {
-  return Math.min(COMBO.maxMult, 1 + COMBO.stepBonus * Math.max(0, count - 1));
+export function comboMult(count: number, max: number = COMBO.maxMult): number {
+  return Math.min(max, 1 + COMBO.stepBonus * Math.max(0, count - 1));
 }
 
 function addMoney(s: GameState, amount: number): void {
@@ -23,7 +23,7 @@ export function collectOre(s: GameState, block: BlockId, x: number, y: number): 
   s.combo.count = s.combo.timer > 0 ? s.combo.count + 1 : 1;
   s.combo.timer = s.mods.comboWindow;
   s.stats.comboMax = Math.max(s.stats.comboMax, s.combo.count);
-  const mult = comboMult(s.combo.count);
+  const mult = comboMult(s.combo.count, s.mods.comboMax);
   const value = Math.round(base * s.mods.oreMult * mult);
   addMoney(s, value);
   s.stats.ores++;

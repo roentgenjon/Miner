@@ -1,8 +1,8 @@
-import { PLAYER, START_X, zoneAt } from '../config';
+import { HEART_DEPTH, PLAYER, START_X, zoneAt } from '../config';
 import { createMissions, type MissionState } from '../meta/missions';
 import { createRng, type Rng } from './rng';
-import type { Dir, GameEvent, Mods, RunStats, World, ZoneId } from './types';
-import { generateWorld } from './world';
+import { Block, type Dir, type GameEvent, type Mods, type RunStats, type World, type ZoneId } from './types';
+import { generateWorld, setCell } from './world';
 
 export type PlayerAction =
   | { kind: 'dig'; tx: number; ty: number; dir: Dir; dur: number; left: number }
@@ -98,6 +98,8 @@ export interface GameState {
   status: GameStatus;
   events: GameEvent[];
   input: Input;
+  /** Verbleibende Wiederbelebungen. */
+  revives: number;
   /** Rekordtiefe zu Rundenbeginn. */
   record: number;
   zone: ZoneId;
@@ -117,6 +119,9 @@ export function emptyStats(): RunStats {
 
 export function createGame(opts: CreateGameOptions): GameState {
   const world = generateWorld(opts.seed);
+  // Fahrstuhl: Schacht in der Startspalte bis zur Starttiefe freiräumen.
+  const startY = Math.min(opts.mods.startDepth, HEART_DEPTH - 10);
+  for (let y = 1; y <= startY; y++) setCell(world, START_X, y, Block.Air);
   const rng = createRng(`run:${opts.seed}`);
   let nextId = 1;
   const state: GameState = {
@@ -126,9 +131,9 @@ export function createGame(opts: CreateGameOptions): GameState {
     mods: opts.mods,
     player: {
       x: START_X,
-      y: 0,
+      y: startY,
       px: START_X,
-      py: 0,
+      py: startY,
       hp: opts.mods.maxHp,
       maxHp: opts.mods.maxHp,
       energy: opts.mods.maxEnergy,
@@ -157,15 +162,16 @@ export function createGame(opts: CreateGameOptions): GameState {
     rng,
     time: 0,
     tick: 0,
-    stats: emptyStats(),
+    stats: { ...emptyStats(), depth: startY },
     missions: createMissions(createRng(`missions:${opts.seed}`)),
     combo: { count: 0, timer: 0 },
     wallet: 0,
     status: 'playing',
     events: [],
     input: { held: null, queued: null, queuedAge: 0, tnt: false },
+    revives: opts.mods.revives,
     record: opts.record ?? 0,
-    zone: zoneAt(0).id,
+    zone: zoneAt(startY).id,
     nextId,
   };
   return state;
@@ -190,6 +196,13 @@ export function damagePlayer(s: GameState, amount: number, source: string, force
   s.stats.damage += amount;
   emit(s, { type: 'hurt', amount, source });
   if (p.hp <= 0) {
+    if (s.revives > 0) {
+      s.revives--;
+      p.hp = Math.max(1, Math.ceil(p.maxHp / 2));
+      p.invuln = 2;
+      emit(s, { type: 'revive' });
+      return;
+    }
     s.status = 'dead';
     emit(s, { type: 'death' });
   }

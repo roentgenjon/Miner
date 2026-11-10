@@ -36,7 +36,7 @@ Benötigt Node.js ≥ 20.
 - **Truhen** enthalten Münzen, Kohle, Dynamit oder ein Leben. **Sprengkisten** explodieren, sobald man sie abbaut – und lösen Kettenreaktionen aus.
 - Gefahren: fallendes **Geröll**, tropfende **Lava**, **Fledermäuse** (Hineinlaufen = Schlag).
 - **Dynamit** sprengt einen Bereich um die Figur; weiteres Dynamit und Sprengkisten im Radius zünden nacheinander (Kettenreaktion). Start-Dynamit = 40 + 3 pro Upgrade-Stufe.
-- **Werkstatt:** 10 Upgrades, bezahlt mit Münzen. **Missionen:** 3 zufällige pro Runde. **Erfolge:** 9 Stück.
+- **Werkstatt:** 20 Upgrades, bezahlt mit Münzen. **Missionen:** 3 zufällige pro Runde. **Erfolge:** 9 Stück.
 - **Tagesschacht:** gleicher Seed für alle am selben Kalendertag. Die **Rekordlinie** zeigt deine bisher größte Tiefe.
 - Fortschritt liegt in `localStorage` unter dem Schlüssel `schacht-meta`.
 
