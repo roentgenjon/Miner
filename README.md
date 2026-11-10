@@ -99,9 +99,12 @@ unter `https://nutzer.github.io/repo/` ebenso wie auf einer eigenen Domain. Soll
 
 ### GitHub Pages (eingerichtet)
 
-1. Repository auf GitHub pushen, Branch `main`.
-2. **Settings → Pages → Build and deployment → Source: „GitHub Actions“**.
-3. Jeder Push auf `main` startet [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): Tests, Build, Veröffentlichung.
+1. Code ist im Repository (Standard-Branch oder `main`).
+2. **Settings → Pages → Build and deployment → Source: „GitHub Actions“** (einmalig).
+3. Danach startet jeder Push auf `main` bzw. `claude/gracious-wright-j6q4sw`, oder **Actions → „Deploy auf GitHub Pages“ → Run workflow**, [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): Tests, Build, Veröffentlichung.
+4. Die Seite erscheint unter `https://<nutzer>.github.io/<repo>/`; die genaue URL steht im Deploy-Job.
+
+Wird der Branch später in `main` umbenannt oder zusammengeführt, passt der Workflow ohne Änderung.
 
 ### Netlify
 

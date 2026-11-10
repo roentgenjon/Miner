@@ -2,7 +2,8 @@ name: Deploy auf GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # Der Standard-Branch des Repos ist aktuell der Claude-Branch; später auf main umstellbar.
+    branches: [main, claude/gracious-wright-j6q4sw]
   workflow_dispatch:
 
 permissions:
