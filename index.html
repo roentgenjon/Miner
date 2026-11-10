@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <title>Schacht</title>
+    <meta name="description" content="Schacht – grabe dich in 250 m Tiefe zum Herz des Bergs. Pixel-Grabespiel, offline spielbar." />
+    <meta name="theme-color" content="#14100e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Schacht" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  </head>
+  <body>
+    <canvas id="game" aria-label="Spielfeld"></canvas>
+
+    <div id="hud" hidden></div>
+
+    <div id="pad" hidden>
+      <div class="dirs">
+        <button class="pad-btn" data-dir="left" aria-label="Links graben">◀</button>
+        <button class="pad-btn" data-dir="down" aria-label="Nach unten graben">▼</button>
+        <button class="pad-btn" data-dir="right" aria-label="Rechts graben">▶</button>
+      </div>
+      <button class="pad-btn tnt-btn" data-action="tnt" aria-label="Dynamit legen">TNT</button>
+    </div>
+
+    <div id="toasts" aria-live="polite"></div>
+    <div id="overlay" hidden></div>
+
+    <noscript><p style="color:#fff;padding:1rem">Schacht braucht JavaScript.</p></noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,269 @@
+import { createRng } from '../game/rng';
+import { Block, type ZoneId } from '../game/types';
+import { SPRITE_SIZE as S, type Sprite, ALL_SPRITES } from './sprites';
+
+type Tex = HTMLCanvasElement;
+
+function make(w = S, h = S): { c: Tex; g: CanvasRenderingContext2D } {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const g = c.getContext('2d');
+  if (!g) throw new Error('Canvas 2D nicht verfügbar');
+  g.imageSmoothingEnabled = false;
+  return { c, g };
+}
+
+function fromSprite(sp: Sprite): Tex {
+  const { c, g } = make();
+  sp.rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const col = sp.palette[row[x] as string];
+      if (col) {
+        g.fillStyle = col;
+        g.fillRect(x, y, 1, 1);
+      }
+    }
+  });
+  return c;
+}
+
+function flipped(t: Tex): Tex {
+  const { c, g } = make();
+  g.translate(S, 0);
+  g.scale(-1, 1);
+  g.drawImage(t, 0, 0);
+  return c;
+}
+
+/** Gesteinstextur: Grundfarbe + dunkle/helle Sprenkel. */
+function stone(seed: string, base: string, dark: string, light: string, density = 0.22): Tex {
+  const rng = createRng(seed);
+  const { c, g } = make();
+  g.fillStyle = base;
+  g.fillRect(0, 0, S, S);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const r = rng.next();
+      if (r < density * 0.55) {
+        g.fillStyle = dark;
+        g.fillRect(x, y, 1, 1);
+      } else if (r < density) {
+        g.fillStyle = light;
+        g.fillRect(x, y, 1, 1);
+      }
+    }
+  }
+  // Rand leicht abdunkeln für Kachel-Optik
+  g.fillStyle = 'rgba(0,0,0,0.18)';
+  g.fillRect(0, S - 1, S, 1);
+  g.fillRect(S - 1, 0, 1, S);
+  g.fillStyle = 'rgba(255,255,255,0.07)';
+  g.fillRect(0, 0, S, 1);
+  g.fillRect(0, 0, 1, S);
+  return c;
+}
+
+/** Erz-Overlay: kleine Klumpen mit Glanzpunkt. */
+function oreBlobs(seed: string, main: string, shade: string, shine: string, count = 5): Tex {
+  const rng = createRng(seed);
+  const { c, g } = make();
+  for (let i = 0; i < count; i++) {
+    const x = rng.int(1, S - 5);
+    const y = rng.int(1, S - 5);
+    const w = rng.int(2, 3);
+    const h = rng.int(2, 3);
+    g.fillStyle = shade;
+    g.fillRect(x, y + 1, w + 1, h);
+    g.fillStyle = main;
+    g.fillRect(x, y, w + 1, h);
+    g.fillStyle = shine;
+    g.fillRect(x, y, 1, 1);
+  }
+  return c;
+}
+
+function boulder(): Tex {
+  const { c, g } = make();
+  const rows = [
+    '................',
+    '................',
+    '....bbbbbb......',
+    '...bggggggb.....',
+    '..bggwwggggb....',
+    '..bgwggggggb.bb.',
+    '.bggggggddggbgb.',
+    '.bgggggddddggb..',
+    '.bgggggddggggb..',
+    '.bggggggggggdb..',
+    '..bggddggggdb...',
+    '..bbggddddbbb...',
+    '...bbbbbbbb.....',
+    '................',
+    '................',
+    '................',
+  ];
+  const pal: Record<string, string> = { b: '#2c2c33', g: '#7b7f8a', w: '#b9bdc8', d: '#555964' };
+  rows.forEach((row, y) => {
+    for (let x = 0; x < S; x++) {
+      const col = pal[row[x] as string];
+      if (col) {
+        g.fillStyle = col;
+        g.fillRect(x, y, 1, 1);
+      }
+    }
+  });
+  return c;
+}
+
+function lavaSource(): Tex {
+  const { c, g } = make();
+  g.fillStyle = '#2b1414';
+  g.fillRect(2, 2, 12, 9);
+  g.fillStyle = '#ff7a1a';
+  g.fillRect(4, 8, 8, 4);
+  g.fillStyle = '#ffd23a';
+  g.fillRect(6, 9, 4, 3);
+  g.fillStyle = '#ff7a1a';
+  g.fillRect(7, 12, 2, 3);
+  g.fillStyle = '#ffd23a';
+  g.fillRect(7, 14, 2, 1);
+  return c;
+}
+
+function lavaFrame(t: number): Tex {
+  const rng = createRng('lava');
+  const { c, g } = make();
+  g.fillStyle = '#d9480f';
+  g.fillRect(0, 0, S, S);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const v = Math.sin((x + t * 3) * 0.9) + Math.cos((y - t * 2) * 0.8) + rng.next() * 0.6;
+      g.fillStyle = v > 1.1 ? '#ffd23a' : v > 0.3 ? '#ff8a1f' : v < -1.0 ? '#8c2a07' : '#e85d0c';
+      g.fillRect(x, y, 1, 1);
+    }
+  }
+  return c;
+}
+
+function grass(): Tex {
+  const { c, g } = make();
+  g.fillStyle = '#4caf3a';
+  g.fillRect(0, 0, S, 3);
+  g.fillStyle = '#6fd04f';
+  g.fillRect(0, 0, S, 1);
+  g.fillStyle = '#2f7f26';
+  for (let x = 0; x < S; x += 3) g.fillRect(x, 3, 1, 1);
+  return c;
+}
+
+export interface Textures {
+  base: Record<ZoneId, Tex[]>;
+  back: Record<ZoneId, Tex>;
+  bedrock: Tex[];
+  overlay: Map<number, Tex>;
+  lava: Tex[];
+  grass: Tex;
+  sky: Tex;
+  player: { right: Tex; left: Tex };
+  bat: Tex[];
+  tnt: Tex;
+  crate: Tex;
+  heart: Tex;
+  crack: Tex[];
+}
+
+function crackTex(stage: number): Tex {
+  const { c, g } = make();
+  g.fillStyle = 'rgba(0,0,0,0.55)';
+  const paths: [number, number][][] = [
+    [[7, 3], [7, 5], [6, 7], [6, 9]],
+    [[8, 6], [10, 7], [11, 9], [12, 11]],
+    [[6, 8], [4, 9], [3, 11], [2, 13]],
+    [[9, 9], [9, 11], [10, 13], [10, 15]],
+  ];
+  paths.slice(0, stage + 1).forEach((p) => p.forEach(([x, y]) => g.fillRect(x as number, y as number, 1, 1)));
+  return c;
+}
+
+export function createTextures(): Textures {
+  const zoneColors: Record<ZoneId, [string, string, string]> = {
+    erde: ['#7a5232', '#5e3f25', '#94693f'],
+    schiefer: ['#4a5060', '#383d4a', '#5d6577'],
+    magma: ['#4a3030', '#2e2020', '#6f4040'],
+    kristall: ['#3f3a70', '#2c2755', '#5a52a0'],
+  };
+  const backColors: Record<ZoneId, [string, string, string]> = {
+    erde: ['#2e2016', '#26190f', '#34261a'],
+    schiefer: ['#1d2029', '#161921', '#242833'],
+    magma: ['#2a1515', '#211010', '#331b1b'],
+    kristall: ['#1b1838', '#141230', '#241f48'],
+  };
+  const base = {} as Record<ZoneId, Tex[]>;
+  const back = {} as Record<ZoneId, Tex>;
+  (Object.keys(zoneColors) as ZoneId[]).forEach((z) => {
+    const [b, d, l] = zoneColors[z];
+    base[z] = [0, 1, 2, 3].map((i) => stone(`${z}-${i}`, b, d, l));
+    const [bb, bd, bl] = backColors[z];
+    back[z] = stone(`${z}-back`, bb, bd, bl, 0.16);
+  });
+
+  const overlay = new Map<number, Tex>();
+  overlay.set(Block.Coal, oreBlobs('coal', '#1a1a20', '#0c0c10', '#4a4a58', 6));
+  overlay.set(Block.Copper, oreBlobs('copper', '#d9803a', '#8f4f1f', '#ffc58a'));
+  overlay.set(Block.Iron, oreBlobs('iron', '#cbb8a8', '#85766a', '#ffffff'));
+  overlay.set(Block.Gold, oreBlobs('gold', '#f5c542', '#b8860b', '#fff3a8'));
+  overlay.set(Block.Ruby, oreBlobs('ruby', '#e0334a', '#8f1a2c', '#ff9aa8'));
+  overlay.set(Block.Amethyst, oreBlobs('amethyst', '#b266ff', '#6a2fb0', '#e6c8ff'));
+  overlay.set(Block.Diamond, oreBlobs('diamond', '#6fe7ff', '#2c9bb5', '#ffffff'));
+  overlay.set(Block.Chest, fromSprite(ALL_SPRITES.CHEST as Sprite));
+  overlay.set(Block.Crate, fromSprite(ALL_SPRITES.CRATE as Sprite));
+  overlay.set(Block.Boulder, boulder());
+  overlay.set(Block.LavaSource, lavaSource());
+  overlay.set(Block.Heart, fromSprite(ALL_SPRITES.HEART as Sprite));
+
+  const sky = make(S, S);
+  const grad = sky.g.createLinearGradient(0, 0, 0, S);
+  grad.addColorStop(0, '#5aa9e6');
+  grad.addColorStop(1, '#a8d8f5');
+  sky.g.fillStyle = grad;
+  sky.g.fillRect(0, 0, S, S);
+
+  const player = fromSprite(ALL_SPRITES.PLAYER as Sprite);
+  return {
+    base,
+    back,
+    bedrock: [0, 1, 2].map((i) => stone(`bed-${i}`, '#1d1d22', '#121216', '#2e2e36', 0.3)),
+    overlay,
+    lava: [0, 1, 2, 3].map((i) => lavaFrame(i)),
+    grass: grass(),
+    sky: sky.c,
+    player: { right: player, left: flipped(player) },
+    bat: [fromSprite(ALL_SPRITES.BAT_A as Sprite), fromSprite(ALL_SPRITES.BAT_B as Sprite)],
+    tnt: fromSprite(ALL_SPRITES.TNT as Sprite),
+    crate: fromSprite(ALL_SPRITES.CRATE as Sprite),
+    heart: fromSprite(ALL_SPRITES.HEART as Sprite),
+    crack: [0, 1, 2, 3].map(crackTex),
+  };
+}
+
+/** Ungefähre Hauptfarbe je Blocktyp für Partikel. */
+export const BLOCK_COLORS: Record<number, string> = {
+  [Block.Dirt]: '#7a5232',
+  [Block.Slate]: '#5d6577',
+  [Block.Basalt]: '#6f4040',
+  [Block.CrystalRock]: '#5a52a0',
+  [Block.Coal]: '#2a2a33',
+  [Block.Copper]: '#d9803a',
+  [Block.Iron]: '#cbb8a8',
+  [Block.Gold]: '#f5c542',
+  [Block.Ruby]: '#e0334a',
+  [Block.Amethyst]: '#b266ff',
+  [Block.Diamond]: '#6fe7ff',
+  [Block.Chest]: '#9a6535',
+  [Block.Crate]: '#a8723c',
+  [Block.Boulder]: '#7b7f8a',
+  [Block.LavaSource]: '#ff7a1a',
+  [Block.Lava]: '#ff8a1f',
+  [Block.Heart]: '#e0334a',
+};
