@@ -352,12 +352,12 @@ export class Renderer {
     }
   }
 
-  private drawPick(px: number, py: number, dir: 'left' | 'right' | 'down', swing: number): void {
+  private drawPick(px: number, py: number, dir: 'left' | 'right' | 'down' | 'up', swing: number): void {
     const ctx = this.ctx;
     const T = this.T;
     const cx = px + T / 2;
     const cy = py + T / 2;
-    const base = dir === 'left' ? Math.PI : dir === 'down' ? Math.PI / 2 : 0;
+    const base = dir === 'left' ? Math.PI : dir === 'down' ? Math.PI / 2 : dir === 'up' ? -Math.PI / 2 : 0;
     const ang = base + Math.sin(swing * Math.PI * 4) * 0.7 * (dir === 'left' ? -1 : 1);
     ctx.save();
     ctx.translate(cx, cy);

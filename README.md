@@ -24,12 +24,13 @@ Benötigt Node.js ≥ 20.
 
 | Eingabe | Aktion |
 | --- | --- |
-| ← → ↓ / A D S | links, rechts, nach unten graben bzw. laufen |
+| ← → ↓ ↑ / A D S W | links, rechts, nach unten graben bzw. laufen; ↑ / W klettert und gräbt nach oben |
 | Leertaste / Button „TNT“ | Dynamit legen |
 | P / Esc / Button „II“ | Pause |
-| Tippen | in Richtung des Tippens (relativ zur Spielfigur) graben, gedrückt halten = weitergraben |
-| Wischen | in Wischrichtung graben |
+| Tippen | in Richtung des Tippens (relativ zur Spielfigur, auch nach oben) graben, gedrückt halten = weitergraben |
+| Wischen | in Wischrichtung graben oder klettern |
 
+- **Klettern:** Nach oben gräbt oder läuft die Figur und hält sich dabei kurz fest. Lässt du los, fällt sie nach einem Moment wieder (Fallschaden ab 4 Feldern).
 - **Lampe** ist deine Energie – sie verbraucht sich unter Tage, **Kohle** füllt sie auf. Ist sie leer, wird es dunkel und gefährlich.
 - **Zonen:** Erde (0 m) → Tiefschiefer (1 600 m) → Magmazone (4 400 m) → Kristallhöhle (8 000 m) → Herz (10 000 m = Sieg). Die Tiefe steht als `HEART_DEPTH` in `src/config.ts`; die Zonengrenzen skalieren automatisch mit.
 - **Erze** bringen Münzen, aufeinanderfolgende Erze erhöhen den **Kombo-Multiplikator**.

@@ -16,6 +16,8 @@ const KEY_DIRS: Record<string, Dir> = {
   KeyD: 'right',
   ArrowDown: 'down',
   KeyS: 'down',
+  ArrowUp: 'up',
+  KeyW: 'up',
 };
 
 /**
@@ -137,7 +139,7 @@ export class Controls {
 
   /** Richtung aus einem Vektor: dominante Achse, Aufwärts wird ignoriert. */
   private static dirFromVector(dx: number, dy: number): Dir | null {
-    if (Math.abs(dy) > Math.abs(dx)) return dy > 0 ? 'down' : null;
+    if (Math.abs(dy) > Math.abs(dx)) return dy > 0 ? 'down' : 'up';
     if (dx === 0) return null;
     return dx < 0 ? 'left' : 'right';
   }

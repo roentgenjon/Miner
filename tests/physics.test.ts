@@ -97,3 +97,51 @@ describe('Spieler', () => {
     expect(s.status).toBe('won');
   });
 });
+
+describe('Klettern', () => {
+  function shaft(): ReturnType<typeof blankGame> {
+    const s = blankGame();
+    for (let y = 1; y <= 20; y++) put(s, 3, y, Block.Air);
+    s.player.y = 20;
+    s.player.py = 20;
+    return s;
+  }
+
+  it('klettert mit gedrückter Hoch-Taste durch einen freien Schacht', () => {
+    const s = shaft();
+    s.input.held = 'up';
+    run(s, 1);
+    expect(s.player.y).toBeLessThan(15);
+    expect(s.player.hp).toBe(3);
+  });
+
+  it('fällt erst mit Verzögerung zurück, wenn man loslässt', () => {
+    const s = shaft();
+    s.input.held = 'up';
+    run(s, 0.5);
+    const y = s.player.y;
+    s.input.held = null;
+    run(s, 0.1);
+    expect(s.player.y).toBeLessThanOrEqual(y); // noch festgehalten
+    run(s, 1.5);
+    expect(s.player.y).toBe(20);
+  });
+
+  it('gräbt sich nach oben durch Erde', () => {
+    const s = blankGame();
+    put(s, 3, 20, Block.Air);
+    s.player.y = 20;
+    s.player.py = 20;
+    s.input.held = 'up';
+    run(s, 1.5);
+    expect(s.player.y).toBeLessThan(18);
+    expect(cell(s, 3, 19)).toBe(Block.Air);
+  });
+
+  it('kommt an der Oberfläche nicht höher als 0', () => {
+    const s = blankGame();
+    s.input.held = 'up';
+    run(s, 1);
+    expect(s.player.y).toBe(0);
+  });
+});

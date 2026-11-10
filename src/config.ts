@@ -186,6 +186,8 @@ export const PLAYER = {
   fallSafe: 3,
   /** Eingabe wird so lange vorgemerkt (s). */
   inputBuffer: 0.25,
+  /** So lange hält sich die Figur nach einer Aufwärtsbewegung fest, bevor sie fällt (s). */
+  climbGrace: 0.35,
 };
 
 /* ---------- Lampe / Energie ---------- */

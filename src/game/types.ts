@@ -23,12 +23,13 @@ export const Block = {
 
 export type BlockId = number;
 
-export type Dir = 'left' | 'right' | 'down';
+export type Dir = 'left' | 'right' | 'down' | 'up';
 
 export const DIRS: Record<Dir, readonly [number, number]> = {
   left: [-1, 0],
   right: [1, 0],
   down: [0, 1],
+  up: [0, -1],
 };
 
 export type ZoneId = 'erde' | 'schiefer' | 'magma' | 'kristall';

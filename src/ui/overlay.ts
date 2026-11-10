@@ -78,7 +78,7 @@ export class Overlay {
       h('p', { class: 'hint' }, dailyBest > 0 ? `Heute bisher: ${dailyBest} m` : 'Gleicher Schacht für alle – pro Tag neu.'),
       h('div', { class: 'btn-row' }, this.btn('Werkstatt', () => this.showShop()), this.btn('Erfolge', () => this.showTrophies())),
       this.soundBtn(),
-      h('p', { class: 'hint keys' }, '← → ↓ / A D S graben · Leertaste: Dynamit · P / Esc: Pause · Wischen oder Tippen am Handy'),
+      h('p', { class: 'hint keys' }, '← → ↓ ↑ / A D S W graben & klettern · Leertaste: Dynamit · P / Esc: Pause · Wischen oder Tippen am Handy'),
     );
   }
 

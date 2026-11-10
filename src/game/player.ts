@@ -21,6 +21,7 @@ export function updatePlayer(s: GameState, dt: number): void {
   const p = s.player;
   const inp = s.input;
   p.invuln = Math.max(0, p.invuln - dt);
+  p.climb = Math.max(0, p.climb - dt);
 
   if (inp.queued) {
     inp.queuedAge += dt;
@@ -42,8 +43,8 @@ export function updatePlayer(s: GameState, dt: number): void {
     if (s.status !== 'playing') return;
   }
 
-  // Schwerkraft
-  if (canFall(s)) {
+  // Schwerkraft (beim Klettern kurz ausgesetzt)
+  if (p.climb <= 0 && canFall(s)) {
     p.px = p.x;
     p.py = p.y;
     p.y++;
@@ -51,7 +52,7 @@ export function updatePlayer(s: GameState, dt: number): void {
     p.action = { kind: 'fall', dur: PLAYER.fallTime, left: PLAYER.fallTime + carry };
     return;
   }
-  if (p.fallCount > 0) {
+  if (p.fallCount > 0 && p.climb <= 0 && !canFall(s)) {
     const fall = p.fallCount;
     p.fallCount = 0;
     emit(s, { type: 'land', x: p.x, y: p.y, fall });
@@ -70,7 +71,9 @@ export function updatePlayer(s: GameState, dt: number): void {
 function startAct(s: GameState, dir: Dir, carry: number): void {
   const p = s.player;
   const [dx, dy] = DIRS[dir];
-  if (dir !== 'down') p.facing = dir;
+  if (dir === 'left' || dir === 'right') p.facing = dir;
+  // An der Oberfläche geht es nicht weiter nach oben.
+  if (dir === 'up' && p.y <= 0) return;
   const tx = p.x + dx;
   const ty = p.y + dy;
   const cell = getCell(s.world, tx, ty);
@@ -88,6 +91,11 @@ function startAct(s: GameState, dir: Dir, carry: number): void {
     p.py = p.y;
     p.x = tx;
     p.y = ty;
+    if (dir === 'up') {
+      // Klettern: kurz festhalten, damit man nicht sofort zurückfällt.
+      p.climb = moveDur + PLAYER.climbGrace;
+      p.fallCount = 0;
+    }
     p.action = { kind: 'move', dur: moveDur, left: moveDur + carry };
     return;
   }

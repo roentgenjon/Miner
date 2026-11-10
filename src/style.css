@@ -168,13 +168,13 @@ button {
 }
 #pad .dirs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 .pad-btn {
   pointer-events: auto;
-  width: 64px;
-  height: 64px;
-  font-size: 24px;
+  width: 58px;
+  height: 58px;
+  font-size: 22px;
   font-weight: bold;
   background: rgba(20, 14, 10, 0.62);
   border: 3px solid rgba(255, 255, 255, 0.28);

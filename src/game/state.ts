@@ -25,6 +25,8 @@ export interface Player {
   /** Zusammenhängend gefallene Felder. */
   fallCount: number;
   darkT: number;
+  /** Restzeit, in der die Figur beim Klettern festhängt (keine Schwerkraft). */
+  climb: number;
 }
 
 export interface Bat {
@@ -144,6 +146,7 @@ export function createGame(opts: CreateGameOptions): GameState {
       invuln: 0,
       fallCount: 0,
       darkT: 0,
+      climb: 0,
     },
     bats: world.batSpawns.map((p) => ({
       id: nextId++,
