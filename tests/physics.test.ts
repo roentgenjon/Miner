@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LAVA, ROCK, STEP } from '../src/config';
+import { HEART_DEPTH, LAVA, ROCK, STEP } from '../src/config';
 import { step } from '../src/game/game';
 import { Block } from '../src/game/types';
 import { blankGame, cell, put } from './helpers';
@@ -87,11 +87,11 @@ describe('Spieler', () => {
 
   it('Sieg beim Abbauen des Herzens', () => {
     const s = blankGame();
-    for (let y = 1; y < 250; y++) put(s, 3, y, Block.Air);
-    s.player.y = 249;
+    for (let y = 1; y < HEART_DEPTH; y++) put(s, 3, y, Block.Air);
+    s.player.y = HEART_DEPTH - 1;
     s.player.px = 3;
-    s.player.py = 249;
-    put(s, 3, 250, Block.Heart);
+    s.player.py = HEART_DEPTH - 1;
+    put(s, 3, HEART_DEPTH, Block.Heart);
     s.input.held = 'down';
     run(s, 4);
     expect(s.status).toBe('won');

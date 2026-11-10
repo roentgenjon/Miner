@@ -1,6 +1,6 @@
 # Schacht
 
-Pixel-Grabespiel im Browser: Grabe dich durch einen 7 Spalten breiten Schacht bis zum **Herz des Bergs** in 250 m Tiefe.
+Pixel-Grabespiel im Browser: Grabe dich durch einen 7 Spalten breiten Schacht bis zum **Herz des Bergs** in 10 000 m Tiefe.
 Vite + TypeScript (strict), Rendering per Canvas 2D, als PWA offline spielbar und auf dem Handy installierbar.
 
 > **Hinweis:** Diese Version wurde nach der Feature-Beschreibung neu geschrieben, die ursprüngliche `schacht.html`
@@ -31,7 +31,7 @@ Benötigt Node.js ≥ 20.
 | Wischen | in Wischrichtung graben |
 
 - **Lampe** ist deine Energie – sie verbraucht sich unter Tage, **Kohle** füllt sie auf. Ist sie leer, wird es dunkel und gefährlich.
-- **Zonen:** Erde (0 m) → Tiefschiefer (40 m) → Magmazone (110 m) → Kristallhöhle (200 m) → Herz (250 m = Sieg).
+- **Zonen:** Erde (0 m) → Tiefschiefer (1 600 m) → Magmazone (4 400 m) → Kristallhöhle (8 000 m) → Herz (10 000 m = Sieg). Die Tiefe steht als `HEART_DEPTH` in `src/config.ts`; die Zonengrenzen skalieren automatisch mit.
 - **Erze** bringen Münzen, aufeinanderfolgende Erze erhöhen den **Kombo-Multiplikator**.
 - **Truhen** enthalten Münzen, Kohle, Dynamit oder ein Leben. **Sprengkisten** explodieren, sobald man sie abbaut – und lösen Kettenreaktionen aus.
 - Gefahren: fallendes **Geröll**, tropfende **Lava**, **Fledermäuse** (Hineinlaufen = Schlag).
@@ -83,7 +83,7 @@ Das Rendering liest den Zustand nur; die Logik gibt Ereignisse (`GameEvent`) aus
 
 `npm test` prüft u. a.
 
-- Weltgenerierung: gleicher Seed → identische Welt (Tagesschacht), Zonen, Herz bei 250 m
+- Weltgenerierung: gleicher Seed → identische Welt (Tagesschacht), Zonen, Herz am Schachtende
 - Dynamit: Radius, Schaden, Kettenreaktion über Dynamit und Sprengkisten
 - Werkstatt: Kauf, zu wenig Geld, Maximalstufe, Start-Dynamit = 40 + 3 × Stufe
 - Missionen: Ziehen, Fortschritt, Belohnung

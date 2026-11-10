@@ -11,8 +11,10 @@ export const MAX_FRAME = 0.25;
 
 /* ---------- Schacht ---------- */
 export const WIDTH = 7;
-export const HEART_DEPTH = 250;
-/** Zeilen: 0 = Oberfläche, 250 = Herz, 251 = Grundgestein. */
+export const HEART_DEPTH = 10000;
+/** Zonengrenzen sind für 250 m entworfen (40/110/200) und skalieren mit der Schachttiefe. */
+const DEPTH_SCALE = HEART_DEPTH / 250;
+/** Zeilen: 0 = Oberfläche, HEART_DEPTH = Herz, danach Grundgestein. */
 export const HEIGHT = HEART_DEPTH + 2;
 export const START_X = 3;
 
@@ -64,7 +66,7 @@ export const ZONES: readonly ZoneDef[] = [
   {
     id: 'schiefer',
     name: 'Tiefschiefer',
-    from: 40,
+    from: Math.round(40 * DEPTH_SCALE),
     base: Block.Slate,
     darkness: 0.75,
     drain: 1.1,
@@ -83,7 +85,7 @@ export const ZONES: readonly ZoneDef[] = [
   {
     id: 'magma',
     name: 'Magmazone',
-    from: 110,
+    from: Math.round(110 * DEPTH_SCALE),
     base: Block.Basalt,
     darkness: 0.85,
     drain: 1.25,
@@ -104,7 +106,7 @@ export const ZONES: readonly ZoneDef[] = [
   {
     id: 'kristall',
     name: 'Kristallhöhle',
-    from: 200,
+    from: Math.round(200 * DEPTH_SCALE),
     base: Block.CrystalRock,
     darkness: 0.9,
     drain: 1.4,
@@ -272,7 +274,7 @@ export const CHEST = {
 
 /* ---------- Sieg / Niederlage ---------- */
 export const RUN = {
-  heartBonus: 1000,
+  heartBonus: 20000,
   /** Anteil der Münzen, den man bei Tod behält. */
   deathKeep: 0.7,
 };

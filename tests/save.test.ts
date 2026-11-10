@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SAVE_KEY } from '../src/config';
+import { SAVE_KEY, ZONES } from '../src/config';
 import { evaluateAchievements, ACHIEVEMENTS } from '../src/meta/achievements';
 import { applyRunResult } from '../src/meta/progress';
 import { defaultMeta, loadMeta, parseMeta, saveMeta, type KeyValueStore } from '../src/meta/save';
@@ -39,14 +39,14 @@ describe('Rundenergebnis & Erfolge', () => {
     const m = defaultMeta();
     const s = blankGame();
     s.wallet = 200;
-    s.stats.depth = 45;
+    s.stats.depth = (ZONES[1]?.from ?? 0) + 5;
     s.stats.ores = 10;
     s.status = 'ended';
     const r = applyRunResult(m, s);
     expect(r.banked).toBe(200);
     expect(r.newBest).toBe(true);
     expect(m.money).toBe(200);
-    expect(m.bestDepth).toBe(45);
+    expect(m.bestDepth).toBe((ZONES[1]?.from ?? 0) + 5);
     expect(m.totals.ores).toBe(10);
     expect(r.achievements.map((a) => a.id)).toContain('schiefer');
   });
@@ -76,7 +76,7 @@ describe('Rundenergebnis & Erfolge', () => {
   it('hat 9 Erfolge, die einmalig freigeschaltet werden', () => {
     expect(ACHIEVEMENTS).toHaveLength(9);
     const m = defaultMeta();
-    const stats = { ...emptyStats(), depth: 120, comboMax: 6 };
+    const stats = { ...emptyStats(), depth: (ZONES[2]?.from ?? 0) + 10, comboMax: 6 };
     const first = evaluateAchievements(m, stats).map((a) => a.id);
     expect(first).toEqual(expect.arrayContaining(['schiefer', 'magma', 'kombo']));
     expect(evaluateAchievements(m, stats)).toHaveLength(0);

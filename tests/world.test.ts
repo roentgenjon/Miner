@@ -26,7 +26,7 @@ describe('Weltgenerierung', () => {
     expect(dailySeed(new Date(2026, 0, 5))).toBe('tag-2026-01-05');
   });
 
-  it('hat die richtige Struktur: 7 Spalten, Luft oben, Herz bei 250 m, Grundgestein unten', () => {
+  it('hat die richtige Struktur: 7 Spalten, Luft oben, Herz am Schachtende, Grundgestein unten', () => {
     const w = generateWorld('struktur');
     expect(w.width).toBe(WIDTH);
     expect(getCell(w, 3, 0)).toBe(Block.Air);
@@ -40,11 +40,12 @@ describe('Weltgenerierung', () => {
   });
 
   it('nutzt je Zone das passende Grundgestein', () => {
-    expect(ZONES.map((z) => z.from)).toEqual([0, 40, 110, 200]);
-    expect(zoneAt(39).id).toBe('erde');
-    expect(zoneAt(40).id).toBe('schiefer');
-    expect(zoneAt(110).id).toBe('magma');
-    expect(zoneAt(200).id).toBe('kristall');
+    const [, s1, m1, k1] = ZONES.map((z) => z.from) as [number, number, number, number];
+    expect(ZONES.map((z) => z.from)).toEqual([0, Math.round(HEART_DEPTH * 0.16), Math.round(HEART_DEPTH * 0.44), Math.round(HEART_DEPTH * 0.8)]);
+    expect(zoneAt(s1 - 1).id).toBe('erde');
+    expect(zoneAt(s1).id).toBe('schiefer');
+    expect(zoneAt(m1).id).toBe('magma');
+    expect(zoneAt(k1).id).toBe('kristall');
     const w = generateWorld('zonen');
     const counts: Record<string, number> = {};
     for (let y = 1; y < HEART_DEPTH; y++) {
@@ -63,9 +64,11 @@ describe('Weltgenerierung', () => {
       for (let y = from; y < to; y++) for (let x = 0; x < WIDTH; x++) if (getCell(w, x, y) === b) return true;
       return false;
     };
-    expect(has(Block.Diamond, 0, 200)).toBe(false);
-    expect(has(Block.Diamond, 200, HEART_DEPTH)).toBe(true);
-    expect(has(Block.LavaSource, 0, 110)).toBe(false);
+    const kristall = ZONES[3]?.from ?? 0;
+    const magma = ZONES[2]?.from ?? 0;
+    expect(has(Block.Diamond, 0, kristall)).toBe(false);
+    expect(has(Block.Diamond, kristall, HEART_DEPTH)).toBe(true);
+    expect(has(Block.LavaSource, 0, magma)).toBe(false);
     expect(w.lavaSources.length).toBeGreaterThan(0);
     expect(w.batSpawns.length).toBeGreaterThan(0);
   });
