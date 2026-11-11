@@ -27,6 +27,8 @@ export interface Player {
   darkT: number;
   /** Restzeit, in der die Figur beim Klettern festhängt (keine Schwerkraft). */
   climb: number;
+  /** Zuletzt abgebautes Feld (für das schnellere Nachrücken). */
+  lastDug: { x: number; y: number } | null;
 }
 
 export interface Bat {
@@ -147,6 +149,7 @@ export function createGame(opts: CreateGameOptions): GameState {
       fallCount: 0,
       darkT: 0,
       climb: 0,
+      lastDug: null,
     },
     bats: world.batSpawns.map((p) => ({
       id: nextId++,

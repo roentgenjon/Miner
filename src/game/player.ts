@@ -17,6 +17,9 @@ function canFall(s: GameState): boolean {
   return p.y + 1 < s.world.height && getCell(s.world, p.x, p.y + 1) === Block.Air;
 }
 
+/** Höchstzahl kurzer Aktionen, die in einem Logikschritt nacheinander ablaufen dürfen. */
+const MAX_CHAIN = 4;
+
 export function updatePlayer(s: GameState, dt: number): void {
   const p = s.player;
   const inp = s.input;
@@ -43,14 +46,37 @@ export function updatePlayer(s: GameState, dt: number): void {
     if (s.status !== 'playing') return;
   }
 
+  // Bei hoher Spitzhackenstufe sind Abbauen und Nachrücken so kurz, dass mehrere
+  // Aktionen in einen Logikschritt passen. Der Übertrag (carry) bleibt dabei erhalten.
+  for (let i = 0; i < MAX_CHAIN; i++) {
+    if (!beginAction(s, carry)) return;
+    const next = p.action;
+    if (!next || next.left > 0) return;
+    carry = next.left;
+    finishAction(s);
+    p.action = null;
+    if (s.status !== 'playing') return;
+  }
+}
+
+/** Startet die nächste Aktion (Fallen, Landen, Graben, Laufen). Liefert false, wenn nichts zu tun ist. */
+function beginAction(s: GameState, carry: number): boolean {
+  const p = s.player;
+  const inp = s.input;
+
   // Schwerkraft (beim Klettern kurz ausgesetzt)
   if (p.climb <= 0 && canFall(s)) {
+    // Ins gerade gegrabene Feld darunter rutscht man schneller (Spitzhacke), nicht aber in freie Schächte.
+    const dug = p.lastDug;
+    p.lastDug = null;
+    const fast = dug !== null && dug.x === p.x && dug.y === p.y + 1;
+    const dur = PLAYER.fallTime / (fast ? s.mods.digSpeed : 1);
     p.px = p.x;
     p.py = p.y;
     p.y++;
     p.fallCount++;
-    p.action = { kind: 'fall', dur: PLAYER.fallTime, left: PLAYER.fallTime + carry };
-    return;
+    p.action = { kind: 'fall', dur, left: dur + carry };
+    return true;
   }
   if (p.fallCount > 0 && p.climb <= 0 && !canFall(s)) {
     const fall = p.fallCount;
@@ -58,14 +84,14 @@ export function updatePlayer(s: GameState, dt: number): void {
     emit(s, { type: 'land', x: p.x, y: p.y, fall });
     const dmg = fall - PLAYER.fallSafe - s.mods.fallReduction;
     if (dmg > 0) damagePlayer(s, dmg, 'fall', true);
-    if (s.status !== 'playing') return;
+    if (s.status !== 'playing') return false;
   }
 
   const dir = inp.queued ?? inp.held;
-  if (dir) {
-    if (inp.queued) inp.queued = null;
-    startAct(s, dir, carry);
-  }
+  if (!dir) return false;
+  if (inp.queued) inp.queued = null;
+  startAct(s, dir, carry);
+  return p.action !== null;
 }
 
 function startAct(s: GameState, dir: Dir, carry: number): void {
@@ -85,8 +111,14 @@ function startAct(s: GameState, dir: Dir, carry: number): void {
     return;
   }
 
+  // Nachrücken in ein gerade freigegrabenes Feld wird von der Spitzhacke beschleunigt,
+  // sonst würde die feste Laufzeit das Graben ab etwa Stufe 25 ausbremsen.
+  const dug = p.lastDug;
+  p.lastDug = null;
+  const afterDig = dug !== null && dug.x === tx && dug.y === ty;
+
   if (cell === Block.Air) {
-    const moveDur = PLAYER.moveTime / s.mods.moveSpeed;
+    const moveDur = PLAYER.moveTime / s.mods.moveSpeed / (afterDig ? s.mods.digSpeed : 1);
     p.px = p.x;
     p.py = p.y;
     p.x = tx;
@@ -126,6 +158,7 @@ function finishAction(s: GameState): void {
   if (b === Block.Air || !BLOCKS[b]?.breakable) return;
 
   setCell(s.world, a.tx, a.ty, Block.Air);
+  p.lastDug = { x: a.tx, y: a.ty };
   s.stats.blocks++;
   p.energy = Math.max(0, p.energy - ENERGY.digCost * s.mods.digCostMult);
   emit(s, { type: 'dig', x: a.tx, y: a.ty, block: b });
