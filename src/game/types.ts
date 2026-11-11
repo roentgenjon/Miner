@@ -37,12 +37,29 @@ export interface Point {
   y: number;
 }
 
+/** Ein Abschnitt des Schachts (CHUNK_ROWS Zeilen), bei Bedarf deterministisch erzeugt. */
+export interface Chunk {
+  cells: Uint8Array;
+  /** Fledermaus-Startpunkte dieses Abschnitts (nach Anwendung von Bannzeichen). */
+  bats: Point[];
+}
+
+export interface WorldOptions {
+  /** Nur Tests: alle Zeilen 1..HEART_DEPTH mit diesem Block füllen (keine Erze, Höhlen, Fledermäuse). */
+  fill?: BlockId;
+  /** Anteil der Fledermäuse, der entfällt (Bannzeichen, 0..0,9). */
+  batReduction?: number;
+}
+
 export interface World {
   seed: string;
   width: number;
   height: number;
-  cells: Uint8Array;
-  batSpawns: Point[];
+  /** Bereits erzeugte Abschnitte (Index = Zeile / CHUNK_ROWS). */
+  chunks: (Chunk | undefined)[];
+  options: WorldOptions;
+  /** Fahrstuhl: In der Startspalte gilt alles bis zu dieser Zeile als freier Schacht. */
+  shaftDepth: number;
 }
 
 export type UpgradeId =

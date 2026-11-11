@@ -11,13 +11,15 @@ export const MAX_FRAME = 0.25;
 
 /* ---------- Schacht ---------- */
 export const WIDTH = 7;
-export const HEART_DEPTH = 100000;
+export const HEART_DEPTH = 10_000_000;
 /** Anzahl der Zonen; sie sind gleich lang. */
 export const ZONE_COUNT = 100;
 export const ZONE_LENGTH = HEART_DEPTH / ZONE_COUNT;
 /** Zeilen: 0 = Oberfläche, HEART_DEPTH = Herz, danach Grundgestein. */
 export const HEIGHT = HEART_DEPTH + 2;
 export const START_X = 3;
+/** Zeilen pro Welt-Abschnitt (die Welt wird abschnittsweise bei Bedarf erzeugt). */
+export const CHUNK_ROWS = 256;
 
 /* ---------- Zonen ---------- */
 export interface RollEntry {
@@ -305,8 +307,9 @@ export const BAT = {
 export const CHEST = {
   /** Gewichte: Münzen, Kohle, Dynamit, Herz. */
   weights: { money: 55, coal: 22, tnt: 15, heal: 8 },
+  /** Münzen aus einer Truhe: (moneyBase + moneyDeep) × Zonenwert-Faktor × Zufall. */
   moneyBase: 40,
-  moneyPerDepth: 0.6,
+  moneyDeep: 150,
   coalEnergy: 40,
   tntAmount: 8,
 };
@@ -382,7 +385,7 @@ export const UPGRADES: readonly UpgradeDef[] = [
   longUpgrade('legs', 'Laufschuhe', 'Schneller zur Seite laufen', 1500, 45, 0.002, 100_000),
   longUpgrade('master', 'Kombo-Meister', 'Höherer Kombo-Multiplikator', 1400, 120, 0.025, 400_000),
   { id: 'revive', name: 'Zweites Leben', desc: 'Einmal pro Stufe wiederbeleben', maxLevel: 5, baseCost: 800, growth: 2.0, perLevel: 1 },
-  longUpgrade('lift', 'Fahrstuhl', 'Start in größerer Tiefe (+20 m pro Stufe)', 4000, 100, 20, 500_000),
+  longUpgrade('lift', 'Fahrstuhl', 'Start in größerer Tiefe (+2000 m pro Stufe)', 4000, 100, 2000, 500_000),
   longUpgrade('gentle', 'Schonende Hacke', 'Graben kostet weniger Lampenenergie', 700, 50, 0.0012, 100_000),
   longUpgrade('ward', 'Bannzeichen', 'Weniger Fledermäuse', 900, 80, 0.001, 300_000),
 ];

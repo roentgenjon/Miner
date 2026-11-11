@@ -141,7 +141,7 @@ function onEvents(events: GameEvent[]): void {
   renderer.handleEvents(events);
   for (const e of events) {
     sfx.play(e);
-    if (e.type === 'zone') hud.toast(`${e.name} · ${zoneAt(state.player.y).from} m`, 'zone');
+    if (e.type === 'zone') hud.toast(`${e.name} · ${zoneAt(state.player.y).from.toLocaleString("de-DE")} m`, "zone");
     else if (e.type === 'mission') hud.toast(`Mission erfüllt: ${e.text} (+${e.reward})`, 'good');
     else if (e.type === 'revive') hud.toast('Zweites Leben! Weiter geht’s.', 'good');
     else if (e.type === 'hurt' && e.source === 'dark') hud.toast('Die Dunkelheit nagt an dir – such Kohle!', 'bad');

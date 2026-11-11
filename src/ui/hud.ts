@@ -60,7 +60,7 @@ export class Hud {
       this.energyFill.style.width = `${f * 100}%`;
       this.energyFill.classList.toggle('low', f < 0.25);
     });
-    this.set('depth', String(p.y), () => (this.depth.textContent = `${p.y} m / ${HEART_DEPTH}`));
+    this.set('depth', String(p.y), () => (this.depth.textContent = `${fmt(p.y)} m / ${fmt(HEART_DEPTH)}`));
     this.set('money', String(s.wallet), () => (this.money.textContent = `● ${fmt(s.wallet)}`));
     this.set('tnt', String(p.tnt), () => (this.tnt.textContent = `TNT ${p.tnt}`));
 

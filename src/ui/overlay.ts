@@ -72,7 +72,7 @@ export class Overlay {
         'div',
         { class: 'stat-row' },
         h('div', {}, h('b', {}, `● ${fmt(m.money)}`), h('span', {}, 'Münzen')),
-        h('div', {}, h('b', {}, `${m.bestDepth} m`), h('span', {}, 'Rekord')),
+        h('div', {}, h('b', {}, `${fmt(m.bestDepth)} m`), h('span', {}, 'Rekord')),
         h('div', {}, h('b', {}, `${Object.keys(m.achievements).length}/${ACHIEVEMENTS.length}`), h('span', {}, 'Erfolge')),
       ),
       this.btn('Neuer Schacht', () => this.act.startRun(false), 'primary'),
@@ -165,7 +165,7 @@ export class Overlay {
   showPause(s: GameState): void {
     this.show(
       h('h2', {}, 'Pause'),
-      h('p', { class: 'hint' }, `Tiefe ${s.player.y} m · Rekord ${Math.max(s.record, s.stats.depth)} m`),
+      h('p', { class: 'hint' }, `Tiefe ${fmt(s.player.y)} m · Rekord ${fmt(Math.max(s.record, s.stats.depth))} m`),
       h(
         'ul',
         { class: 'missions big' },
@@ -186,7 +186,7 @@ export class Overlay {
       h(
         'div',
         { class: 'result' },
-        h('p', {}, `Tiefe: ${s.stats.depth} m`, r.newBest ? h('strong', {}, '  Neuer Rekord!') : null),
+        h('p', {}, `Tiefe: ${fmt(s.stats.depth)} m`, r.newBest ? h('strong', {}, '  Neuer Rekord!') : null),
         h('p', {}, `Erze: ${s.stats.ores} · Truhen: ${s.stats.chests} · Fledermäuse: ${s.stats.bats}`),
         h('p', {}, `Gesprengt: ${s.stats.tntBlocks} Blöcke`),
         h('p', {}, `Verdient: ● ${fmt(s.wallet)}`, s.status === 'dead' ? ` → gutgeschrieben ● ${fmt(r.banked)}` : ''),

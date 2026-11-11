@@ -1,6 +1,6 @@
 # Schacht
 
-Pixel-Grabespiel im Browser: Grabe dich durch einen 7 Spalten breiten Schacht bis zum **Herz des Bergs** in 100 000 m Tiefe.
+Pixel-Grabespiel im Browser: Grabe dich durch einen 7 Spalten breiten Schacht bis zum **Herz des Bergs** in 10 000 000 m Tiefe.
 Vite + TypeScript (strict), Rendering per Canvas 2D, als PWA offline spielbar und auf dem Handy installierbar.
 
 > **Hinweis:** Diese Version wurde nach der Feature-Beschreibung neu geschrieben, die ursprüngliche `schacht.html`
@@ -32,7 +32,7 @@ Benötigt Node.js ≥ 20.
 
 - **Klettern:** Nach oben gräbt oder läuft die Figur und hält sich dabei kurz fest. Lässt du los, fällt sie nach einem Moment wieder (Fallschaden ab 4 Feldern).
 - **Lampe** ist deine Energie – sie verbraucht sich unter Tage, **Kohle** füllt sie auf. Ist sie leer, wird es dunkel und gefährlich.
-- **Zonen:** 100 Zonen à 1 000 m. Sie wechseln reihum zwischen Erde, Tiefschiefer, Magmazone und Kristallhöhle ("Erde I", "Tiefschiefer I", … "Kristallhöhle XXV"); jeder Durchlauf hat einen eigenen Farbton, ist dunkler, verbraucht mehr Lampenenergie, hat mehr Gefahren und wertvollere Erze. Das Herz (100 000 m = Sieg) liegt am Ende. Tiefe und Zonenzahl stehen als `HEART_DEPTH` und `ZONE_COUNT` in `src/config.ts`.
+- **Zonen:** 100 Zonen à 100 000 m. Sie wechseln reihum zwischen Erde, Tiefschiefer, Magmazone und Kristallhöhle ("Erde I", "Tiefschiefer I", … "Kristallhöhle XXV"); jeder Durchlauf hat einen eigenen Farbton, ist dunkler, verbraucht mehr Lampenenergie, hat mehr Gefahren und wertvollere Erze. Das Herz (10 000 000 m = Sieg) liegt am Ende. Tiefe und Zonenzahl stehen als `HEART_DEPTH` und `ZONE_COUNT` in `src/config.ts`.
 - **Erze** bringen Münzen, aufeinanderfolgende Erze erhöhen den **Kombo-Multiplikator**.
 - **Truhen** enthalten Münzen, Kohle, Dynamit oder ein Leben. **Sprengkisten** explodieren, sobald man sie abbaut – und lösen Kettenreaktionen aus.
 - Gefahren: fallendes **Geröll**, **Fledermäuse** (Hineinlaufen = Schlag).
@@ -51,7 +51,7 @@ src/
   game/                reine Spiellogik, kein DOM
     types.ts           Blocktypen, Ereignisse, gemeinsame Typen
     rng.ts             Seed-Zufall, Tagesschacht-Seed
-    world.ts           Weltgenerierung (Zonen, Erze, Höhlen), Zellzugriff
+    world.ts           Weltgenerierung abschnittsweise bei Bedarf (Zonen, Erze, Höhlen), Zellzugriff
     state.ts           GameState, Spieler, Entitäten, Schaden
     player.ts          Bewegung, Graben, Schwerkraft, Fallschaden
     bats.ts            Fledermäuse

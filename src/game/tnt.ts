@@ -81,6 +81,7 @@ export function explode(s: GameState, cx: number, cy: number, radius: number): v
   // Fledermäuse
   s.bats = s.bats.filter((b) => {
     if (Math.hypot(b.x - cx, b.y - cy) > radius) return true;
+    if (b.home) s.deadBats.add(b.home);
     s.stats.bats++;
     emit(s, { type: 'batDie', x: b.x, y: b.y });
     return false;

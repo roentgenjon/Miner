@@ -45,10 +45,10 @@ describe('Neue Upgrades', () => {
   });
 
   it('Fahrstuhl startet tiefer in einem freigeräumten Schacht', () => {
-    const s = gameWith({ lift: 10 });
-    expect(s.player.y).toBe(200);
-    expect(s.stats.depth).toBe(200);
-    for (const y of [1, 100, 200]) expect(getCell(s.world, START_X, y)).toBe(Block.Air);
+    const s = gameWith({ lift: 1 });
+    expect(s.player.y).toBe(2000);
+    expect(s.stats.depth).toBe(2000);
+    for (const y of [1, 1000, 2000]) expect(getCell(s.world, START_X, y)).toBe(Block.Air);
     const hp = s.player.hp;
     for (let i = 0; i < 120; i++) step(s, STEP);
     expect(s.player.hp).toBe(hp); // kein Fallschaden beim Start

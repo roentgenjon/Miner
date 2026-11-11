@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { UPGRADES } from '../src/config';
 import { createGame } from '../src/game/state';
-import { generateWorld, thinHazards } from '../src/game/world';
+import { batSpawnsIn, generateWorld, getCell } from '../src/game/world';
 import { computeMods, describeLevel, emptyUpgrades } from '../src/meta/shop';
 
-function thinned(seed: string, fraction: number): ReturnType<typeof generateWorld> {
-  const w = generateWorld(seed);
-  thinHazards(w, fraction);
-  return w;
+const RANGE = 300_000; // Zeilen, die für Zählungen untersucht werden
+
+function world(seed: string, batReduction: number): ReturnType<typeof generateWorld> {
+  return generateWorld(seed, { batReduction });
 }
 
 describe('Bannzeichen: weniger Fledermäuse', () => {
@@ -23,39 +23,40 @@ describe('Bannzeichen: weniger Fledermäuse', () => {
 
   it('ohne Upgrade bleibt die Welt unverändert', () => {
     const a = generateWorld('ward-1');
-    const b = thinned('ward-1', 0);
-    expect(Array.from(b.cells)).toEqual(Array.from(a.cells));
-    expect(b.batSpawns).toEqual(a.batSpawns);
+    const b = world('ward-1', 0);
+    expect(batSpawnsIn(b, 0, RANGE)).toEqual(batSpawnsIn(a, 0, RANGE));
   });
 
   it('entfernt ungefähr den eingestellten Anteil an Fledermäusen', () => {
-    const base = generateWorld('ward-2');
-    const half = thinned('ward-2', 0.5);
-    const ratio = half.batSpawns.length / base.batSpawns.length;
-    expect(ratio).toBeGreaterThan(0.43);
-    expect(ratio).toBeLessThan(0.57);
+    const all = batSpawnsIn(world('ward-2', 0), 0, RANGE).length;
+    const half = batSpawnsIn(world('ward-2', 0.5), 0, RANGE).length;
+    expect(all).toBeGreaterThan(1000);
+    expect(half / all).toBeGreaterThan(0.45);
+    expect(half / all).toBeLessThan(0.55);
   });
 
   it('verändert sonst nichts und ist deterministisch (Tagesschacht bleibt für alle gleich)', () => {
     const base = generateWorld('ward-3');
-    const a = thinned('ward-3', 0.4);
-    const b = thinned('ward-3', 0.4);
-    expect(a.batSpawns).toEqual(b.batSpawns);
-    expect(Array.from(a.cells)).toEqual(Array.from(base.cells));
+    const a = world('ward-3', 0.4);
+    const b = world('ward-3', 0.4);
+    expect(batSpawnsIn(a, 0, 50_000)).toEqual(batSpawnsIn(b, 0, 50_000));
+    for (let y = 0; y < 2000; y++) for (let x = 0; x < 7; x++) expect(getCell(a, x, y)).toBe(getCell(base, x, y));
   });
 
   it('höhere Stufe entfernt stets eine Obermenge der niedrigeren', () => {
-    const low = thinned('ward-4', 0.2);
-    const high = thinned('ward-4', 0.6);
+    const low = batSpawnsIn(world('ward-4', 0.2), 0, 100_000);
+    const high = batSpawnsIn(world('ward-4', 0.6), 0, 100_000);
     const key = (p: { x: number; y: number }): string => `${p.x},${p.y}`;
-    const lowBats = new Set(low.batSpawns.map(key));
-    for (const p of high.batSpawns) expect(lowBats.has(key(p))).toBe(true);
+    const lowSet = new Set(low.map(key));
+    for (const p of high) expect(lowSet.has(key(p))).toBe(true);
+    expect(high.length).toBeLessThan(low.length);
   });
 
-  it('wirkt im Spiel: weniger Fledermäuse beim Rundenstart', () => {
+  it('wirkt im Spiel: weniger Fledermäuse in der Welt', () => {
     const plain = createGame({ seed: 'ward-5', mods: computeMods(emptyUpgrades()) });
     const warded = createGame({ seed: 'ward-5', mods: computeMods({ ...emptyUpgrades(), ward: 900 }) });
-    expect(warded.bats.length).toBeLessThan(plain.bats.length * 0.2);
-    expect(plain.bats.length).toBeGreaterThan(100);
+    const n = (s: typeof plain): number => batSpawnsIn(s.world, 0, 100_000).length;
+    expect(n(warded)).toBeLessThan(n(plain) * 0.2);
+    expect(n(plain)).toBeGreaterThan(300);
   });
 });

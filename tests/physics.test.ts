@@ -71,7 +71,7 @@ describe('Spieler', () => {
 
   it('Sieg beim Abbauen des Herzens', () => {
     const s = blankGame();
-    for (let y = 1; y < HEART_DEPTH; y++) put(s, 3, y, Block.Air);
+    put(s, 3, HEART_DEPTH - 1, Block.Air);
     s.player.y = HEART_DEPTH - 1;
     s.player.px = 3;
     s.player.py = HEART_DEPTH - 1;

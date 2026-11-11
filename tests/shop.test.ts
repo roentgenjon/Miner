@@ -90,7 +90,7 @@ describe('Stufenverlauf', () => {
     expect(m.drainMult).toBeGreaterThanOrEqual(0.2);
     expect(m.digCostMult).toBeGreaterThanOrEqual(0.1);
     expect(m.blastLoot).toBeLessThanOrEqual(1);
-    expect(m.startDepth).toBe(80_000);
+    expect(m.startDepth).toBe(8_000_000);
     expect(m.moveSpeed).toBeCloseTo(4);
   });
 });

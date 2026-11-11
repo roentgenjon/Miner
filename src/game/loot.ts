@@ -52,7 +52,7 @@ export function openChest(s: GameState, x: number, y: number): void {
   s.stats.chests++;
   let text = '';
   if ((r -= weights.money) < 0) {
-    const amount = Math.round((CHEST.moneyBase + CHEST.moneyPerDepth * y) * s.mods.lootMult * (0.7 + s.rng.next() * 0.6));
+    const amount = Math.round((CHEST.moneyBase + CHEST.moneyDeep) * zoneValueScale(y) * s.mods.lootMult * (0.7 + s.rng.next() * 0.6));
     addMoney(s, amount);
     text = `+${amount} Münzen`;
   } else if ((r -= weights.coal) < 0) {

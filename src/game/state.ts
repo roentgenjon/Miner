@@ -1,8 +1,9 @@
 import { HEART_DEPTH, PLAYER, START_X, zoneAt } from '../config';
 import { createMissions, type MissionState } from '../meta/missions';
 import { createRng, type Rng } from './rng';
-import { Block, type Dir, type GameEvent, type Mods, type RunStats, type World, type ZoneId } from './types';
-import { generateWorld, setCell, thinHazards } from './world';
+import { type Dir, type GameEvent, type Mods, type RunStats, type World, type ZoneId } from './types';
+import { syncBats } from './bats';
+import { generateWorld } from './world';
 
 export type PlayerAction =
   | { kind: 'dig'; tx: number; ty: number; dir: Dir; dur: number; left: number }
@@ -33,6 +34,10 @@ export interface Player {
 
 export interface Bat {
   id: number;
+  /** Startpunkt „x,y“ (damit erledigte Fledermäuse nicht wiederkehren) – fehlt bei manuell erzeugten. */
+  home?: string;
+  /** Abschnitt, aus dem sie stammt; sie verschwindet, wenn dieser weit weg ist. */
+  chunk?: number;
   x: number;
   y: number;
   hp: number;
@@ -73,6 +78,10 @@ export interface GameState {
   mods: Mods;
   player: Player;
   bats: Bat[];
+  /** Abschnitte, deren Fledermäuse gerade geladen sind. */
+  batChunks: Set<number>;
+  /** Erledigte Fledermäuse (Startpunkt-Schlüssel). */
+  deadBats: Set<string>;
   tnts: Tnt[];
   rocks: Rock[];
   /** Wackelzeit von Geröll ohne Halt (Schlüssel = Zellindex). */
@@ -101,6 +110,8 @@ export interface CreateGameOptions {
   daily?: boolean;
   mods: Mods;
   record?: number;
+  /** Nur Tests: vorgefertigte Welt statt generierter. */
+  world?: World;
 }
 
 export function emptyStats(): RunStats {
@@ -108,11 +119,10 @@ export function emptyStats(): RunStats {
 }
 
 export function createGame(opts: CreateGameOptions): GameState {
-  const world = generateWorld(opts.seed);
-  thinHazards(world, opts.mods.hazardReduction);
-  // Fahrstuhl: Schacht in der Startspalte bis zur Starttiefe freiräumen.
+  const world = opts.world ?? generateWorld(opts.seed, { batReduction: opts.mods.hazardReduction });
+  // Fahrstuhl: Schacht in der Startspalte bis zur Starttiefe gilt als frei (ohne ihn zu erzeugen).
   const startY = Math.min(opts.mods.startDepth, HEART_DEPTH - 10);
-  for (let y = 1; y <= startY; y++) setCell(world, START_X, y, Block.Air);
+  world.shaftDepth = startY;
   const rng = createRng(`run:${opts.seed}`);
   let nextId = 1;
   const state: GameState = {
@@ -138,15 +148,9 @@ export function createGame(opts: CreateGameOptions): GameState {
       climb: 0,
       lastDug: null,
     },
-    bats: world.batSpawns.map((p) => ({
-      id: nextId++,
-      x: p.x,
-      y: p.y,
-      hp: 1,
-      t: 0.3,
-      cd: 0,
-      awake: false,
-    })),
+    bats: [],
+    batChunks: new Set(),
+    deadBats: new Set(),
     tnts: [],
     rocks: [],
     wobble: new Map(),
@@ -165,6 +169,7 @@ export function createGame(opts: CreateGameOptions): GameState {
     zone: zoneAt(startY).id,
     nextId,
   };
+  syncBats(state);
   return state;
 }
 

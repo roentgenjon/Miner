@@ -22,7 +22,7 @@ export interface MissionState {
 }
 
 export const MISSION_DEFS: readonly MissionDef[] = [
-  { id: 'depth', label: (n) => `Erreiche ${n} m Tiefe`, stat: 'depth', targets: [1000, 4000, 15000], rewards: [50, 120, 260] },
+  { id: 'depth', label: (n) => `Erreiche ${n} m Tiefe`, stat: 'depth', targets: [100_000, 400_000, 1_500_000], rewards: [50, 120, 260] },
   { id: 'ores', label: (n) => `Sammle ${n} Erze`, stat: 'ores', targets: [8, 18, 32], rewards: [50, 120, 250] },
   { id: 'combo', label: (n) => `Erreiche eine ${n}er-Kombo`, stat: 'comboMax', targets: [3, 5, 8], rewards: [60, 130, 280] },
   { id: 'tnt', label: (n) => `Sprenge ${n} Blöcke mit Dynamit`, stat: 'tntBlocks', targets: [12, 30, 60], rewards: [50, 110, 240] },
