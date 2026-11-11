@@ -12,8 +12,8 @@ export const MAX_FRAME = 0.25;
 /* ---------- Schacht ---------- */
 export const WIDTH = 7;
 export const HEART_DEPTH = 10_000_000;
-/** Anzahl der Zonen; sie sind gleich lang. */
-export const ZONE_COUNT = 100;
+/** Anzahl der Zonen; sie sind gleich lang (hier 10 m). Sie werden bei Bedarf berechnet, nicht gespeichert. */
+export const ZONE_COUNT = 1_000_000;
 export const ZONE_LENGTH = HEART_DEPTH / ZONE_COUNT;
 /** Zeilen: 0 = Oberfläche, HEART_DEPTH = Herz, danach Grundgestein. */
 export const HEIGHT = HEART_DEPTH + 2;
@@ -136,7 +136,12 @@ const FAMILIES: readonly Family[] = [
 ];
 
 function roman(n: number): string {
-  const map: [number, string][] = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+  // Ab 4000 gibt es keine römische Zahl mehr sinnvoll: dann arabisch.
+  if (n >= 4000) return String(n);
+  const map: [number, string][] = [
+    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+    [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+  ];
   let out = '';
   let rest = n;
   for (const [v, s] of map) {
@@ -151,11 +156,21 @@ function roman(n: number): string {
 /** Gefahren (Geröll, Kisten) werden mit der Zonennummer häufiger, bis zu ×2,2. */
 const HAZARDS: readonly BlockId[] = [Block.Boulder, Block.Crate];
 
+/**
+ * Schwierigkeit wächst mit dem Fortschritt durch den Schacht. Die Werte sind so geeicht, dass die letzte
+ * Zone dem früheren „Zone 99“ von 100 entspricht – unabhängig von der Zonenzahl.
+ */
+const MAX_SCALE_STEPS = 99;
+function progressSteps(index: number): number {
+  return (MAX_SCALE_STEPS * index) / (ZONE_COUNT - 1);
+}
+
 function buildZone(index: number): ZoneDef {
   const family = index % FAMILIES.length;
   const ring = Math.floor(index / FAMILIES.length);
   const f = FAMILIES[family] as Family;
-  const hazard = 1 + 0.012 * index;
+  const steps = progressSteps(index);
+  const hazard = 1 + 0.012 * steps;
   return {
     id: `z${index}`,
     index,
@@ -164,24 +179,40 @@ function buildZone(index: number): ZoneDef {
     name: `${f.name} ${roman(ring + 1)}`,
     from: index * ZONE_LENGTH,
     base: f.base,
-    darkness: Math.min(0.97, f.darkness + 0.0007 * index),
-    drain: f.drain * (1 + 0.015 * index),
+    darkness: Math.min(0.97, f.darkness + 0.0007 * steps),
+    drain: f.drain * (1 + 0.015 * steps),
     caveChance: f.caveChance,
     batChance: f.batChance,
     rolls: f.rolls.map((r) => (HAZARDS.includes(r.block) ? { ...r, p: r.p * hazard } : r)),
   };
 }
 
-export const ZONES: readonly ZoneDef[] = Array.from({ length: ZONE_COUNT }, (_, i) => buildZone(i));
+/** Zwischenspeicher: In einem Bild/Abschnitt werden nur wenige Zonen gebraucht. */
+const zoneCache = new Map<number, ZoneDef>();
 
-export function zoneAt(depth: number): ZoneDef {
-  const i = Math.min(ZONE_COUNT - 1, Math.max(0, Math.floor(depth / ZONE_LENGTH)));
-  return ZONES[i] as ZoneDef;
+export function zoneIndexAt(depth: number): number {
+  return Math.min(ZONE_COUNT - 1, Math.max(0, Math.floor(depth / ZONE_LENGTH)));
 }
 
-/** Erze sind in tieferen Zonen mehr wert (+10 % je Zone). */
+export function zoneByIndex(index: number): ZoneDef {
+  const hit = zoneCache.get(index);
+  if (hit) return hit;
+  if (zoneCache.size > 4096) zoneCache.clear();
+  const z = buildZone(index);
+  zoneCache.set(index, z);
+  return z;
+}
+
+export function zoneAt(depth: number): ZoneDef {
+  return zoneByIndex(zoneIndexAt(depth));
+}
+
+/** Eine Zonen-Meldung („Neue Zone“) gibt es nur alle so viele Zonen, sonst wäre es Dauerfeuer. */
+export const ZONE_TOAST_EVERY = 1000;
+
+/** Erze sind in tieferen Zonen mehr wert (am Schachtende ×10,9). */
 export function zoneValueScale(depth: number): number {
-  return 1 + 0.1 * zoneAt(depth).index;
+  return 1 + 0.1 * progressSteps(zoneIndexAt(depth));
 }
 
 /* ---------- Blöcke ---------- */

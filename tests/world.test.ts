@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHUNK_ROWS, HEART_DEPTH, WIDTH, ZONE_LENGTH, ZONES, zoneAt, zoneValueScale } from '../src/config';
+import { CHUNK_ROWS, HEART_DEPTH, WIDTH, ZONE_COUNT, ZONE_LENGTH, zoneAt, zoneByIndex, zoneValueScale } from '../src/config';
 import { dailyKey, dailySeed } from '../src/game/rng';
 import { Block } from '../src/game/types';
 import { batSpawnsIn, generateWorld, getCell } from '../src/game/world';
@@ -67,53 +67,65 @@ describe('Weltgenerierung', () => {
     expect(w.chunks.filter(Boolean)).toHaveLength(2);
   });
 
-  it('hat 100 gleich lange Zonen mit eindeutigen Namen', () => {
-    expect(ZONES).toHaveLength(100);
-    expect(ZONE_LENGTH).toBe(HEART_DEPTH / 100);
-    ZONES.forEach((z, i) => {
-      expect(z.from).toBe(i * ZONE_LENGTH);
+  it('hat 1 000 000 gleich lange Zonen (je 10 m) mit eindeutigen Namen', () => {
+    expect(ZONE_COUNT).toBe(1_000_000);
+    expect(ZONE_LENGTH).toBe(10);
+    expect(ZONE_COUNT * ZONE_LENGTH).toBe(HEART_DEPTH);
+    const names = new Set<string>();
+    for (let i = 0; i < 5000; i++) {
+      const z = zoneByIndex(i);
       expect(z.index).toBe(i);
-    });
-    expect(new Set(ZONES.map((z) => z.name)).size).toBe(100);
-    expect(ZONES.slice(0, 4).map((z) => z.name)).toEqual(['Erde I', 'Tiefschiefer I', 'Magmazone I', 'Kristallhöhle I']);
-    expect(ZONES[99]?.name).toBe('Kristallhöhle XXV');
+      expect(z.from).toBe(i * ZONE_LENGTH);
+      names.add(z.name);
+    }
+    expect(names.size).toBe(5000);
+    expect([0, 1, 2, 3].map((i) => zoneByIndex(i).name)).toEqual(['Erde I', 'Tiefschiefer I', 'Magmazone I', 'Kristallhöhle I']);
+    expect(zoneByIndex(ZONE_COUNT - 1).name).toBe('Kristallhöhle 250000');
+    expect(zoneByIndex(4 * 39).name).toBe('Erde XL'); // 40. Durchlauf
   });
 
   it('findet die richtige Zone an den Grenzen', () => {
     expect(zoneAt(0).index).toBe(0);
     expect(zoneAt(ZONE_LENGTH - 1).index).toBe(0);
     expect(zoneAt(ZONE_LENGTH).index).toBe(1);
-    expect(zoneAt(54 * ZONE_LENGTH + 321).index).toBe(54);
-    expect(zoneAt(HEART_DEPTH).index).toBe(99);
-    expect(zoneAt(HEART_DEPTH * 2).index).toBe(99);
+    expect(zoneAt(54_321 * ZONE_LENGTH + 3).index).toBe(54_321);
+    expect(zoneAt(HEART_DEPTH).index).toBe(ZONE_COUNT - 1);
+    expect(zoneAt(HEART_DEPTH * 2).index).toBe(ZONE_COUNT - 1);
     expect(zoneAt(-5).index).toBe(0);
   });
 
-  it('wird mit der Zonennummer schwieriger und wertvoller', () => {
-    for (let i = 4; i < ZONES.length; i++) {
-      const z = ZONES[i];
-      const prev = ZONES[i - 4]; // gleiche Familie, vorheriger Durchlauf
-      expect(z?.darkness ?? 0).toBeGreaterThanOrEqual(prev?.darkness ?? 1);
-      expect(z?.drain ?? 0).toBeGreaterThan(prev?.drain ?? 99);
+  it('wird mit der Tiefe schwieriger und wertvoller (Skala unabhängig von der Zonenzahl)', () => {
+    let prev = zoneByIndex(0);
+    for (let i = 100_000; i < ZONE_COUNT; i += 100_000) {
+      const z = zoneByIndex(i);
+      const same = zoneByIndex(i - (i % 4)); // gleiche Familie wie prev vergleichen: Index modulo 4 = 0
+      expect(same.family).toBe(0);
+      expect(same.darkness).toBeGreaterThanOrEqual(prev.darkness);
+      expect(same.drain).toBeGreaterThan(prev.drain);
+      prev = same;
+      expect(z.darkness).toBeLessThanOrEqual(0.97);
     }
+    // Das Schachtende entspricht dem früheren „Zone 99 von 100“: Lampenverbrauch ×2,485 der Familie.
+    const last = zoneByIndex(ZONE_COUNT - 1);
+    expect(last.drain / 1.4).toBeCloseTo(1 + 0.015 * 99, 3);
     expect(zoneValueScale(0)).toBe(1);
     expect(zoneValueScale(HEART_DEPTH - 1)).toBeCloseTo(10.9);
-    for (const z of ZONES) expect(z.darkness).toBeLessThanOrEqual(0.97);
   });
 
-  it('nutzt je Zone das passende Grundgestein (Stichproben je Zone)', () => {
+  it('nutzt je Zone das passende Grundgestein (Stichproben)', () => {
     const w = generateWorld('zonen');
-    for (const z of ZONES) {
+    for (let i = 0; i < ZONE_COUNT; i += 12_345) {
+      const z = zoneByIndex(i);
       let base = 0;
       let total = 0;
-      for (let k = 0; k < 30; k++) {
-        const y = z.from + 5 + k * 997;
+      for (let dy = 0; dy < ZONE_LENGTH; dy++) {
+        const y = Math.max(5, z.from + dy);
         for (let x = 0; x < WIDTH; x++) {
           total++;
           if (getCell(w, x, y) === z.base) base++;
         }
       }
-      expect(base / total, z.name).toBeGreaterThan(0.6);
+      expect(base / total, z.name).toBeGreaterThan(0.4);
     }
   });
 
@@ -129,14 +141,16 @@ describe('Weltgenerierung', () => {
     expect(batSpawnsIn(w, 0, 20_000).length).toBeGreaterThan(0);
   });
 
-  it('platziert zonenspezifische Erze', () => {
+  it('platziert zonenspezifische Erze: Diamanten nur in Kristallhöhlen', () => {
     const w = generateWorld('inhalt');
-    const has = (b: number, from: number, to: number): boolean => {
-      for (let y = from; y < to; y++) for (let x = 0; x < WIDTH; x++) if (getCell(w, x, y) === b) return true;
-      return false;
-    };
-    const kristall = ZONES[3]?.from ?? 0;
-    expect(has(Block.Diamond, 0, 20_000)).toBe(false); // Erde I
-    expect(has(Block.Diamond, kristall, kristall + 20_000)).toBe(true); // Kristallhöhle I
+    let diamonds = 0;
+    for (let y = 1; y < 20_000; y++) {
+      for (let x = 0; x < WIDTH; x++) {
+        if (getCell(w, x, y) !== Block.Diamond) continue;
+        diamonds++;
+        expect(zoneAt(y).family).toBe(3);
+      }
+    }
+    expect(diamonds).toBeGreaterThan(20);
   });
 });

@@ -1,4 +1,4 @@
-import { ENERGY, HEART_DEPTH, STEP, WIDTH, ZONES, zoneAt } from '../config';
+import { ENERGY, HEART_DEPTH, STEP, WIDTH, ZONE_COUNT, ZONE_LENGTH, ZONE_TOAST_EVERY, zoneAt, zoneByIndex } from '../config';
 import type { GameState } from '../game/state';
 import { Block, type GameEvent } from '../game/types';
 import { getCell } from '../game/world';
@@ -221,7 +221,7 @@ export class Renderer {
     // Zellen
     for (let y = Math.max(1, y0); y <= y1; y++) {
       const zone = zoneAt(y);
-      const zt = this.tex.forZone(zone.index);
+      const zt = this.tex.forZone(zone.family, zone.ring);
       const variants = zt.base;
       for (let x = -gutter; x < WIDTH + gutter; x++) {
         const px = toX(x);
@@ -369,10 +369,12 @@ export class Renderer {
     const width = T * WIDTH;
     ctx.font = `bold ${Math.round(T * 0.22)}px ui-monospace, Menlo, Consolas, monospace`;
     ctx.textAlign = 'left';
-    // Nur Zonengrenzen im Bild zeichnen (bei 100 Zonen nicht alle durchlaufen).
-    const firstVisible = Math.max(1, zoneAt(Math.max(0, Math.floor(-toY(0) / T))).index);
-    for (let zi = firstVisible; zi < Math.min(ZONES.length, firstVisible + Math.ceil(this.H / T / 1000) + 2); zi++) {
-      const z = ZONES[zi] as (typeof ZONES)[number];
+    // Nur Zonengrenzen im Bild zeichnen (es gibt bis zu 1 Mio. Zonen).
+    const topDepth = Math.max(0, Math.floor(-toY(0) / T));
+    const bottomDepth = topDepth + Math.ceil(this.H / T) + 2;
+    for (let zi = Math.max(1, zoneAt(topDepth).index); zi < ZONE_COUNT && zi * ZONE_LENGTH <= bottomDepth; zi++) {
+      if (zi % ZONE_TOAST_EVERY !== 0) continue; // nur Meilensteine beschriften
+      const z = zoneByIndex(zi);
       const y = toY(z.from);
       if (y < -T || y > this.H + T) continue;
       ctx.fillStyle = 'rgba(255,255,255,0.28)';

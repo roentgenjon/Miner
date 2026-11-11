@@ -134,7 +134,7 @@ export interface ZoneTextures {
 
 export interface Textures {
   /** Gesteinstexturen der Zone mit Nummer `index` (wird bei Bedarf erzeugt und gemerkt). */
-  forZone(index: number): ZoneTextures;
+  forZone(family: number, ring: number): ZoneTextures;
   bedrock: Tex[];
   overlay: Map<number, Tex>;
   grass: Tex;
@@ -197,21 +197,21 @@ const FAMILY_BACK: [string, string, string][] = [
 ];
 
 export function createTextures(): Textures {
-  const zoneCache = new Map<number, ZoneTextures>();
-  const forZone = (index: number): ZoneTextures => {
-    const hit = zoneCache.get(index);
+  // Texturen hängen nur von Gesteinsfamilie und Farbton ab (ring × 29° mod 360): höchstens 4 × 360 Sätze,
+  // egal wie viele Zonen es gibt.
+  const zoneCache = new Map<string, ZoneTextures>();
+  const forZone = (family: number, ring: number): ZoneTextures => {
+    const shift = (ring * 29) % 360;
+    const key = `${family}:${shift}`;
+    const hit = zoneCache.get(key);
     if (hit) return hit;
-    const family = index % FAMILY_COLORS.length;
-    const ring = Math.floor(index / FAMILY_COLORS.length);
-    // Jeder Durchlauf verschiebt den Farbton um ~29°, damit 100 Zonen unterscheidbar bleiben.
-    const shift = ring * 29;
     const [b, d, l] = (FAMILY_COLORS[family] as [string, string, string]).map((c) => shiftHue(c, shift)) as [string, string, string];
     const [bb, bd, bl] = (FAMILY_BACK[family] as [string, string, string]).map((c) => shiftHue(c, shift)) as [string, string, string];
     const zt: ZoneTextures = {
-      base: [0, 1, 2, 3].map((i) => stone(`z${index}-${i}`, b, d, l)),
-      back: stone(`z${index}-back`, bb, bd, bl, 0.16),
+      base: [0, 1, 2, 3].map((i) => stone(`z${key}-${i}`, b, d, l)),
+      back: stone(`z${key}-back`, bb, bd, bl, 0.16),
     };
-    zoneCache.set(index, zt);
+    zoneCache.set(key, zt);
     return zt;
   };
 

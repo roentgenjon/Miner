@@ -1,4 +1,4 @@
-import { HEART_DEPTH, PLAYER, START_X, zoneAt } from '../config';
+import { HEART_DEPTH, PLAYER, START_X, ZONE_TOAST_EVERY, zoneAt } from '../config';
 import { createMissions, type MissionState } from '../meta/missions';
 import { createRng, type Rng } from './rng';
 import { type Dir, type GameEvent, type Mods, type RunStats, type World, type ZoneId } from './types';
@@ -111,6 +111,8 @@ export interface GameState {
   /** Rekordtiefe zu Rundenbeginn. */
   record: number;
   zone: ZoneId;
+  /** Nummer des zuletzt gemeldeten Zonen-Meilensteins. */
+  zoneMilestone: number;
   nextId: number;
 }
 
@@ -179,6 +181,7 @@ export function createGame(opts: CreateGameOptions): GameState {
     revives: opts.mods.revives,
     record: opts.record ?? 0,
     zone: zoneAt(startY).id,
+    zoneMilestone: Math.floor(zoneAt(startY).index / ZONE_TOAST_EVERY),
     nextId,
   };
   syncBats(state);

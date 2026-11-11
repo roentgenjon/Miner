@@ -1,4 +1,4 @@
-import { ENERGY, zoneAt } from '../config';
+import { ENERGY, ZONE_TOAST_EVERY, zoneAt } from '../config';
 import { updateBats } from './bats';
 import { updatePhysics } from './physics';
 import { updatePlayer } from './player';
@@ -55,7 +55,12 @@ function trackProgress(s: GameState): void {
   const zone = zoneAt(p.y);
   if (zone.id !== s.zone) {
     s.zone = zone.id;
-    emit(s, { type: 'zone', zone: zone.id, name: zone.name });
+    // Bei 1 Mio. Zonen nur alle ZONE_TOAST_EVERY Zonen eine Meldung.
+    const milestone = Math.floor(zone.index / ZONE_TOAST_EVERY);
+    if (milestone !== s.zoneMilestone) {
+      s.zoneMilestone = milestone;
+      emit(s, { type: 'zone', zone: zone.id, name: zone.name });
+    }
   }
 
   for (const m of updateMissions(s.missions, s.stats)) {

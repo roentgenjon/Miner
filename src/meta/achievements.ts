@@ -1,4 +1,9 @@
-import { HEART_DEPTH, ZONES } from '../config';
+import { HEART_DEPTH } from '../config';
+
+/** Tiefen für die Erfolge: 1 %, 2 % und 3 % des Schachts. */
+const DEPTH_SCHIEFER = Math.round(HEART_DEPTH * 0.01);
+const DEPTH_MAGMA = Math.round(HEART_DEPTH * 0.02);
+const DEPTH_KRISTALL = Math.round(HEART_DEPTH * 0.03);
 import type { RunStats } from '../game/types';
 import type { Meta } from './save';
 
@@ -11,9 +16,9 @@ export interface AchievementDef {
 }
 
 export const ACHIEVEMENTS: readonly AchievementDef[] = [
-  { id: 'schiefer', name: 'Schieferbrecher', desc: `Erreiche ${(ZONES[1]?.from ?? 0).toLocaleString('de-DE')} m Tiefe.`, check: (m, r) => Math.max(m.bestDepth, r.depth) >= (ZONES[1]?.from ?? Infinity) },
-  { id: 'magma', name: 'Magmaläufer', desc: `Erreiche ${(ZONES[2]?.from ?? 0).toLocaleString('de-DE')} m Tiefe.`, check: (m, r) => Math.max(m.bestDepth, r.depth) >= (ZONES[2]?.from ?? Infinity) },
-  { id: 'kristall', name: 'Kristallseher', desc: `Erreiche ${(ZONES[3]?.from ?? 0).toLocaleString('de-DE')} m Tiefe.`, check: (m, r) => Math.max(m.bestDepth, r.depth) >= (ZONES[3]?.from ?? Infinity) },
+  { id: 'schiefer', name: 'Schieferbrecher', desc: `Erreiche ${DEPTH_SCHIEFER.toLocaleString('de-DE')} m Tiefe.`, check: (m, r) => Math.max(m.bestDepth, r.depth) >= DEPTH_SCHIEFER },
+  { id: 'magma', name: 'Magmaläufer', desc: `Erreiche ${DEPTH_MAGMA.toLocaleString('de-DE')} m Tiefe.`, check: (m, r) => Math.max(m.bestDepth, r.depth) >= DEPTH_MAGMA },
+  { id: 'kristall', name: 'Kristallseher', desc: `Erreiche ${DEPTH_KRISTALL.toLocaleString('de-DE')} m Tiefe.`, check: (m, r) => Math.max(m.bestDepth, r.depth) >= DEPTH_KRISTALL },
   { id: 'herz', name: 'Herz des Bergs', desc: `Erreiche das Herz in ${HEART_DEPTH.toLocaleString('de-DE')} m.`, check: (m, _r, won) => won || m.wins > 0 },
   { id: 'kombo', name: 'Kombo-König', desc: 'Erreiche eine 6er-Kombo.', check: (_m, r) => r.comboMax >= 6 },
   { id: 'fledermaus', name: 'Fledermausjäger', desc: 'Erledige insgesamt 10 Fledermäuse.', check: (m, r) => m.totals.bats + r.bats >= 10 },
