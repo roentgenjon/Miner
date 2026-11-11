@@ -2,6 +2,7 @@ import { ENERGY, HEART_DEPTH, STEP, WIDTH, ZONES, zoneAt } from '../config';
 import type { GameState } from '../game/state';
 import { Block, type GameEvent } from '../game/types';
 import { getCell } from '../game/world';
+import { followCamera } from './camera';
 import { BLOCK_COLORS, createTextures, type Textures } from './textures';
 
 interface Particle {
@@ -94,12 +95,16 @@ export class Renderer {
 
   /** Reagiert auf Spielereignisse mit Partikeln, Schwung und Zahlen. */
   handleEvents(events: readonly GameEvent[]): void {
+    // Bei extremem Tempo entstehen Tausende Ereignisse pro Schritt: nur eine Auswahl wird gezeigt.
+    let digs = 0;
+    let ores = 0;
     for (const e of events) {
       switch (e.type) {
         case 'dig':
-          this.burst(e.x + 0.5, e.y + 0.5, BLOCK_COLORS[e.block] ?? '#7a5232', 7, 3);
+          if (digs++ < 12) this.burst(e.x + 0.5, e.y + 0.5, BLOCK_COLORS[e.block] ?? '#7a5232', 7, 3);
           break;
         case 'ore':
+          if (ores++ >= 6) break;
           this.burst(e.x + 0.5, e.y + 0.5, BLOCK_COLORS[e.block] ?? '#fff', 10, 4);
           this.floaters.push({ x: e.x + 0.5, y: e.y, text: `+${e.value}${e.mult > 1 ? ` ×${e.mult.toFixed(2).replace(/\.?0+$/, '')}` : ''}`, color: '#ffd23a', life: 1.1 });
           break;
@@ -186,7 +191,8 @@ export class Renderer {
       this.camY = target;
       this.camInit = true;
     } else {
-      this.camY += (target - this.camY) * (1 - Math.exp(-dt * 9));
+      // Bei hohem Grabtempo darf die Kamera höchstens 2,5 Zeilen hinter der Figur zurückbleiben.
+      this.camY = followCamera(this.camY, target, dt, 2.5);
     }
     this.shake = Math.max(0, this.shake - dt * 2.2);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);

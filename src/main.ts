@@ -200,6 +200,7 @@ if (import.meta.env.DEV) {
     },
     meta,
     startRun,
+    renderer,
   };
 }
 
