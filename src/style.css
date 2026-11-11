@@ -395,18 +395,15 @@ button {
   min-width: 78px;
   flex-shrink: 0;
 }
-.pips {
-  display: flex;
-  gap: 2px;
-  margin: 2px 0;
-}
-.pips i {
-  width: 9px;
+.lvlbar {
   height: 7px;
+  margin: 3px 0;
   background: #1a130e;
   border: 1px solid #000;
 }
-.pips i.on {
+.lvlbar i {
+  display: block;
+  height: 100%;
   background: var(--gold);
 }
 .trophy {

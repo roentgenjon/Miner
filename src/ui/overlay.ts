@@ -95,8 +95,7 @@ export class Overlay {
           const maxed = lvl >= u.maxLevel;
           const cost = upgradeCost(u.id, lvl);
           const afford = this.meta().money >= cost;
-          const pips = h('div', { class: 'pips' });
-          for (let i = 0; i < u.maxLevel; i++) pips.append(h('i', { class: i < lvl ? 'on' : '' }));
+          const bar = h('div', { class: 'lvlbar' }, h('i', { style: `width:${(lvl / u.maxLevel) * 100}%` }));
           const buy = h(
             'button',
             {
@@ -113,7 +112,7 @@ export class Overlay {
           return h(
             'div',
             { class: 'shop-item' },
-            h('div', { class: 'info' }, h('b', {}, u.name), h('span', {}, u.desc), pips, h('em', {}, describeLevel(u.id, lvl) + (maxed ? '' : `  →  ${describeLevel(u.id, lvl + 1)}`))),
+            h('div', { class: 'info' }, h('b', {}, `${u.name}  ${lvl}/${u.maxLevel}`), h('span', {}, u.desc), bar, h('em', {}, describeLevel(u.id, lvl) + (maxed ? '' : `  →  ${describeLevel(u.id, lvl + 1)}`))),
             buy,
           );
         }),

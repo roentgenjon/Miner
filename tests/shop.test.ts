@@ -36,7 +36,7 @@ describe('Werkstatt', () => {
   it('verweigert Kauf bei Maximalstufe', () => {
     const m = defaultMeta();
     m.money = 1e9;
-    m.upgrades.boots = 3;
+    m.upgrades.boots = UPGRADES.find((u) => u.id === 'boots')?.maxLevel ?? 0;
     expect(buyUpgrade(m, 'boots')).toEqual({ ok: false, reason: 'max' });
     expect(m.money).toBe(1e9);
   });
@@ -59,5 +59,36 @@ describe('Werkstatt', () => {
     expect(mods.digSpeed).toBeCloseTo(1.6);
     expect(mods.maxHp).toBe(5);
     expect(mods.maxEnergy).toBe(160);
+  });
+});
+
+describe('Stufenverlauf', () => {
+  it('Preise steigen je Upgrade streng an und bleiben bezahlbar', () => {
+    for (const u of UPGRADES) {
+      let prev = 0;
+      for (let lvl = 0; lvl < u.maxLevel; lvl++) {
+        const c = upgradeCost(u.id, lvl);
+        expect(c, `${u.id} Stufe ${lvl}`).toBeGreaterThan(prev);
+        prev = c;
+      }
+      expect(prev, `${u.id} letzte Stufe`).toBeLessThan(250_000);
+    }
+  });
+
+  it('hat deutlich mehr Stufen als zuvor', () => {
+    const total = UPGRADES.reduce((a, u) => a + u.maxLevel, 0);
+    expect(total).toBeGreaterThan(250);
+  });
+
+  it('Höchststufen ergeben gültige Spielwerte', () => {
+    const u = defaultMeta().upgrades;
+    for (const d of UPGRADES) u[d.id] = d.maxLevel;
+    const m = computeMods(u);
+    expect(m.startTnt).toBe(40 + 3 * 30);
+    expect(m.drainMult).toBeGreaterThanOrEqual(0.2);
+    expect(m.digCostMult).toBeGreaterThanOrEqual(0.1);
+    expect(m.blastLoot).toBeLessThanOrEqual(1);
+    expect(m.startDepth).toBe(2000);
+    expect(m.moveSpeed).toBeCloseTo(2.5);
   });
 });

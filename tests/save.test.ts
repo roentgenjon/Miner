@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SAVE_KEY, ZONES } from '../src/config';
+import { SAVE_KEY, UPGRADES, ZONES } from '../src/config';
 import { evaluateAchievements, ACHIEVEMENTS } from '../src/meta/achievements';
 import { applyRunResult } from '../src/meta/progress';
 import { defaultMeta, loadMeta, parseMeta, saveMeta, type KeyValueStore } from '../src/meta/save';
@@ -29,7 +29,7 @@ describe('Speicherstand', () => {
     const store = memStore();
     store.data.set(SAVE_KEY, '{kaputt');
     expect(loadMeta(store)).toEqual(defaultMeta());
-    expect(parseMeta({ money: -5, upgrades: { pick: 999 }, bestDepth: 'x' }).upgrades.pick).toBe(10);
+    expect(parseMeta({ money: -5, upgrades: { pick: 999 }, bestDepth: 'x' }).upgrades.pick).toBe(UPGRADES.find((u) => u.id === 'pick')?.maxLevel);
     expect(parseMeta(null)).toEqual(defaultMeta());
   });
 });
