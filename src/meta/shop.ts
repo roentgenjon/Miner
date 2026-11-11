@@ -122,7 +122,7 @@ export function describeLevel(id: UpgradeId, level: number): string {
   const m = computeMods(u);
   switch (id) {
     case 'pick':
-      return `Grabtempo ×${n(m.digSpeed, 3)}`;
+      return `Grabtempo ×${m.digSpeed >= 1000 ? Math.round(m.digSpeed).toLocaleString('de-DE') : n(m.digSpeed, 3)}`;
     case 'lamp':
       return `${n(m.maxEnergy, 1)} Energie`;
     case 'armor':
