@@ -29,7 +29,7 @@ describe('Speicherstand', () => {
     const store = memStore();
     store.data.set(SAVE_KEY, '{kaputt');
     expect(loadMeta(store)).toEqual(defaultMeta());
-    expect(parseMeta({ money: -5, upgrades: { pick: 999 }, bestDepth: 'x' }).upgrades.pick).toBe(UPGRADES.find((u) => u.id === 'pick')?.maxLevel);
+    expect(parseMeta({ money: -5, upgrades: { pick: 99999 }, bestDepth: 'x' }).upgrades.pick).toBe(UPGRADES.find((u) => u.id === 'pick')?.maxLevel);
     expect(parseMeta(null)).toEqual(defaultMeta());
   });
 });

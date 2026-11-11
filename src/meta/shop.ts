@@ -1,4 +1,4 @@
-import { COMBO, PLAYER, TNT, UPGRADES, type UpgradeDef } from '../config';
+import { COMBO, PICK, PLAYER, TNT, UPGRADES, type UpgradeDef } from '../config';
 import type { Mods, UpgradeId, Upgrades } from '../game/types';
 import type { Meta } from './save';
 
@@ -17,9 +17,13 @@ export function getDef(id: UpgradeId): UpgradeDef {
 /** Preis für die nächste Stufe (gerundet auf 1/5/10 je nach Höhe). */
 export function upgradeCost(id: UpgradeId, level: number): number {
   const d = getDef(id);
-  const raw = d.baseCost * Math.pow(d.growth, level);
+  // Exponentieller Bereich bis tailFrom - 1, danach linear weiter (sonst wären 10 000 Stufen unbezahlbar).
+  const expLevel = d.tailFrom !== undefined ? Math.min(level, d.tailFrom - 1) : level;
+  const raw = d.baseCost * Math.pow(d.growth, expLevel);
   const step = raw < 100 ? 1 : raw < 1000 ? 5 : 10;
-  return Math.round(raw / step) * step;
+  const base = Math.round(raw / step) * step;
+  const tail = d.tailFrom !== undefined && level >= d.tailFrom ? (level - (d.tailFrom - 1)) * (d.tailStep ?? 0) : 0;
+  return base + tail;
 }
 
 export type BuyResult = { ok: true; cost: number } | { ok: false; reason: 'max' | 'money' };
@@ -35,11 +39,44 @@ export function buyUpgrade(meta: Meta, id: UpgradeId): BuyResult {
   return { ok: true, cost };
 }
 
+export interface BulkResult {
+  bought: number;
+  spent: number;
+  /** Warum aufgehört wurde, falls nicht alle gewünschten Stufen gekauft wurden. */
+  stoppedBy: 'max' | 'money' | null;
+}
+
+/** Kauft bis zu `count` Stufen am Stück (`Infinity` = so viele wie möglich). */
+export function buyUpgradeMany(meta: Meta, id: UpgradeId, count: number): BulkResult {
+  let bought = 0;
+  let spent = 0;
+  let stoppedBy: BulkResult['stoppedBy'] = null;
+  while (bought < count) {
+    const r = buyUpgrade(meta, id);
+    if (!r.ok) {
+      stoppedBy = r.reason;
+      break;
+    }
+    bought++;
+    spent += r.cost;
+  }
+  return { bought, spent, stoppedBy };
+}
+
+/** Gesamtpreis der nächsten `count` Stufen (begrenzt durch die Maximalstufe). */
+export function costOfNext(id: UpgradeId, level: number, count: number): { levels: number; cost: number } {
+  const d = getDef(id);
+  const levels = Math.max(0, Math.min(count, d.maxLevel - level));
+  let cost = 0;
+  for (let i = 0; i < levels; i++) cost += upgradeCost(id, level + i);
+  return { levels, cost };
+}
+
 /** Rechnet Upgrade-Stufen in konkrete Spielwerte um. */
 export function computeMods(u: Upgrades): Mods {
   const per = (id: UpgradeId): number => getDef(id).perLevel;
   return {
-    digSpeed: 1 + per('pick') * u.pick,
+    digSpeed: 1 + per('pick') * Math.min(u.pick, PICK.softCap) + PICK.tailPerLevel * Math.max(0, u.pick - PICK.softCap),
     maxEnergy: PLAYER.baseEnergy + per('lamp') * u.lamp,
     maxHp: PLAYER.baseHp + per('armor') * u.armor,
     startTnt: TNT.baseStart + TNT.perLevel * u.tnt,
@@ -69,7 +106,7 @@ export function describeLevel(id: UpgradeId, level: number): string {
   const m = computeMods(u);
   switch (id) {
     case 'pick':
-      return `+${Math.round((m.digSpeed - 1) * 100)} % Grabtempo`;
+      return `Grabtempo ×${m.digSpeed.toFixed(2).replace('.', ',')}`;
     case 'lamp':
       return `${Math.round(m.maxEnergy)} Energie`;
     case 'armor':

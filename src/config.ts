@@ -291,10 +291,17 @@ export interface UpgradeDef {
   growth: number;
   /** Wirkung pro Stufe (Bedeutung je Upgrade, siehe computeMods). */
   perLevel: number;
+  /** Ab dieser Stufe wächst der Preis nur noch linear (statt exponentiell). */
+  tailFrom?: number;
+  /** Preisanstieg pro Stufe im linearen Bereich. */
+  tailStep?: number;
 }
 
+/** Spitzhacke: ab Stufe `softCap` wächst das Grabtempo nur noch langsam weiter. */
+export const PICK = { softCap: 100, tailPerLevel: 0.001 };
+
 export const UPGRADES: readonly UpgradeDef[] = [
-  { id: 'pick', name: 'Spitzhacke', desc: 'Schneller graben', maxLevel: 100, baseCost: 40, growth: 1.07, perLevel: 0.06 },
+  { id: 'pick', name: 'Spitzhacke', desc: 'Schneller graben', maxLevel: 10000, baseCost: 40, growth: 1.045, perLevel: 0.06, tailFrom: 100, tailStep: 2 },
   { id: 'lamp', name: 'Grubenlampe', desc: 'Mehr Lampenenergie', maxLevel: 25, baseCost: 35, growth: 1.27, perLevel: 15 },
   { id: 'armor', name: 'Lederwams', desc: '+1 Leben pro Stufe', maxLevel: 10, baseCost: 120, growth: 1.6, perLevel: 1 },
   { id: 'tnt', name: 'Dynamitvorrat', desc: '+3 Dynamit pro Stufe', maxLevel: 30, baseCost: 30, growth: 1.18, perLevel: TNT.perLevel },

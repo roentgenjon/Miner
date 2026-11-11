@@ -4,7 +4,7 @@ import type { GameState } from '../game/state';
 import { ACHIEVEMENTS } from '../meta/achievements';
 import type { RunResult } from '../meta/progress';
 import type { Meta } from '../meta/save';
-import { buyUpgrade, describeLevel, upgradeCost } from '../meta/shop';
+import { buyUpgradeMany, costOfNext, describeLevel, upgradeCost } from '../meta/shop';
 import { fmt, h } from './dom';
 
 export interface OverlayActions {
@@ -94,20 +94,39 @@ export class Overlay {
           const lvl = this.meta().upgrades[u.id];
           const maxed = lvl >= u.maxLevel;
           const cost = upgradeCost(u.id, lvl);
-          const afford = this.meta().money >= cost;
           const bar = h('div', { class: 'lvlbar' }, h('i', { style: `width:${(lvl / u.maxLevel) * 100}%` }));
-          const buy = h(
-            'button',
-            {
-              class: `btn small buy ${maxed ? 'maxed' : afford ? 'primary' : 'poor'}`,
-              onclick: () => {
-                const r = buyUpgrade(this.meta(), u.id);
-                this.act.sfx(r.ok ? 'buy' : 'deny');
-                if (r.ok) this.act.save();
-                render();
+          const buyBtn = (label: string, count: number, cls: string): HTMLButtonElement => {
+            const { levels, cost } = costOfNext(u.id, lvl, count);
+            const ok = levels > 0 && this.meta().money >= cost;
+            return h(
+              'button',
+              {
+                class: `btn small buy ${cls} ${ok ? 'primary' : 'poor'}`,
+                onclick: () => {
+                  const r = buyUpgradeMany(this.meta(), u.id, count);
+                  this.act.sfx(r.bought > 0 ? 'buy' : 'deny');
+                  if (r.bought > 0) this.act.save();
+                  render();
+                },
               },
-            },
-            maxed ? 'Max' : `● ${fmt(cost)}`,
+              label,
+            );
+          };
+          const buy = h(
+            'div',
+            { class: 'buy-col' },
+            maxed
+              ? h('button', { class: 'btn small buy maxed' }, 'Max')
+              : buyBtn(`● ${fmt(cost)}`, 1, ''),
+            !maxed && u.maxLevel >= 30
+              ? h(
+                  'div',
+                  { class: 'bulk' },
+                  buyBtn('×10', 10, 'tiny'),
+                  buyBtn('×100', 100, 'tiny'),
+                  buyBtn(`Max`, Infinity, 'tiny'),
+                )
+              : null,
           );
           return h(
             'div',

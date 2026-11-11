@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { UPGRADES } from '../src/config';
 import { defaultMeta } from '../src/meta/save';
-import { buyUpgrade, computeMods, upgradeCost } from '../src/meta/shop';
+import { buyUpgrade, buyUpgradeMany, computeMods, costOfNext, upgradeCost } from '../src/meta/shop';
 
 describe('Werkstatt', () => {
   it('hat mindestens 20 Upgrades mit eindeutiger ID', () => {
@@ -94,11 +94,51 @@ describe('Stufenverlauf', () => {
 });
 
 describe('Spitzhacke', () => {
-  it('hat 100 Stufen, die Wirkung steigt stetig bis ×7', () => {
+  it('hat 10000 Stufen; das Tempo steigt stetig, nach Stufe 100 nur noch langsam', () => {
     const def = UPGRADES.find((u) => u.id === 'pick');
-    expect(def?.maxLevel).toBe(100);
-    const speeds = [0, 1, 10, 50, 100].map((l) => computeMods({ ...defaultMeta().upgrades, pick: l }).digSpeed);
-    for (let i = 1; i < speeds.length; i++) expect(speeds[i] as number).toBeGreaterThan(speeds[i - 1] as number);
-    expect(speeds[4]).toBeCloseTo(7);
+    expect(def?.maxLevel).toBe(10000);
+    const speed = (l: number): number => computeMods({ ...defaultMeta().upgrades, pick: l }).digSpeed;
+    const levels = [0, 1, 10, 50, 100, 101, 1000, 5000, 10000];
+    for (let i = 1; i < levels.length; i++) expect(speed(levels[i] as number)).toBeGreaterThan(speed(levels[i - 1] as number));
+    expect(speed(100)).toBeCloseTo(7);
+    expect(speed(10000)).toBeCloseTo(7 + 9.9);
+  });
+
+  it('Preise bleiben auch bei Stufe 10000 vierstellig bis niedrig fünfstellig', () => {
+    expect(upgradeCost('pick', 99)).toBeLessThan(4000);
+    expect(upgradeCost('pick', 9999)).toBeLessThan(30000);
+    expect(upgradeCost('pick', 100)).toBeGreaterThan(upgradeCost('pick', 99));
+  });
+});
+
+describe('Sammelkauf', () => {
+  it('kauft mehrere Stufen am Stück und zieht die Summe ab', () => {
+    const m = defaultMeta();
+    m.money = 1_000_000;
+    const expected = costOfNext('pick', 0, 100);
+    const r = buyUpgradeMany(m, 'pick', 100);
+    expect(r).toEqual({ bought: 100, spent: expected.cost, stoppedBy: null });
+    expect(m.upgrades.pick).toBe(100);
+    expect(m.money).toBe(1_000_000 - expected.cost);
+  });
+
+  it('Max kauft so viele, wie das Geld erlaubt', () => {
+    const m = defaultMeta();
+    m.money = 500;
+    const r = buyUpgradeMany(m, 'pick', Infinity);
+    expect(r.stoppedBy).toBe('money');
+    expect(r.bought).toBeGreaterThan(5);
+    expect(m.money).toBeGreaterThanOrEqual(0);
+    expect(m.money + r.spent).toBe(500);
+    expect(m.upgrades.pick).toBe(r.bought);
+  });
+
+  it('hält an der Maximalstufe an', () => {
+    const m = defaultMeta();
+    m.money = 1e12;
+    m.upgrades.heat = 1;
+    const r = buyUpgradeMany(m, 'heat', 10);
+    expect(r.bought).toBe(1);
+    expect(r.stoppedBy).toBe('max');
   });
 });

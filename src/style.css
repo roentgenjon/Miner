@@ -395,6 +395,22 @@ button {
   min-width: 78px;
   flex-shrink: 0;
 }
+.buy-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.bulk {
+  display: flex;
+  gap: 3px;
+}
+.btn.tiny {
+  min-width: 0;
+  flex: 1;
+  padding: 4px 3px;
+  font-size: 11px;
+}
 .lvlbar {
   height: 7px;
   margin: 3px 0;
