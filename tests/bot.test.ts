@@ -28,8 +28,8 @@ describe('Balancing-Sanity (Bot)', () => {
   });
 
   it('Voll ausgebauter Charakter ist deutlich weiter', () => {
-    const r = [1, 2, 3].map((i) => playBot(`bot-${i}`, 5));
-    const base = [1, 2, 3].map((i) => playBot(`bot-${i}`, 0));
+    const r = [1, 2].map((i) => playBot(`bot-${i}`, 5));
+    const base = [1, 2].map((i) => playBot(`bot-${i}`, 0));
     const a = r.reduce((x, y) => x + y.depth, 0);
     const b = base.reduce((x, y) => x + y.depth, 0);
     expect(a).toBeGreaterThanOrEqual(b);

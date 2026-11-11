@@ -17,6 +17,14 @@ import { Overlay } from './ui/overlay';
 
 type Mode = 'menu' | 'playing' | 'paused' | 'ending' | 'result';
 
+// Meldet dem Notfall-Skript in index.html, dass das Spiel gestartet ist.
+(window as unknown as { __schachtBoot?: boolean }).__schachtBoot = true;
+try {
+  sessionStorage.removeItem('schacht-recover');
+} catch {
+  /* Speicher nicht verfügbar */
+}
+
 function el<T extends HTMLElement>(id: string): T {
   const e = document.getElementById(id);
   if (!e) throw new Error(`#${id} fehlt`);

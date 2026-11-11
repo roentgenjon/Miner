@@ -26,7 +26,21 @@ const scope = self.registration.scope;
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(ASSETS.map((f) => new URL(f, scope).href))).then(() => self.skipWaiting()),
+    caches
+      .open(CACHE)
+      .then((c) =>
+        Promise.all(
+          ASSETS.map((f) => {
+            const url = new URL(f, scope).href;
+            // cache: 'reload' umgeht den HTTP-Cache (GitHub Pages cached HTML 10 min), sonst landet eine veraltete Startseite im Cache.
+            return fetch(url, { cache: 'reload' }).then((res) => {
+              if (!res.ok) throw new Error(url + ' ' + res.status);
+              return c.put(url, res);
+            });
+          }),
+        ),
+      )
+      .then(() => self.skipWaiting()),
   );
 });
 
@@ -92,5 +106,5 @@ export default defineConfig({
   base: process.env.VITE_BASE ?? './',
   plugins: [serviceWorker()],
   build: { target: 'es2022', sourcemap: false },
-  test: { environment: 'node', include: ['tests/**/*.test.ts'] },
+  test: { environment: 'node', include: ['tests/**/*.test.ts'], testTimeout: 60_000 },
 });

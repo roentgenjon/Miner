@@ -16,6 +16,44 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <style>
+      html,
+      body {
+        background: #14100e;
+      }
+    </style>
+    <script>
+      // Notfall: Startet das Spiel nicht (z. B. veralteter Cache nach einem Update), werden
+      // Service Worker und Caches gelöscht und die Seite einmal neu geladen. Der Spielstand
+      // (localStorage) bleibt unberührt.
+      (function () {
+        setTimeout(function () {
+          if (window.__schachtBoot) return;
+          try {
+            if (sessionStorage.getItem('schacht-recover')) return;
+            sessionStorage.setItem('schacht-recover', '1');
+          } catch (e) {
+            return;
+          }
+          var jobs = [];
+          if (navigator.serviceWorker) {
+            jobs.push(
+              navigator.serviceWorker.getRegistrations().then(function (rs) {
+                return Promise.all(rs.map(function (r) { return r.unregister(); }));
+              }),
+            );
+          }
+          if (window.caches) {
+            jobs.push(
+              caches.keys().then(function (ks) {
+                return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+              }),
+            );
+          }
+          Promise.all(jobs).catch(function () {}).then(function () { location.reload(); });
+        }, 4000);
+      })();
+    </script>
   </head>
   <body>
     <canvas id="game" aria-label="Spielfeld"></canvas>
