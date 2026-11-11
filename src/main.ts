@@ -64,8 +64,25 @@ const overlay = new Overlay(el('overlay'), () => meta, {
     saveMeta(meta);
   },
   save: () => saveMeta(meta),
+  forceUpdate: () => void forceUpdate(),
   sfx: (k) => sfx.ui(k),
 });
+
+/** Service Worker und Caches entfernen und neu laden. Der Spielstand (localStorage) bleibt unberührt. */
+async function forceUpdate(): Promise<void> {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } finally {
+    window.location.reload();
+  }
+}
 
 function startRun(daily: boolean): void {
   sfx.unlock();
@@ -190,6 +207,10 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   const hadController = navigator.serviceWorker.controller !== null;
   let updateReady = false;
   // Neue Version aktiv: Seite neu laden – aber nie mitten in einer Runde.
+  // Der neue Service Worker fragt beim Aktivieren an; wer antwortet, lädt sich selbst neu (siehe unten).
+  navigator.serviceWorker.addEventListener('message', (ev: MessageEvent) => {
+    if ((ev.data as { type?: string } | null)?.type === 'schacht-update') ev.ports[0]?.postMessage('ok');
+  });
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadController) return; // Erstinstallation, nichts zu aktualisieren
     updateReady = true;

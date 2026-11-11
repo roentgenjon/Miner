@@ -46,10 +46,33 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+      await self.clients.claim();
+      // Offene Seiten informieren. Neue Seiten antworten sofort und laden sich selbst zum passenden
+      // Zeitpunkt neu (nie mitten in einer Runde). Alte Seiten (ohne diese Logik) antworten nicht
+      // und würden sonst ewig auf der alten Version bleiben, sie werden hier neu geladen.
+      const clients = await self.clients.matchAll({ type: 'window' });
+      await Promise.all(
+        clients.map(
+          (client) =>
+            new Promise((resolve) => {
+              const ch = new MessageChannel();
+              let acked = false;
+              ch.port1.onmessage = () => {
+                acked = true;
+                resolve();
+              };
+              client.postMessage({ type: 'schacht-update' }, [ch.port2]);
+              setTimeout(() => {
+                if (!acked) client.navigate(client.url).catch(() => undefined);
+                resolve();
+              }, 800);
+            }),
+        ),
+      );
+    })(),
   );
 });
 
@@ -100,7 +123,11 @@ self.addEventListener('fetch', (e) => {
   };
 }
 
+/** Kennung des Builds (Datum + kurzer Commit), im Menü sichtbar, damit man die Version prüfen kann. */
+const BUILD = `${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC${process.env.GITHUB_SHA ? ' · ' + process.env.GITHUB_SHA.slice(0, 7) : ''}`;
+
 export default defineConfig({
+  define: { __BUILD__: JSON.stringify(BUILD) },
   // Relativer Basispfad: funktioniert auf GitHub Pages (Unterpfad), Netlify, Cloudflare.
   // Mit VITE_BASE=/mein-repo/ lässt sich ein absoluter Pfad erzwingen.
   base: process.env.VITE_BASE ?? './',

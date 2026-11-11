@@ -13,6 +13,8 @@ export interface OverlayActions {
   quitRun(): void;
   toggleSound(): void;
   save(): void;
+  /** Service Worker und Caches löschen und neu laden (Spielstand bleibt erhalten). */
+  forceUpdate(): void;
   sfx(kind: 'click' | 'buy' | 'deny'): void;
 }
 
@@ -77,8 +79,9 @@ export class Overlay {
       this.btn(`Tagesschacht · ${new Date().toLocaleDateString('de-DE')}`, () => this.act.startRun(true)),
       h('p', { class: 'hint' }, dailyBest > 0 ? `Heute bisher: ${dailyBest} m` : 'Gleicher Schacht für alle – pro Tag neu.'),
       h('div', { class: 'btn-row' }, this.btn('Werkstatt', () => this.showShop()), this.btn('Erfolge', () => this.showTrophies())),
-      this.soundBtn(),
+      h('div', { class: 'btn-row' }, this.soundBtn(), this.btn('Update erzwingen', () => this.act.forceUpdate(), 'small')),
       h('p', { class: 'hint keys' }, '← → ↓ ↑ / A D S W graben & klettern · Leertaste: Dynamit · P / Esc: Pause · Wischen oder Tippen am Handy'),
+      h('p', { class: 'hint keys' }, `Version ${__BUILD__}`),
     );
   }
 
