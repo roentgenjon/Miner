@@ -22,26 +22,26 @@ export function lightCrate(s: GameState, x: number, y: number, fuse: number = TN
 }
 
 /**
- * Auto-Dynamit: Beim Graben wird in festen Abständen eine Ladung `AUTO_TNT.ahead` Felder voraus
- * in Grabrichtung gelegt, sofern dort Gestein ist. Die Ladung verletzt den Spieler nicht.
+ * Auto-Dynamit: Solange man eine Richtung hält (oder gräbt), wird alle `AUTO_TNT.interval` Sekunden eine Ladung `AUTO_TNT.ahead` Felder
+ * voraus in Grabrichtung gelegt. Die Ladung verletzt den Spieler nicht.
+ * Der Zeitzähler behält den Rest (kein Zurücksetzen auf 0), damit die Rate auch dann stimmt, wenn der
+ * Intervall kürzer als ein Logikschritt ist; pro Schritt wird höchstens eine Ladung gelegt.
  */
 export function updateAutoTnt(s: GameState, dt: number): void {
-  s.autoTntT += dt;
+  // nie mehr als zwei Intervalle ansammeln (z. B. nach einer Pause ohne Graben)
+  s.autoTntT = Math.min(s.autoTntT + dt, AUTO_TNT.interval * 2);
   const p = s.player;
-  if (!s.input.autoTnt || p.tnt <= 0 || s.autoTntT < AUTO_TNT.interval) return;
-  if (p.digT <= 0 || !p.digDir) return; // nur während des Grabens
-  const [dx, dy] = DIRS[p.digDir];
+  if (!s.input.autoTnt || p.tnt <= 0 || s.autoTntT < AUTO_TNT.interval - 1e-9) return; // Toleranz gegen Gleitkomma-Rundung
+  // Solange eine Richtung gedrückt ist (oder gerade gegraben wurde), auch beim Fallen durch die eigenen Sprengungen.
+  const dir = s.input.held ?? (p.digT > 0 ? p.digDir : null);
+  if (!dir) return;
+  const [dx, dy] = DIRS[dir];
   const x = p.x + dx * AUTO_TNT.ahead;
   const y = p.y + dy * AUTO_TNT.ahead;
-  if (y < 1) return;
-  // Nur sprengen, wenn dort (oder davor) Gestein ist – nicht in Höhlen oder gegen Grundgestein.
-  const target = getCell(s.world, x, y);
-  const before = getCell(s.world, p.x + dx * (AUTO_TNT.ahead - 1), p.y + dy * (AUTO_TNT.ahead - 1));
-  const solid = (b: number): boolean => b !== Block.Air && b !== Block.Bedrock;
-  if (!solid(target) && !solid(before)) return;
-  if (s.tnts.some((t) => Math.hypot(t.x - x, t.y - y) < 2.5)) return;
+  // Immer legen (alle AUTO_TNT.interval s), nur nicht außerhalb des Schachts.
+  if (y < 1 || y >= s.world.height || x < 0 || x >= s.world.width) return;
   p.tnt--;
-  s.autoTntT = 0;
+  s.autoTntT = Math.min(s.autoTntT - AUTO_TNT.interval, AUTO_TNT.interval);
   s.tnts.push({ id: s.nextId++, x, y, fuse: AUTO_TNT.fuse, kind: 'tnt', safe: true });
   emit(s, { type: 'tntPlace', x, y });
 }
@@ -66,6 +66,8 @@ export function updateTnt(s: GameState, dt: number): void {
  * Dynamit im Radius aus (Kettenreaktion), verletzt Spieler, tötet Fledermäuse.
  */
 export function explode(s: GameState, cx: number, cy: number, radius: number, safe = false): void {
+  // Eigene Auto-Sprengungen reißen lange Schächte auf: Fall in diese Schächte verletzt nicht.
+  if (safe) s.fallProtectUntil = s.time + AUTO_TNT.fallProtect;
   const r2 = radius * radius;
   const reach = Math.ceil(radius);
   const w = s.world;

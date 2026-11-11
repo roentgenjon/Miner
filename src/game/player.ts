@@ -84,7 +84,7 @@ function beginAction(s: GameState, carry: number): boolean {
     p.fallCount = 0;
     emit(s, { type: 'land', x: p.x, y: p.y, fall });
     const dmg = fall - PLAYER.fallSafe - s.mods.fallReduction;
-    if (dmg > 0) damagePlayer(s, dmg, 'fall', true);
+    if (dmg > 0 && s.time >= s.fallProtectUntil) damagePlayer(s, dmg, 'fall', true);
     if (s.status !== 'playing') return false;
   }
 

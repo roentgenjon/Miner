@@ -18,15 +18,41 @@ describe('Auto-Dynamit', () => {
     expect(s.player.tnt).toBe(40);
   });
 
-  it('legt beim Graben in festen Abständen Ladungen voraus und verbraucht Dynamit', () => {
+  it('legt beim Graben alle 25 ms eine Ladung (≈ 40 pro Sekunde) und verbraucht Dynamit', () => {
+    expect(AUTO_TNT.interval).toBe(0.025);
+    const s = blankGame();
+    s.player.tnt = 10_000;
+    s.input.autoTnt = true;
+    s.input.held = 'down';
+    run(s, 1);
+    const used = 10_000 - s.player.tnt;
+    // 1 s / 25 ms = 40 Ladungen; ± Anlaufzeit des ersten Grabens
+    expect(used).toBeGreaterThanOrEqual(38);
+    expect(used).toBeLessThanOrEqual(41);
+    expect(s.events.filter((e) => e.type === 'tntPlace').length).toBe(used);
+  });
+
+  it('die Rate hängt nicht von der Logikschritt-Länge ab (30 Hz und 60 Hz liefern gleich viele)', () => {
+    const count = (dt: number): number => {
+      const s = blankGame();
+      s.player.tnt = 10_000;
+      s.input.autoTnt = true;
+      s.input.held = 'down';
+      for (let t = 0; t < 2; t += dt) step(s, dt);
+      return 10_000 - s.player.tnt;
+    };
+    const a = count(1 / 60);
+    const b = count(1 / 120);
+    expect(Math.abs(a - b)).toBeLessThanOrEqual(Math.ceil(a * 0.4)); // bei 60 Hz höchstens 1 pro Schritt
+    expect(a).toBeGreaterThan(60);
+  });
+
+  it('verbraucht den Vorrat von 40 Dynamit in etwa einer Sekunde', () => {
     const s = blankGame();
     s.input.autoTnt = true;
     s.input.held = 'down';
-    run(s, 3);
-    const used = 40 - s.player.tnt;
-    expect(used).toBeGreaterThanOrEqual(1);
-    expect(used).toBeLessThanOrEqual(Math.ceil(3 / AUTO_TNT.interval) + 1);
-    expect(s.events.filter((e) => e.type === 'tntPlace').length).toBe(used);
+    run(s, 2);
+    expect(s.player.tnt).toBe(0);
   });
 
   it('legt die Ladung AUTO_TNT.ahead Felder voraus in Grabrichtung', () => {
@@ -58,7 +84,7 @@ describe('Auto-Dynamit', () => {
     expect(s.status).toBe('playing');
   });
 
-  it('legt nichts ohne Dynamit, ohne zu graben und gegen Grundgestein/Oberfläche', () => {
+  it('legt nichts ohne Dynamit, ohne zu graben und außerhalb des Schachts', () => {
     const empty = blankGame();
     empty.input.autoTnt = true;
     empty.player.tnt = 0;
@@ -71,11 +97,28 @@ describe('Auto-Dynamit', () => {
     run(idle, 3);
     expect(idle.player.tnt).toBe(40);
 
-    const up = blankGame(); // an der Oberfläche nach oben: y < 1
+    const up = blankGame(); // an der Oberfläche nach oben: y < 1 (außerhalb des Schachts)
     up.input.autoTnt = true;
     up.input.held = 'up';
     run(up, 2);
     expect(up.player.tnt).toBe(40);
+  });
+
+  it('schützt vor Fallschaden in die selbst aufgerissenen Schächte', () => {
+    const s = blankGame();
+    s.input.autoTnt = true;
+    s.player.tnt = 10_000;
+    s.input.held = 'down';
+    run(s, 4);
+    expect(s.player.hp).toBe(s.player.maxHp);
+    expect(s.status).toBe('playing');
+    expect(s.player.y).toBeGreaterThan(8);
+    // ohne Auto-Sprengung bleibt der Fallschaden normal (hier: Sturz aus großer Höhe)
+    const f = blankGame();
+    for (let y = 1; y <= 15; y++) put(f, 3, y, Block.Air);
+    f.player.y = 1;
+    run(f, 2);
+    expect(f.player.hp).toBeLessThan(f.player.maxHp);
   });
 
   it('wird im Speicherstand gemerkt', () => {

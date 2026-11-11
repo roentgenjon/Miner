@@ -104,6 +104,8 @@ export interface GameState {
   status: GameStatus;
   events: GameEvent[];
   input: Input;
+  /** Bis zu diesem Zeitpunkt (Spielzeit) gibt es keinen Fallschaden (nach eigenen Auto-Sprengungen). */
+  fallProtectUntil: number;
   /** Zeit seit der letzten automatischen Ladung. */
   autoTntT: number;
   /** Verbleibende Wiederbelebungen. */
@@ -177,6 +179,7 @@ export function createGame(opts: CreateGameOptions): GameState {
     status: 'playing',
     events: [],
     input: { held: null, queued: null, queuedAge: 0, tnt: false, autoTnt: false },
+    fallProtectUntil: 0,
     autoTntT: 0,
     revives: opts.mods.revives,
     record: opts.record ?? 0,

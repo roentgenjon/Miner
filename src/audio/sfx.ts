@@ -96,6 +96,7 @@ export class Sfx {
         [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.14, 'square', 0.12, undefined, i * 0.07));
         break;
       case 'tntPlace':
+        if (!this.throttle('tntPlace', 90)) return;
         this.tone(900, 0.04, 'square', 0.1);
         this.tone(600, 0.06, 'square', 0.1, undefined, 0.05);
         break;

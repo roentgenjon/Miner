@@ -312,11 +312,13 @@ export const TNT = {
 
 /** Auto-Dynamit: wirft beim Graben selbstständig Ladungen voraus (verletzt den Spieler nicht). */
 export const AUTO_TNT = {
-  /** Mindestabstand zwischen zwei automatischen Ladungen (s). */
-  interval: 1.2,
+  /** Abstand zwischen zwei automatischen Ladungen (s): alle 25 ms eine. */
+  interval: 0.025,
   /** So viele Felder voraus in Grabrichtung wird die Ladung gelegt. */
   ahead: 3,
   fuse: 0.5,
+  /** So lange nach einer Auto-Sprengung gibt es keinen Fallschaden (s). */
+  fallProtect: 2.5,
 };
 
 /* ---------- Gefahren ---------- */
