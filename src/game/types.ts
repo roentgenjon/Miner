@@ -68,7 +68,8 @@ export type UpgradeId =
   | 'master'
   | 'revive'
   | 'lift'
-  | 'gentle';
+  | 'gentle'
+  | 'ward';
 
 export type Upgrades = Record<UpgradeId, number>;
 
@@ -104,6 +105,8 @@ export interface Mods {
   startDepth: number;
   /** Multiplikator auf den Energieverbrauch beim Graben. */
   digCostMult: number;
+  /** Anteil der Fledermäuse und Lavaquellen/-felder, der beim Rundenstart entfernt wird (0..0,9). */
+  hazardReduction: number;
 }
 
 export interface RunStats {

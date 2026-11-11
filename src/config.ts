@@ -401,6 +401,7 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: 'revive', name: 'Zweites Leben', desc: 'Einmal pro Stufe wiederbeleben', maxLevel: 5, baseCost: 800, growth: 2.0, perLevel: 1 },
   longUpgrade('lift', 'Fahrstuhl', 'Start in größerer Tiefe (+20 m pro Stufe)', 4000, 100, 20, 500_000),
   longUpgrade('gentle', 'Schonende Hacke', 'Graben kostet weniger Lampenenergie', 700, 50, 0.0012, 100_000),
+  longUpgrade('ward', 'Bannzeichen', 'Weniger Fledermäuse und Lava', 900, 80, 0.001, 300_000),
 ];
 
 /* ---------- Missionen ---------- */

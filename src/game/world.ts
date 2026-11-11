@@ -98,3 +98,24 @@ export function generateWorld(seed: string): World {
 export function zoneBoundaries(): number[] {
   return ZONES.map((z) => z.from);
 }
+
+/**
+ * Entfernt einen Anteil der Fledermäuse und Lava (Quellen und Lavafelder) – für das Upgrade „Bannzeichen“.
+ * Deterministisch aus dem Seed: Die Welt bleibt für alle gleich (Tagesschacht), höhere Anteile
+ * entfernen stets eine Obermenge dessen, was niedrigere entfernen.
+ * Lava wird zum Gestein der jeweiligen Zone abgekühlt.
+ */
+export function thinHazards(world: World, fraction: number): void {
+  if (fraction <= 0) return;
+  const batRng = createRng(`thin-bats:${world.seed}`);
+  world.batSpawns = world.batSpawns.filter(() => batRng.next() >= fraction);
+
+  const lavaRng = createRng(`thin-lava:${world.seed}`);
+  const cells = world.cells;
+  for (let i = 0; i < cells.length; i++) {
+    const b = cells[i];
+    if (b !== Block.LavaSource && b !== Block.Lava) continue;
+    if (lavaRng.next() < fraction) cells[i] = zoneAt(Math.floor(i / world.width)).base;
+  }
+  world.lavaSources = world.lavaSources.filter((p) => cells[idx(world, p.x, p.y)] === Block.LavaSource);
+}

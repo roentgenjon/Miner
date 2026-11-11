@@ -105,6 +105,7 @@ export function computeMods(u: Upgrades): Mods {
     revives: per('revive') * u.revive,
     startDepth: per('lift') * u.lift,
     digCostMult: Math.max(0.1, 1 - per('gentle') * u.gentle),
+    hazardReduction: Math.min(0.9, per('ward') * u.ward),
   };
 }
 
@@ -160,5 +161,7 @@ export function describeLevel(id: UpgradeId, level: number): string {
       return `Start bei ${m.startDepth.toLocaleString('de-DE')} m`;
     case 'gentle':
       return `−${n((1 - m.digCostMult) * 100, 1)} % Grabenergie`;
+    case 'ward':
+      return `−${n(m.hazardReduction * 100, 1)} % Fledermäuse und Lava`;
   }
 }

@@ -2,7 +2,7 @@ import { HEART_DEPTH, PLAYER, START_X, zoneAt } from '../config';
 import { createMissions, type MissionState } from '../meta/missions';
 import { createRng, type Rng } from './rng';
 import { Block, type Dir, type GameEvent, type Mods, type RunStats, type World, type ZoneId } from './types';
-import { generateWorld, setCell } from './world';
+import { generateWorld, setCell, thinHazards } from './world';
 
 export type PlayerAction =
   | { kind: 'dig'; tx: number; ty: number; dir: Dir; dur: number; left: number }
@@ -123,6 +123,7 @@ export function emptyStats(): RunStats {
 
 export function createGame(opts: CreateGameOptions): GameState {
   const world = generateWorld(opts.seed);
+  thinHazards(world, opts.mods.hazardReduction);
   // Fahrstuhl: Schacht in der Startspalte bis zur Starttiefe freiräumen.
   const startY = Math.min(opts.mods.startDepth, HEART_DEPTH - 10);
   for (let y = 1; y <= startY; y++) setCell(world, START_X, y, Block.Air);
