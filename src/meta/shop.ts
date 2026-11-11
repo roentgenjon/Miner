@@ -14,10 +14,12 @@ export function getDef(id: UpgradeId): UpgradeDef {
   return d;
 }
 
-/** Preis für die nächste Stufe (auf 5 gerundet). */
+/** Preis für die nächste Stufe (gerundet auf 1/5/10 je nach Höhe). */
 export function upgradeCost(id: UpgradeId, level: number): number {
   const d = getDef(id);
-  return Math.round((d.baseCost * Math.pow(d.growth, level)) / 5) * 5;
+  const raw = d.baseCost * Math.pow(d.growth, level);
+  const step = raw < 100 ? 1 : raw < 1000 ? 5 : 10;
+  return Math.round(raw / step) * step;
 }
 
 export type BuyResult = { ok: true; cost: number } | { ok: false; reason: 'max' | 'money' };

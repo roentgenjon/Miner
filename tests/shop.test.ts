@@ -56,7 +56,7 @@ describe('Werkstatt', () => {
     m.upgrades.armor = 2;
     m.upgrades.lamp = 4;
     const mods = computeMods(m.upgrades);
-    expect(mods.digSpeed).toBeCloseTo(1.6);
+    expect(mods.digSpeed).toBeCloseTo(1.3);
     expect(mods.maxHp).toBe(5);
     expect(mods.maxEnergy).toBe(160);
   });
@@ -90,5 +90,15 @@ describe('Stufenverlauf', () => {
     expect(m.blastLoot).toBeLessThanOrEqual(1);
     expect(m.startDepth).toBe(2000);
     expect(m.moveSpeed).toBeCloseTo(2.5);
+  });
+});
+
+describe('Spitzhacke', () => {
+  it('hat 100 Stufen, die Wirkung steigt stetig bis ×7', () => {
+    const def = UPGRADES.find((u) => u.id === 'pick');
+    expect(def?.maxLevel).toBe(100);
+    const speeds = [0, 1, 10, 50, 100].map((l) => computeMods({ ...defaultMeta().upgrades, pick: l }).digSpeed);
+    for (let i = 1; i < speeds.length; i++) expect(speeds[i] as number).toBeGreaterThan(speeds[i - 1] as number);
+    expect(speeds[4]).toBeCloseTo(7);
   });
 });

@@ -294,7 +294,7 @@ export interface UpgradeDef {
 }
 
 export const UPGRADES: readonly UpgradeDef[] = [
-  { id: 'pick', name: 'Spitzhacke', desc: 'Schneller graben', maxLevel: 25, baseCost: 40, growth: 1.28, perLevel: 0.12 },
+  { id: 'pick', name: 'Spitzhacke', desc: 'Schneller graben', maxLevel: 100, baseCost: 40, growth: 1.07, perLevel: 0.06 },
   { id: 'lamp', name: 'Grubenlampe', desc: 'Mehr Lampenenergie', maxLevel: 25, baseCost: 35, growth: 1.27, perLevel: 15 },
   { id: 'armor', name: 'Lederwams', desc: '+1 Leben pro Stufe', maxLevel: 10, baseCost: 120, growth: 1.6, perLevel: 1 },
   { id: 'tnt', name: 'Dynamitvorrat', desc: '+3 Dynamit pro Stufe', maxLevel: 30, baseCost: 30, growth: 1.18, perLevel: TNT.perLevel },
