@@ -220,7 +220,8 @@ export class Renderer {
     // Zellen
     for (let y = Math.max(1, y0); y <= y1; y++) {
       const zone = zoneAt(y);
-      const variants = this.tex.base[zone.id];
+      const zt = this.tex.forZone(zone.index);
+      const variants = zt.base;
       for (let x = -gutter; x < WIDTH + gutter; x++) {
         const px = toX(x);
         const py = toY(y);
@@ -233,7 +234,7 @@ export class Renderer {
           ctx.fillStyle = 'rgba(0,0,0,0.45)';
           ctx.fillRect(px, py, T, T);
         } else if (cell === Block.Air) {
-          ctx.drawImage(this.tex.back[zone.id], px, py, T, T);
+          ctx.drawImage(zt.back, px, py, T, T);
         } else if (cell === Block.Bedrock) {
           const t = this.tex.bedrock[Math.abs(h) % this.tex.bedrock.length];
           if (t) ctx.drawImage(t, px, py, T, T);
@@ -376,7 +377,10 @@ export class Renderer {
     const width = T * WIDTH;
     ctx.font = `bold ${Math.round(T * 0.22)}px ui-monospace, Menlo, Consolas, monospace`;
     ctx.textAlign = 'left';
-    for (const z of ZONES.slice(1)) {
+    // Nur Zonengrenzen im Bild zeichnen (bei 100 Zonen nicht alle durchlaufen).
+    const firstVisible = Math.max(1, zoneAt(Math.max(0, Math.floor(-toY(0) / T))).index);
+    for (let zi = firstVisible; zi < Math.min(ZONES.length, firstVisible + Math.ceil(this.H / T / 1000) + 2); zi++) {
+      const z = ZONES[zi] as (typeof ZONES)[number];
       const y = toY(z.from);
       if (y < -T || y > this.H + T) continue;
       ctx.fillStyle = 'rgba(255,255,255,0.28)';

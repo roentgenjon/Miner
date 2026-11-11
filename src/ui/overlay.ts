@@ -96,7 +96,8 @@ export class Overlay {
           const cost = upgradeCost(u.id, lvl);
           const bar = h('div', { class: 'lvlbar' }, h('i', { style: `width:${(lvl / u.maxLevel) * 100}%` }));
           const buyBtn = (label: string, count: number, cls: string): HTMLButtonElement => {
-            const { levels, cost } = costOfNext(u.id, lvl, count);
+            // „Max“ nicht durchrechnen (bis zu 1 Mio. Stufen): es genügt, dass die nächste Stufe bezahlbar ist.
+            const { levels, cost } = costOfNext(u.id, lvl, Number.isFinite(count) ? count : 1);
             const ok = levels > 0 && this.meta().money >= cost;
             return h(
               'button',
@@ -124,6 +125,7 @@ export class Overlay {
                   { class: 'bulk' },
                   buyBtn('×10', 10, 'tiny'),
                   buyBtn('×100', 100, 'tiny'),
+                  u.maxLevel >= 1000 ? buyBtn('×1k', 1000, 'tiny') : null,
                   buyBtn(`Max`, Infinity, 'tiny'),
                 )
               : null,

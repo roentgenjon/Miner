@@ -70,8 +70,8 @@ function updateLava(s: GameState, dt: number): void {
   const p = s.player;
 
   for (const l of s.lava) {
-    if (getCell(w, l.x, l.y) !== Block.LavaSource) continue;
     if (l.y < p.y - LAVA.scanUp || l.y > p.y + LAVA.scanDown) continue;
+    if (getCell(w, l.x, l.y) !== Block.LavaSource) continue;
     l.next -= dt;
     if (l.next > 0) continue;
     l.next = LAVA.dripMin + s.rng.next() * (LAVA.dripMax - LAVA.dripMin);

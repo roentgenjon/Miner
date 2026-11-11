@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HEART_DEPTH, WIDTH, ZONES, zoneAt } from '../src/config';
+import { HEART_DEPTH, WIDTH, ZONES, zoneAt, zoneValueScale } from '../src/config';
 import { dailyKey, dailySeed } from '../src/game/rng';
 import { Block } from '../src/game/types';
 import { generateWorld, getCell } from '../src/game/world';
@@ -39,23 +39,50 @@ describe('Weltgenerierung', () => {
     expect(getCell(w, WIDTH, 5)).toBe(Block.Bedrock);
   });
 
+  it('hat 100 gleich lange Zonen mit eindeutigen Namen', () => {
+    expect(ZONES).toHaveLength(100);
+    expect(HEART_DEPTH).toBe(100_000);
+    ZONES.forEach((z, i) => {
+      expect(z.from).toBe(i * 1000);
+      expect(z.index).toBe(i);
+    });
+    expect(new Set(ZONES.map((z) => z.name)).size).toBe(100);
+    expect(ZONES.slice(0, 4).map((z) => z.name)).toEqual(['Erde I', 'Tiefschiefer I', 'Magmazone I', 'Kristallhöhle I']);
+    expect(ZONES[99]?.name).toBe('Kristallhöhle XXV');
+  });
+
+  it('findet die richtige Zone an den Grenzen', () => {
+    expect(zoneAt(0).index).toBe(0);
+    expect(zoneAt(999).index).toBe(0);
+    expect(zoneAt(1000).index).toBe(1);
+    expect(zoneAt(54_321).index).toBe(54);
+    expect(zoneAt(HEART_DEPTH).index).toBe(99);
+    expect(zoneAt(HEART_DEPTH * 2).index).toBe(99);
+    expect(zoneAt(-5).index).toBe(0);
+  });
+
+  it('wird mit der Zonennummer schwieriger und wertvoller', () => {
+    for (let i = 4; i < ZONES.length; i++) {
+      const z = ZONES[i];
+      const prev = ZONES[i - 4]; // gleiche Familie, vorheriger Durchlauf
+      expect(z?.darkness ?? 0).toBeGreaterThanOrEqual(prev?.darkness ?? 1);
+      expect(z?.drain ?? 0).toBeGreaterThan(prev?.drain ?? 99);
+    }
+    expect(zoneValueScale(0)).toBe(1);
+    expect(zoneValueScale(99_999)).toBeCloseTo(10.9);
+    for (const z of ZONES) expect(z.darkness).toBeLessThanOrEqual(0.97);
+  });
+
   it('nutzt je Zone das passende Grundgestein', () => {
-    const [, s1, m1, k1] = ZONES.map((z) => z.from) as [number, number, number, number];
-    expect(ZONES.map((z) => z.from)).toEqual([0, Math.round(HEART_DEPTH * 0.16), Math.round(HEART_DEPTH * 0.44), Math.round(HEART_DEPTH * 0.8)]);
-    expect(zoneAt(s1 - 1).id).toBe('erde');
-    expect(zoneAt(s1).id).toBe('schiefer');
-    expect(zoneAt(m1).id).toBe('magma');
-    expect(zoneAt(k1).id).toBe('kristall');
     const w = generateWorld('zonen');
-    const counts: Record<string, number> = {};
+    const counts = new Map<number, number>();
     for (let y = 1; y < HEART_DEPTH; y++) {
+      const z = zoneAt(y);
       for (let x = 0; x < WIDTH; x++) {
-        const b = getCell(w, x, y);
-        const z = zoneAt(y);
-        if (b === z.base) counts[z.id] = (counts[z.id] ?? 0) + 1;
+        if (getCell(w, x, y) === z.base) counts.set(z.index, (counts.get(z.index) ?? 0) + 1);
       }
     }
-    for (const z of ZONES) expect(counts[z.id] ?? 0).toBeGreaterThan(50);
+    for (const z of ZONES) expect(counts.get(z.index) ?? 0, z.name).toBeGreaterThan(3000);
   });
 
   it('platziert zonenspezifische Erze und Gefahren', () => {

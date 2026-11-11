@@ -32,7 +32,7 @@ export const DIRS: Record<Dir, readonly [number, number]> = {
   up: [0, -1],
 };
 
-export type ZoneId = 'erde' | 'schiefer' | 'magma' | 'kristall';
+export type ZoneId = string;
 
 export interface Point {
   x: number;

@@ -11,9 +11,10 @@ export const MAX_FRAME = 0.25;
 
 /* ---------- Schacht ---------- */
 export const WIDTH = 7;
-export const HEART_DEPTH = 10000;
-/** Zonengrenzen sind für 250 m entworfen (40/110/200) und skalieren mit der Schachttiefe. */
-const DEPTH_SCALE = HEART_DEPTH / 250;
+export const HEART_DEPTH = 100000;
+/** Anzahl der Zonen; sie sind gleich lang. */
+export const ZONE_COUNT = 100;
+export const ZONE_LENGTH = HEART_DEPTH / ZONE_COUNT;
 /** Zeilen: 0 = Oberfläche, HEART_DEPTH = Herz, danach Grundgestein. */
 export const HEIGHT = HEART_DEPTH + 2;
 export const START_X = 3;
@@ -29,6 +30,12 @@ export interface RollEntry {
 
 export interface ZoneDef {
   id: ZoneId;
+  /** Laufende Nummer 0..ZONE_COUNT-1. */
+  index: number;
+  /** Gesteinsfamilie 0..3 (Erde, Schiefer, Magma, Kristall) – bestimmt Aussehen und Erze. */
+  family: number;
+  /** Durchlauf der Familien (0..24), verschiebt Farbton und Schwierigkeit. */
+  ring: number;
   name: string;
   /** Erste Tiefe (in m) der Zone. */
   from: number;
@@ -44,11 +51,20 @@ export interface ZoneDef {
   rolls: RollEntry[];
 }
 
-export const ZONES: readonly ZoneDef[] = [
+/** Die vier Gesteinsfamilien. Jede Zone nutzt eine davon (reihum), mit wachsender Schwierigkeit. */
+interface Family {
+  name: string;
+  base: BlockId;
+  darkness: number;
+  drain: number;
+  caveChance: number;
+  batChance: number;
+  rolls: RollEntry[];
+}
+
+const FAMILIES: readonly Family[] = [
   {
-    id: 'erde',
     name: 'Erde',
-    from: 0,
     base: Block.Dirt,
     darkness: 0.55,
     drain: 1.0,
@@ -64,9 +80,7 @@ export const ZONES: readonly ZoneDef[] = [
     ],
   },
   {
-    id: 'schiefer',
     name: 'Tiefschiefer',
-    from: Math.round(40 * DEPTH_SCALE),
     base: Block.Slate,
     darkness: 0.75,
     drain: 1.1,
@@ -83,9 +97,7 @@ export const ZONES: readonly ZoneDef[] = [
     ],
   },
   {
-    id: 'magma',
     name: 'Magmazone',
-    from: Math.round(110 * DEPTH_SCALE),
     base: Block.Basalt,
     darkness: 0.85,
     drain: 1.25,
@@ -104,9 +116,7 @@ export const ZONES: readonly ZoneDef[] = [
     ],
   },
   {
-    id: 'kristall',
     name: 'Kristallhöhle',
-    from: Math.round(200 * DEPTH_SCALE),
     base: Block.CrystalRock,
     darkness: 0.9,
     drain: 1.4,
@@ -127,10 +137,53 @@ export const ZONES: readonly ZoneDef[] = [
   },
 ];
 
+function roman(n: number): string {
+  const map: [number, string][] = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+  let out = '';
+  let rest = n;
+  for (const [v, s] of map) {
+    while (rest >= v) {
+      out += s;
+      rest -= v;
+    }
+  }
+  return out;
+}
+
+/** Gefahren (Geröll, Kisten, Lava) werden mit der Zonennummer häufiger, bis zu ×2,2. */
+const HAZARDS: readonly BlockId[] = [Block.Boulder, Block.Crate, Block.Lava, Block.LavaSource];
+
+function buildZone(index: number): ZoneDef {
+  const family = index % FAMILIES.length;
+  const ring = Math.floor(index / FAMILIES.length);
+  const f = FAMILIES[family] as Family;
+  const hazard = 1 + 0.012 * index;
+  return {
+    id: `z${index}`,
+    index,
+    family,
+    ring,
+    name: `${f.name} ${roman(ring + 1)}`,
+    from: index * ZONE_LENGTH,
+    base: f.base,
+    darkness: Math.min(0.97, f.darkness + 0.0007 * index),
+    drain: f.drain * (1 + 0.015 * index),
+    caveChance: f.caveChance,
+    batChance: f.batChance,
+    rolls: f.rolls.map((r) => (HAZARDS.includes(r.block) ? { ...r, p: r.p * hazard } : r)),
+  };
+}
+
+export const ZONES: readonly ZoneDef[] = Array.from({ length: ZONE_COUNT }, (_, i) => buildZone(i));
+
 export function zoneAt(depth: number): ZoneDef {
-  let z = ZONES[0] as ZoneDef;
-  for (const zone of ZONES) if (depth >= zone.from) z = zone;
-  return z;
+  const i = Math.min(ZONE_COUNT - 1, Math.max(0, Math.floor(depth / ZONE_LENGTH)));
+  return ZONES[i] as ZoneDef;
+}
+
+/** Erze sind in tieferen Zonen mehr wert (+10 % je Zone). */
+export function zoneValueScale(depth: number): number {
+  return 1 + 0.1 * zoneAt(depth).index;
 }
 
 /* ---------- Blöcke ---------- */
@@ -276,7 +329,7 @@ export const CHEST = {
 
 /* ---------- Sieg / Niederlage ---------- */
 export const RUN = {
-  heartBonus: 20000,
+  heartBonus: 200000,
   /** Anteil der Münzen, den man bei Tod behält. */
   deathKeep: 0.7,
 };
@@ -297,30 +350,57 @@ export interface UpgradeDef {
   tailStep?: number;
 }
 
-/** Spitzhacke: ab Stufe `softCap` wächst das Grabtempo nur noch langsam weiter. */
-export const PICK = { softCap: 100, tailPerLevel: 0.001 };
+/** Spitzhacke: bis `softCap` +0,0006/Stufe (→ ×7), danach nur noch langsam weiter (→ ×17 bei Stufe 1 000 000). */
+export const PICK = { softCap: 10_000, tailPerLevel: 0.00001 };
 
+/** Die ersten `EXP_LEVELS` Stufen wachsen exponentiell im Preis, danach linear bis zum Endpreis. */
+const EXP_LEVELS = 100;
+const EXP_GROWTH = 1.045;
+
+/**
+ * Upgrade mit sehr vielen Stufen: Preis steigt in den ersten 100 Stufen um 4,5 % je Stufe,
+ * danach linear, sodass die letzte Stufe `endCost` kostet.
+ */
+function longUpgrade(
+  id: UpgradeId,
+  name: string,
+  desc: string,
+  maxLevel: number,
+  baseCost: number,
+  perLevel: number,
+  endCost: number,
+): UpgradeDef {
+  const expEnd = baseCost * Math.pow(EXP_GROWTH, EXP_LEVELS - 1);
+  const tailStep = Math.max(0, (endCost - expEnd) / (maxLevel - EXP_LEVELS));
+  return { id, name, desc, maxLevel, baseCost, growth: EXP_GROWTH, perLevel, tailFrom: EXP_LEVELS, tailStep };
+}
+
+/**
+ * Stufenzahlen: 100 × so viele Stufen wie zuvor für alle Upgrades mit stetiger Wirkung.
+ * Die Wirkung pro Stufe ist entsprechend kleiner (Gesamtwirkung auf Höchststufe ≈ 2–5 × früher),
+ * ausgenommen Dynamit (Vorgabe: +3 pro Stufe).
+ */
 export const UPGRADES: readonly UpgradeDef[] = [
-  { id: 'pick', name: 'Spitzhacke', desc: 'Schneller graben', maxLevel: 10000, baseCost: 40, growth: 1.045, perLevel: 0.06, tailFrom: 100, tailStep: 2 },
-  { id: 'lamp', name: 'Grubenlampe', desc: 'Mehr Lampenenergie', maxLevel: 25, baseCost: 35, growth: 1.27, perLevel: 15 },
+  longUpgrade('pick', 'Spitzhacke', 'Schneller graben', 1_000_000, 40, 0.0006, 300_000),
+  longUpgrade('lamp', 'Grubenlampe', 'Mehr Lampenenergie', 2500, 35, 0.75, 200_000),
   { id: 'armor', name: 'Lederwams', desc: '+1 Leben pro Stufe', maxLevel: 10, baseCost: 120, growth: 1.6, perLevel: 1 },
-  { id: 'tnt', name: 'Dynamitvorrat', desc: '+3 Dynamit pro Stufe', maxLevel: 30, baseCost: 30, growth: 1.18, perLevel: TNT.perLevel },
-  { id: 'coal', name: 'Kohleofen', desc: 'Kohle gibt mehr Energie', maxLevel: 20, baseCost: 50, growth: 1.25, perLevel: 0.1 },
-  { id: 'ore', name: 'Erzgespür', desc: 'Erze sind mehr wert', maxLevel: 30, baseCost: 60, growth: 1.22, perLevel: 0.1 },
-  { id: 'combo', name: 'Kombo-Kette', desc: 'Kombo-Fenster länger offen', maxLevel: 15, baseCost: 80, growth: 1.3, perLevel: 0.4 },
+  longUpgrade('tnt', 'Dynamitvorrat', '+3 Dynamit pro Stufe', 3000, 30, TNT.perLevel, 150_000),
+  longUpgrade('coal', 'Kohleofen', 'Kohle gibt mehr Energie', 2000, 50, 0.005, 150_000),
+  longUpgrade('ore', 'Erzgespür', 'Erze sind mehr wert', 3000, 60, 0.005, 400_000),
+  longUpgrade('combo', 'Kombo-Kette', 'Kombo-Fenster länger offen', 1500, 80, 0.02, 150_000),
   { id: 'boots', name: 'Federstiefel', desc: 'Weniger Fallschaden', maxLevel: 8, baseCost: 90, growth: 1.7, perLevel: 1 },
   { id: 'helmet', name: 'Schutzhelm', desc: 'Weniger Steinschlagschaden', maxLevel: 2, baseCost: 100, growth: 2.2, perLevel: 1 },
-  { id: 'luck', name: 'Glückshände', desc: 'Bessere Beute aus Truhen', maxLevel: 20, baseCost: 70, growth: 1.25, perLevel: 0.08 },
-  { id: 'power', name: 'Sprengkraft', desc: 'Dynamit sprengt größere Bereiche', maxLevel: 6, baseCost: 150, growth: 1.8, perLevel: 0.5 },
+  longUpgrade('luck', 'Glückshände', 'Bessere Beute aus Truhen', 2000, 70, 0.004, 200_000),
+  longUpgrade('power', 'Sprengkraft', 'Dynamit sprengt größere Bereiche', 600, 150, 0.0125, 400_000),
   { id: 'blast', name: 'Schürfsprengstoff', desc: 'Mehr Erz aus Sprengungen', maxLevel: 5, baseCost: 90, growth: 1.6, perLevel: 0.08 },
-  { id: 'saver', name: 'Sparlampe', desc: 'Lampe verbraucht weniger', maxLevel: 12, baseCost: 60, growth: 1.35, perLevel: 0.06 },
-  { id: 'light', name: 'Scheinwerfer', desc: 'Größerer Lichtkegel', maxLevel: 15, baseCost: 55, growth: 1.3, perLevel: 0.3 },
-  { id: 'legs', name: 'Laufschuhe', desc: 'Schneller zur Seite laufen', maxLevel: 15, baseCost: 45, growth: 1.28, perLevel: 0.1 },
+  longUpgrade('saver', 'Sparlampe', 'Lampe verbraucht weniger', 1200, 60, 0.0006, 150_000),
+  longUpgrade('light', 'Scheinwerfer', 'Größerer Lichtkegel', 1500, 55, 0.009, 100_000),
+  longUpgrade('legs', 'Laufschuhe', 'Schneller zur Seite laufen', 1500, 45, 0.002, 100_000),
   { id: 'heat', name: 'Hitzeschutz', desc: 'Weniger Lavaschaden', maxLevel: 2, baseCost: 150, growth: 2.2, perLevel: 1 },
-  { id: 'master', name: 'Kombo-Meister', desc: 'Höherer Kombo-Multiplikator', maxLevel: 14, baseCost: 120, growth: 1.4, perLevel: 0.5 },
+  longUpgrade('master', 'Kombo-Meister', 'Höherer Kombo-Multiplikator', 1400, 120, 0.025, 400_000),
   { id: 'revive', name: 'Zweites Leben', desc: 'Einmal pro Stufe wiederbeleben', maxLevel: 5, baseCost: 800, growth: 2.0, perLevel: 1 },
-  { id: 'lift', name: 'Fahrstuhl', desc: 'Start in größerer Tiefe (+50 m pro Stufe)', maxLevel: 40, baseCost: 100, growth: 1.19, perLevel: 50 },
-  { id: 'gentle', name: 'Schonende Hacke', desc: 'Graben kostet weniger Lampenenergie', maxLevel: 7, baseCost: 50, growth: 1.3, perLevel: 0.12 },
+  longUpgrade('lift', 'Fahrstuhl', 'Start in größerer Tiefe (+20 m pro Stufe)', 4000, 100, 20, 500_000),
+  longUpgrade('gentle', 'Schonende Hacke', 'Graben kostet weniger Lampenenergie', 700, 50, 0.0012, 100_000),
 ];
 
 /* ---------- Missionen ---------- */

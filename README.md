@@ -1,6 +1,6 @@
 # Schacht
 
-Pixel-Grabespiel im Browser: Grabe dich durch einen 7 Spalten breiten Schacht bis zum **Herz des Bergs** in 10 000 m Tiefe.
+Pixel-Grabespiel im Browser: Grabe dich durch einen 7 Spalten breiten Schacht bis zum **Herz des Bergs** in 100 000 m Tiefe.
 Vite + TypeScript (strict), Rendering per Canvas 2D, als PWA offline spielbar und auf dem Handy installierbar.
 
 > **Hinweis:** Diese Version wurde nach der Feature-Beschreibung neu geschrieben, die ursprüngliche `schacht.html`
@@ -32,12 +32,12 @@ Benötigt Node.js ≥ 20.
 
 - **Klettern:** Nach oben gräbt oder läuft die Figur und hält sich dabei kurz fest. Lässt du los, fällt sie nach einem Moment wieder (Fallschaden ab 4 Feldern).
 - **Lampe** ist deine Energie – sie verbraucht sich unter Tage, **Kohle** füllt sie auf. Ist sie leer, wird es dunkel und gefährlich.
-- **Zonen:** Erde (0 m) → Tiefschiefer (1 600 m) → Magmazone (4 400 m) → Kristallhöhle (8 000 m) → Herz (10 000 m = Sieg). Die Tiefe steht als `HEART_DEPTH` in `src/config.ts`; die Zonengrenzen skalieren automatisch mit.
+- **Zonen:** 100 Zonen à 1 000 m. Sie wechseln reihum zwischen Erde, Tiefschiefer, Magmazone und Kristallhöhle ("Erde I", "Tiefschiefer I", … "Kristallhöhle XXV"); jeder Durchlauf hat einen eigenen Farbton, ist dunkler, verbraucht mehr Lampenenergie, hat mehr Gefahren und wertvollere Erze. Das Herz (100 000 m = Sieg) liegt am Ende. Tiefe und Zonenzahl stehen als `HEART_DEPTH` und `ZONE_COUNT` in `src/config.ts`.
 - **Erze** bringen Münzen, aufeinanderfolgende Erze erhöhen den **Kombo-Multiplikator**.
 - **Truhen** enthalten Münzen, Kohle, Dynamit oder ein Leben. **Sprengkisten** explodieren, sobald man sie abbaut – und lösen Kettenreaktionen aus.
 - Gefahren: fallendes **Geröll**, tropfende **Lava**, **Fledermäuse** (Hineinlaufen = Schlag).
 - **Dynamit** sprengt einen Bereich um die Figur; weiteres Dynamit und Sprengkisten im Radius zünden nacheinander (Kettenreaktion). Start-Dynamit = 40 + 3 pro Upgrade-Stufe.
-- **Werkstatt:** 20 Upgrades mit zusammen über 280 Stufen, bezahlt mit Münzen. **Missionen:** 3 zufällige pro Runde. **Erfolge:** 9 Stück.
+- **Werkstatt:** 20 Upgrades, 14 davon mit 600 bis 1 000 000 Stufen (Sammelkauf ×10/×100/×1k/Max), bezahlt mit Münzen. **Missionen:** 3 zufällige pro Runde. **Erfolge:** 9 Stück.
 - **Tagesschacht:** gleicher Seed für alle am selben Kalendertag. Die **Rekordlinie** zeigt deine bisher größte Tiefe.
 - Fortschritt liegt in `localStorage` unter dem Schlüssel `schacht-meta`.
 

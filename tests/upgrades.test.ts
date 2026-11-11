@@ -26,8 +26,8 @@ describe('Neue Upgrades', () => {
 
   it('Sprengkraft vergrößert den Dynamit-Radius', () => {
     const s = blankGame();
-    s.mods = computeMods({ ...emptyUpgrades(), power: 2 });
-    expect(s.mods.tntRadius).toBe(TNT.radius + 1);
+    s.mods = computeMods({ ...emptyUpgrades(), power: 80 });
+    expect(s.mods.tntRadius).toBeCloseTo(TNT.radius + 1);
     explode(s, 3, 30, s.mods.tntRadius);
     expect(cell(s, 3, 32)).toBe(Block.Air); // 2 Felder entfernt
     expect(cell(s, 3, 34)).toBe(Block.Dirt);
@@ -45,7 +45,7 @@ describe('Neue Upgrades', () => {
   });
 
   it('Fahrstuhl startet tiefer in einem freigeräumten Schacht', () => {
-    const s = gameWith({ lift: 4 });
+    const s = gameWith({ lift: 10 });
     expect(s.player.y).toBe(200);
     expect(s.stats.depth).toBe(200);
     for (const y of [1, 100, 200]) expect(getCell(s.world, START_X, y)).toBe(Block.Air);
@@ -56,7 +56,7 @@ describe('Neue Upgrades', () => {
 
   it('Kombo-Meister erhöht die Multiplikator-Obergrenze', () => {
     const base = computeMods(emptyUpgrades());
-    const m = computeMods({ ...emptyUpgrades(), master: 2 });
+    const m = computeMods({ ...emptyUpgrades(), master: 40 });
     expect(comboMult(100, base.comboMax)).toBe(5);
     expect(comboMult(100, m.comboMax)).toBe(6);
   });
@@ -67,7 +67,7 @@ describe('Neue Upgrades', () => {
   });
 
   it('Sparlampe und Schonende Hacke senken den Verbrauch', () => {
-    const m = computeMods({ ...emptyUpgrades(), saver: 5, gentle: 5 });
+    const m = computeMods({ ...emptyUpgrades(), saver: 500, gentle: 500 });
     expect(m.drainMult).toBeCloseTo(0.7);
     expect(m.digCostMult).toBeCloseTo(0.4);
   });

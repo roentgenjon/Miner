@@ -1,5 +1,5 @@
 import { createRng } from '../game/rng';
-import { Block, type ZoneId } from '../game/types';
+import { Block } from '../game/types';
 import { SPRITE_SIZE as S, type Sprite, ALL_SPRITES } from './sprites';
 
 type Tex = HTMLCanvasElement;
@@ -157,9 +157,14 @@ function grass(): Tex {
   return c;
 }
 
+export interface ZoneTextures {
+  base: Tex[];
+  back: Tex;
+}
+
 export interface Textures {
-  base: Record<ZoneId, Tex[]>;
-  back: Record<ZoneId, Tex>;
+  /** Gesteinstexturen der Zone mit Nummer `index` (wird bei Bedarf erzeugt und gemerkt). */
+  forZone(index: number): ZoneTextures;
   bedrock: Tex[];
   overlay: Map<number, Tex>;
   lava: Tex[];
@@ -186,27 +191,60 @@ function crackTex(stage: number): Tex {
   return c;
 }
 
+/* --- Farbhilfen: Hex <-> HSL, um den Farbton je Zonen-Durchlauf zu verschieben --- */
+function hexToHsl(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d === 0) return [0, 0, l];
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  return [h * 60, s, l];
+}
+
+function shiftHue(hex: string, degrees: number): string {
+  const [h, s, l] = hexToHsl(hex);
+  return `hsl(${Math.round((h + degrees) % 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%)`;
+}
+
+const FAMILY_COLORS: [string, string, string][] = [
+  ['#7a5232', '#5e3f25', '#94693f'], // Erde
+  ['#4a5060', '#383d4a', '#5d6577'], // Tiefschiefer
+  ['#4a3030', '#2e2020', '#6f4040'], // Magma
+  ['#3f3a70', '#2c2755', '#5a52a0'], // Kristall
+];
+const FAMILY_BACK: [string, string, string][] = [
+  ['#2e2016', '#26190f', '#34261a'],
+  ['#1d2029', '#161921', '#242833'],
+  ['#2a1515', '#211010', '#331b1b'],
+  ['#1b1838', '#141230', '#241f48'],
+];
+
 export function createTextures(): Textures {
-  const zoneColors: Record<ZoneId, [string, string, string]> = {
-    erde: ['#7a5232', '#5e3f25', '#94693f'],
-    schiefer: ['#4a5060', '#383d4a', '#5d6577'],
-    magma: ['#4a3030', '#2e2020', '#6f4040'],
-    kristall: ['#3f3a70', '#2c2755', '#5a52a0'],
+  const zoneCache = new Map<number, ZoneTextures>();
+  const forZone = (index: number): ZoneTextures => {
+    const hit = zoneCache.get(index);
+    if (hit) return hit;
+    const family = index % FAMILY_COLORS.length;
+    const ring = Math.floor(index / FAMILY_COLORS.length);
+    // Jeder Durchlauf verschiebt den Farbton um ~29°, damit 100 Zonen unterscheidbar bleiben.
+    const shift = ring * 29;
+    const [b, d, l] = (FAMILY_COLORS[family] as [string, string, string]).map((c) => shiftHue(c, shift)) as [string, string, string];
+    const [bb, bd, bl] = (FAMILY_BACK[family] as [string, string, string]).map((c) => shiftHue(c, shift)) as [string, string, string];
+    const zt: ZoneTextures = {
+      base: [0, 1, 2, 3].map((i) => stone(`z${index}-${i}`, b, d, l)),
+      back: stone(`z${index}-back`, bb, bd, bl, 0.16),
+    };
+    zoneCache.set(index, zt);
+    return zt;
   };
-  const backColors: Record<ZoneId, [string, string, string]> = {
-    erde: ['#2e2016', '#26190f', '#34261a'],
-    schiefer: ['#1d2029', '#161921', '#242833'],
-    magma: ['#2a1515', '#211010', '#331b1b'],
-    kristall: ['#1b1838', '#141230', '#241f48'],
-  };
-  const base = {} as Record<ZoneId, Tex[]>;
-  const back = {} as Record<ZoneId, Tex>;
-  (Object.keys(zoneColors) as ZoneId[]).forEach((z) => {
-    const [b, d, l] = zoneColors[z];
-    base[z] = [0, 1, 2, 3].map((i) => stone(`${z}-${i}`, b, d, l));
-    const [bb, bd, bl] = backColors[z];
-    back[z] = stone(`${z}-back`, bb, bd, bl, 0.16);
-  });
 
   const overlay = new Map<number, Tex>();
   overlay.set(Block.Coal, oreBlobs('coal', '#1a1a20', '#0c0c10', '#4a4a58', 6));
@@ -231,8 +269,7 @@ export function createTextures(): Textures {
 
   const player = fromSprite(ALL_SPRITES.PLAYER as Sprite);
   return {
-    base,
-    back,
+    forZone,
     bedrock: [0, 1, 2].map((i) => stone(`bed-${i}`, '#1d1d22', '#121216', '#2e2e36', 0.3)),
     overlay,
     lava: [0, 1, 2, 3].map((i) => lavaFrame(i)),

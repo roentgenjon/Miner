@@ -15,8 +15,8 @@ function depthAfter3s(pick: number): number {
 }
 
 describe('Spitzhacke: Grabtempo skaliert über alle Stufen', () => {
-  it('jede Stufenmarke ist spürbar schneller als die vorige (auch über Stufe 25 hinaus)', () => {
-    const marks = [0, 10, 25, 50, 100, 1000, 10000];
+  it('jede Stufenmarke ist spürbar schneller als die vorige (auch bei sehr hohen Stufen)', () => {
+    const marks = [0, 1000, 2500, 5000, 10_000, 100_000, 1_000_000];
     const depths = marks.map(depthAfter3s);
     for (let i = 1; i < depths.length; i++) {
       expect(depths[i] as number, `Stufe ${marks[i]}`).toBeGreaterThan(depths[i - 1] as number);
@@ -25,9 +25,9 @@ describe('Spitzhacke: Grabtempo skaliert über alle Stufen', () => {
 
   it('das echte Tempo folgt dem angezeigten Faktor (nicht nur der Blockabbau-Zeit)', () => {
     const base = depthAfter3s(0);
-    expect(depthAfter3s(25) / base).toBeGreaterThan(2.2); // angezeigt ×2,5
-    expect(depthAfter3s(50) / base).toBeGreaterThan(3.5); // ×4
-    expect(depthAfter3s(100) / base).toBeGreaterThan(6); // ×7
+    expect(depthAfter3s(2500) / base).toBeGreaterThan(2.2); // angezeigt ×2,5
+    expect(depthAfter3s(5000) / base).toBeGreaterThan(3.5); // ×4
+    expect(depthAfter3s(10_000) / base).toBeGreaterThan(6); // ×7
   });
 
   it('Grundtempo ohne Upgrade bleibt unverändert', () => {

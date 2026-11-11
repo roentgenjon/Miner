@@ -9,7 +9,7 @@ import { getCell } from '../src/game/world';
 /** Einfacher Bot: gräbt nach unten, weicht seitlich aus, wenn unten Grundgestein/Lava ist. */
 function playBot(seed: string, level = 0): { depth: number; status: string; time: number; wallet: number } {
   const u = emptyUpgrades();
-  for (const d of UPGRADES) u[d.id] = Math.min(level, d.maxLevel);
+  for (const d of UPGRADES) u[d.id] = Math.floor(d.maxLevel * level);
   const s = createGame({ seed, mods: computeMods(u) });
   for (let i = 0; i < 60 * 60 * 20 && s.status === 'playing'; i++) {
     const below = getCell(s.world, s.player.x, s.player.y + 1);
@@ -28,7 +28,7 @@ describe('Balancing-Sanity (Bot)', () => {
   });
 
   it('Voll ausgebauter Charakter ist deutlich weiter', () => {
-    const r = [1, 2].map((i) => playBot(`bot-${i}`, 5));
+    const r = [1, 2].map((i) => playBot(`bot-${i}`, 0.05));
     const base = [1, 2].map((i) => playBot(`bot-${i}`, 0));
     const a = r.reduce((x, y) => x + y.depth, 0);
     const b = base.reduce((x, y) => x + y.depth, 0);

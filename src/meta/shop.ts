@@ -22,7 +22,7 @@ export function upgradeCost(id: UpgradeId, level: number): number {
   const raw = d.baseCost * Math.pow(d.growth, expLevel);
   const step = raw < 100 ? 1 : raw < 1000 ? 5 : 10;
   const base = Math.round(raw / step) * step;
-  const tail = d.tailFrom !== undefined && level >= d.tailFrom ? (level - (d.tailFrom - 1)) * (d.tailStep ?? 0) : 0;
+  const tail = d.tailFrom !== undefined && level >= d.tailFrom ? Math.floor((level - (d.tailFrom - 1)) * (d.tailStep ?? 0)) : 0;
   return base + tail;
 }
 
@@ -48,18 +48,27 @@ export interface BulkResult {
 
 /** Kauft bis zu `count` Stufen am Stück (`Infinity` = so viele wie möglich). */
 export function buyUpgradeMany(meta: Meta, id: UpgradeId, count: number): BulkResult {
+  const d = getDef(id);
   let bought = 0;
   let spent = 0;
+  let level = meta.upgrades[id];
   let stoppedBy: BulkResult['stoppedBy'] = null;
   while (bought < count) {
-    const r = buyUpgrade(meta, id);
-    if (!r.ok) {
-      stoppedBy = r.reason;
+    if (level >= d.maxLevel) {
+      stoppedBy = 'max';
       break;
     }
+    const cost = upgradeCost(id, level);
+    if (meta.money - spent < cost) {
+      stoppedBy = 'money';
+      break;
+    }
+    spent += cost;
+    level++;
     bought++;
-    spent += r.cost;
   }
+  meta.money -= spent;
+  meta.upgrades[id] = level;
   return { bought, spent, stoppedBy };
 }
 
@@ -79,7 +88,7 @@ export function computeMods(u: Upgrades): Mods {
     digSpeed: 1 + per('pick') * Math.min(u.pick, PICK.softCap) + PICK.tailPerLevel * Math.max(0, u.pick - PICK.softCap),
     maxEnergy: PLAYER.baseEnergy + per('lamp') * u.lamp,
     maxHp: PLAYER.baseHp + per('armor') * u.armor,
-    startTnt: TNT.baseStart + TNT.perLevel * u.tnt,
+    startTnt: Math.floor(TNT.baseStart + TNT.perLevel * u.tnt),
     coalMult: 1 + per('coal') * u.coal,
     oreMult: 1 + per('ore') * u.ore,
     comboWindow: COMBO.window + per('combo') * u.combo,
@@ -99,6 +108,12 @@ export function computeMods(u: Upgrades): Mods {
   };
 }
 
+/** Zahl mit höchstens `d` Nachkommastellen, deutsches Komma, ohne überflüssige Nullen. */
+function n(x: number, d = 2): string {
+  const s = x.toFixed(d);
+  return (s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s).replace('.', ',');
+}
+
 /** Kurzbeschreibung der Wirkung einer Stufe (für die Werkstatt-Anzeige). */
 export function describeLevel(id: UpgradeId, level: number): string {
   const u = emptyUpgrades();
@@ -106,44 +121,44 @@ export function describeLevel(id: UpgradeId, level: number): string {
   const m = computeMods(u);
   switch (id) {
     case 'pick':
-      return `Grabtempo ×${m.digSpeed.toFixed(2).replace('.', ',')}`;
+      return `Grabtempo ×${n(m.digSpeed, 3)}`;
     case 'lamp':
-      return `${Math.round(m.maxEnergy)} Energie`;
+      return `${n(m.maxEnergy, 1)} Energie`;
     case 'armor':
       return `${m.maxHp} Leben`;
     case 'tnt':
       return `${m.startTnt} Dynamit zum Start`;
     case 'coal':
-      return `+${Math.round((m.coalMult - 1) * 100)} % Kohle-Energie`;
+      return `+${n((m.coalMult - 1) * 100, 1)} % Kohle-Energie`;
     case 'ore':
-      return `+${Math.round((m.oreMult - 1) * 100)} % Erzwert`;
+      return `+${n((m.oreMult - 1) * 100, 1)} % Erzwert`;
     case 'combo':
-      return `${m.comboWindow.toFixed(1).replace('.', ',')} s Kombo-Fenster`;
+      return `${n(m.comboWindow, 2)} s Kombo-Fenster`;
     case 'boots':
       return `−${m.fallReduction} Fallschaden`;
     case 'helmet':
       return `−${m.rockReduction} Steinschlag`;
     case 'luck':
-      return `+${Math.round((m.lootMult - 1) * 100)} % Beute`;
+      return `+${n((m.lootMult - 1) * 100, 1)} % Beute`;
     case 'power':
-      return `Radius ${m.tntRadius.toFixed(1).replace('.', ',')}`;
+      return `Radius ${n(m.tntRadius, 2)}`;
     case 'blast':
       return `${Math.round(m.blastLoot * 100)} % Erz aus Sprengungen`;
     case 'saver':
-      return `−${Math.round((1 - m.drainMult) * 100)} % Lampenverbrauch`;
+      return `−${n((1 - m.drainMult) * 100, 1)} % Lampenverbrauch`;
     case 'light':
-      return `+${m.lightBonus.toFixed(1).replace('.', ',')} Felder Licht`;
+      return `+${n(m.lightBonus, 2)} Felder Licht`;
     case 'legs':
-      return `+${Math.round((m.moveSpeed - 1) * 100)} % Lauftempo`;
+      return `+${n((m.moveSpeed - 1) * 100, 1)} % Lauftempo`;
     case 'heat':
       return `−${m.lavaReduction} Lavaschaden`;
     case 'master':
-      return `Kombo bis ×${m.comboMax.toFixed(1).replace('.', ',').replace(',0', '')}`;
+      return `Kombo bis ×${n(m.comboMax, 2)}`;
     case 'revive':
       return `${m.revives} Wiederbelebung${m.revives === 1 ? '' : 'en'}`;
     case 'lift':
-      return `Start bei ${m.startDepth} m`;
+      return `Start bei ${m.startDepth.toLocaleString('de-DE')} m`;
     case 'gentle':
-      return `−${Math.round((1 - m.digCostMult) * 100)} % Grabenergie`;
+      return `−${n((1 - m.digCostMult) * 100, 1)} % Grabenergie`;
   }
 }

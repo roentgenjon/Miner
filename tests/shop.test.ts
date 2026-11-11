@@ -52,26 +52,28 @@ describe('Werkstatt', () => {
 
   it('Upgrades wirken auf die Spielwerte', () => {
     const m = defaultMeta();
-    m.upgrades.pick = 5;
+    m.upgrades.pick = 5000;
     m.upgrades.armor = 2;
     m.upgrades.lamp = 4;
     const mods = computeMods(m.upgrades);
-    expect(mods.digSpeed).toBeCloseTo(1.3);
+    expect(mods.digSpeed).toBeCloseTo(4);
     expect(mods.maxHp).toBe(5);
-    expect(mods.maxEnergy).toBe(160);
+    expect(mods.maxEnergy).toBeCloseTo(103);
   });
 });
 
 describe('Stufenverlauf', () => {
-  it('Preise steigen je Upgrade streng an und bleiben bezahlbar', () => {
+  it('Preise fallen nie, steigen insgesamt und bleiben bezahlbar', () => {
     for (const u of UPGRADES) {
       let prev = 0;
+      const first = upgradeCost(u.id, 0);
       for (let lvl = 0; lvl < u.maxLevel; lvl++) {
         const c = upgradeCost(u.id, lvl);
-        expect(c, `${u.id} Stufe ${lvl}`).toBeGreaterThan(prev);
+        expect(c, `${u.id} Stufe ${lvl}`).toBeGreaterThanOrEqual(prev);
         prev = c;
       }
-      expect(prev, `${u.id} letzte Stufe`).toBeLessThan(250_000);
+      expect(prev, `${u.id} letzte Stufe`).toBeGreaterThan(first);
+      expect(prev, `${u.id} letzte Stufe`).toBeLessThanOrEqual(600_000);
     }
   });
 
@@ -84,30 +86,30 @@ describe('Stufenverlauf', () => {
     const u = defaultMeta().upgrades;
     for (const d of UPGRADES) u[d.id] = d.maxLevel;
     const m = computeMods(u);
-    expect(m.startTnt).toBe(40 + 3 * 30);
+    expect(m.startTnt).toBe(40 + 3 * 3000);
     expect(m.drainMult).toBeGreaterThanOrEqual(0.2);
     expect(m.digCostMult).toBeGreaterThanOrEqual(0.1);
     expect(m.blastLoot).toBeLessThanOrEqual(1);
-    expect(m.startDepth).toBe(2000);
-    expect(m.moveSpeed).toBeCloseTo(2.5);
+    expect(m.startDepth).toBe(80_000);
+    expect(m.moveSpeed).toBeCloseTo(4);
   });
 });
 
 describe('Spitzhacke', () => {
-  it('hat 10000 Stufen; das Tempo steigt stetig, nach Stufe 100 nur noch langsam', () => {
+  it('hat 1 Million Stufen; das Tempo steigt stetig, nach Stufe 10000 nur noch langsam', () => {
     const def = UPGRADES.find((u) => u.id === 'pick');
-    expect(def?.maxLevel).toBe(10000);
+    expect(def?.maxLevel).toBe(1_000_000);
     const speed = (l: number): number => computeMods({ ...defaultMeta().upgrades, pick: l }).digSpeed;
-    const levels = [0, 1, 10, 50, 100, 101, 1000, 5000, 10000];
+    const levels = [0, 1, 1000, 5000, 10_000, 10_001, 100_000, 1_000_000];
     for (let i = 1; i < levels.length; i++) expect(speed(levels[i] as number)).toBeGreaterThan(speed(levels[i - 1] as number));
-    expect(speed(100)).toBeCloseTo(7);
-    expect(speed(10000)).toBeCloseTo(7 + 9.9);
+    expect(speed(10_000)).toBeCloseTo(7);
+    expect(speed(1_000_000)).toBeCloseTo(7 + 9.9);
   });
 
-  it('Preise bleiben auch bei Stufe 10000 vierstellig bis niedrig fünfstellig', () => {
+  it('Preise bleiben auch bei Stufe 1 Million im sechsstelligen Bereich', () => {
     expect(upgradeCost('pick', 99)).toBeLessThan(4000);
-    expect(upgradeCost('pick', 9999)).toBeLessThan(30000);
-    expect(upgradeCost('pick', 100)).toBeGreaterThan(upgradeCost('pick', 99));
+    expect(upgradeCost('pick', 999_999)).toBeLessThanOrEqual(300_000);
+    expect(upgradeCost('pick', 100)).toBeGreaterThanOrEqual(upgradeCost('pick', 99));
   });
 });
 
