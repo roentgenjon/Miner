@@ -86,9 +86,8 @@ export function explode(s: GameState, cx: number, cy: number, radius: number): v
     return false;
   });
 
-  // Fallendes Geröll und Lavatropfen im Radius vernichten
+  // Fallendes Geröll im Radius vernichten
   s.rocks = s.rocks.filter((r) => Math.hypot(r.x - cx, r.y - cy) > radius);
-  s.drops = s.drops.filter((r) => Math.hypot(r.x - cx, r.y - cy) > radius);
 
   // Spieler
   const p = s.player;

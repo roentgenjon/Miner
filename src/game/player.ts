@@ -1,4 +1,4 @@
-import { BLOCKS, ENERGY, LAVA, PLAYER, RUN, TNT } from '../config';
+import { BLOCKS, ENERGY, PLAYER, RUN, TNT } from '../config';
 import { batAt, hitBat } from './bats';
 import { collectCoal, collectOre, openChest } from './loot';
 import { damagePlayer, emit, type GameState } from './state';
@@ -129,15 +129,6 @@ function startAct(s: GameState, dir: Dir, carry: number): void {
       p.fallCount = 0;
     }
     p.action = { kind: 'move', dur: moveDur, left: moveDur + carry };
-    return;
-  }
-
-  if (cell === Block.Lava) {
-    // Lava berührt: Schaden, Block kühlt zu Basalt ab.
-    damagePlayer(s, Math.max(0, LAVA.contactDamage - s.mods.lavaReduction), 'lava');
-    setCell(s.world, tx, ty, Block.Basalt);
-    emit(s, { type: 'lava', x: tx, y: ty });
-    p.action = { kind: 'attack', dur: 0.3, left: 0.3 + carry };
     return;
   }
 

@@ -100,7 +100,6 @@ export function computeMods(u: Upgrades): Mods {
     drainMult: Math.max(0.2, 1 - per('saver') * u.saver),
     lightBonus: per('light') * u.light,
     moveSpeed: 1 + per('legs') * u.legs,
-    lavaReduction: per('heat') * u.heat,
     comboMax: COMBO.maxMult + per('master') * u.master,
     revives: per('revive') * u.revive,
     startDepth: per('lift') * u.lift,
@@ -151,8 +150,6 @@ export function describeLevel(id: UpgradeId, level: number): string {
       return `+${n(m.lightBonus, 2)} Felder Licht`;
     case 'legs':
       return `+${n((m.moveSpeed - 1) * 100, 1)} % Lauftempo`;
-    case 'heat':
-      return `−${m.lavaReduction} Lavaschaden`;
     case 'master':
       return `Kombo bis ×${n(m.comboMax, 2)}`;
     case 'revive':
@@ -162,6 +159,6 @@ export function describeLevel(id: UpgradeId, level: number): string {
     case 'gentle':
       return `−${n((1 - m.digCostMult) * 100, 1)} % Grabenergie`;
     case 'ward':
-      return `−${n(m.hazardReduction * 100, 1)} % Fledermäuse und Lava`;
+      return `−${n(m.hazardReduction * 100, 1)} % Fledermäuse`;
   }
 }

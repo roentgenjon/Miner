@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HEART_DEPTH, LAVA, ROCK, STEP } from '../src/config';
+import { HEART_DEPTH, ROCK, STEP } from '../src/config';
 import { step } from '../src/game/game';
 import { Block } from '../src/game/types';
 import { blankGame, cell, put } from './helpers';
@@ -43,22 +43,6 @@ describe('Geröll', () => {
     const hp = s.player.hp;
     run(s, 1);
     expect(s.player.hp).toBe(hp - ROCK.damage);
-  });
-});
-
-describe('Lava', () => {
-  it('Quelle tropft nach unten, sobald Platz darunter ist, und verletzt', () => {
-    const s = blankGame();
-    put(s, 3, 30, Block.LavaSource);
-    s.lava.push({ x: 3, y: 30, next: 0.1 });
-    for (let y = 31; y <= 34; y++) put(s, 3, y, Block.Air);
-    s.player.x = 3;
-    s.player.y = 34;
-    put(s, 3, 35, Block.Dirt);
-    const hp = s.player.hp;
-    run(s, 2);
-    expect(s.player.hp).toBeLessThan(hp);
-    expect(LAVA.dropDamage).toBe(1);
   });
 });
 

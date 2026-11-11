@@ -111,8 +111,6 @@ const FAMILIES: readonly Family[] = [
       { block: Block.Boulder, p: 0.02 },
       { block: Block.Chest, p: 0.007 },
       { block: Block.Crate, p: 0.012 },
-      { block: Block.LavaSource, p: 0.02 },
-      { block: Block.Lava, p: 0.03 },
     ],
   },
   {
@@ -131,8 +129,6 @@ const FAMILIES: readonly Family[] = [
       { block: Block.Boulder, p: 0.02 },
       { block: Block.Chest, p: 0.01 },
       { block: Block.Crate, p: 0.012 },
-      { block: Block.Lava, p: 0.01 },
-      { block: Block.LavaSource, p: 0.01 },
     ],
   },
 ];
@@ -150,8 +146,8 @@ function roman(n: number): string {
   return out;
 }
 
-/** Gefahren (Geröll, Kisten, Lava) werden mit der Zonennummer häufiger, bis zu ×2,2. */
-const HAZARDS: readonly BlockId[] = [Block.Boulder, Block.Crate, Block.Lava, Block.LavaSource];
+/** Gefahren (Geröll, Kisten) werden mit der Zonennummer häufiger, bis zu ×2,2. */
+const HAZARDS: readonly BlockId[] = [Block.Boulder, Block.Crate];
 
 function buildZone(index: number): ZoneDef {
   const family = index % FAMILIES.length;
@@ -214,8 +210,6 @@ export const BLOCKS: Record<number, BlockDef> = {
   [Block.Chest]: { name: 'Truhe', dig: 0.3, breakable: true },
   [Block.Crate]: { name: 'Sprengkiste', dig: 0.2, breakable: true },
   [Block.Boulder]: { name: 'Geröll', dig: 0.35, breakable: true },
-  [Block.LavaSource]: { name: 'Lavaquelle', dig: 0.5, breakable: true },
-  [Block.Lava]: { name: 'Lava', dig: 0, breakable: false },
   [Block.Heart]: { name: 'Herz des Bergs', dig: 3.0, breakable: true },
 };
 
@@ -293,16 +287,6 @@ export const ROCK = {
   /** Nur Geröll in diesem Fensterbereich um den Spieler wird simuliert. */
   scanUp: 10,
   scanDown: 16,
-};
-
-export const LAVA = {
-  dripMin: 2.5,
-  dripMax: 6,
-  dropStep: 0.06,
-  dropDamage: 1,
-  contactDamage: 2,
-  scanUp: 8,
-  scanDown: 20,
 };
 
 export const BAT = {
@@ -396,12 +380,11 @@ export const UPGRADES: readonly UpgradeDef[] = [
   longUpgrade('saver', 'Sparlampe', 'Lampe verbraucht weniger', 1200, 60, 0.0006, 150_000),
   longUpgrade('light', 'Scheinwerfer', 'Größerer Lichtkegel', 1500, 55, 0.009, 100_000),
   longUpgrade('legs', 'Laufschuhe', 'Schneller zur Seite laufen', 1500, 45, 0.002, 100_000),
-  { id: 'heat', name: 'Hitzeschutz', desc: 'Weniger Lavaschaden', maxLevel: 2, baseCost: 150, growth: 2.2, perLevel: 1 },
   longUpgrade('master', 'Kombo-Meister', 'Höherer Kombo-Multiplikator', 1400, 120, 0.025, 400_000),
   { id: 'revive', name: 'Zweites Leben', desc: 'Einmal pro Stufe wiederbeleben', maxLevel: 5, baseCost: 800, growth: 2.0, perLevel: 1 },
   longUpgrade('lift', 'Fahrstuhl', 'Start in größerer Tiefe (+20 m pro Stufe)', 4000, 100, 20, 500_000),
   longUpgrade('gentle', 'Schonende Hacke', 'Graben kostet weniger Lampenenergie', 700, 50, 0.0012, 100_000),
-  longUpgrade('ward', 'Bannzeichen', 'Weniger Fledermäuse und Lava', 900, 80, 0.001, 300_000),
+  longUpgrade('ward', 'Bannzeichen', 'Weniger Fledermäuse', 900, 80, 0.001, 300_000),
 ];
 
 /* ---------- Missionen ---------- */

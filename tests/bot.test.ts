@@ -3,17 +3,14 @@ import { STEP, UPGRADES } from '../src/config';
 import { createGame } from '../src/game/game';
 import { step } from '../src/game/game';
 import { computeMods, emptyUpgrades } from '../src/meta/shop';
-import { Block } from '../src/game/types';
-import { getCell } from '../src/game/world';
 
-/** Einfacher Bot: gräbt nach unten, weicht seitlich aus, wenn unten Grundgestein/Lava ist. */
+/** Einfacher Bot: gräbt immer nach unten. */
 function playBot(seed: string, level = 0): { depth: number; status: string; time: number; wallet: number } {
   const u = emptyUpgrades();
   for (const d of UPGRADES) u[d.id] = Math.floor(d.maxLevel * level);
   const s = createGame({ seed, mods: computeMods(u) });
   for (let i = 0; i < 60 * 60 * 20 && s.status === 'playing'; i++) {
-    const below = getCell(s.world, s.player.x, s.player.y + 1);
-    s.input.held = below === Block.Lava ? (s.player.x > 3 ? 'left' : 'right') : 'down';
+    s.input.held = 'down';
     step(s, STEP);
     s.events.length = 0;
   }

@@ -57,18 +57,6 @@ export interface Rock {
   t: number;
 }
 
-export interface Drop {
-  x: number;
-  y: number;
-  t: number;
-}
-
-export interface LavaTimer {
-  x: number;
-  y: number;
-  next: number;
-}
-
 export interface Input {
   held: Dir | null;
   queued: Dir | null;
@@ -87,8 +75,6 @@ export interface GameState {
   bats: Bat[];
   tnts: Tnt[];
   rocks: Rock[];
-  drops: Drop[];
-  lava: LavaTimer[];
   /** Wackelzeit von Geröll ohne Halt (Schlüssel = Zellindex). */
   wobble: Map<number, number>;
   rng: Rng;
@@ -163,8 +149,6 @@ export function createGame(opts: CreateGameOptions): GameState {
     })),
     tnts: [],
     rocks: [],
-    drops: [],
-    lava: world.lavaSources.map((p) => ({ x: p.x, y: p.y, next: 2 + rng.next() * 4 })),
     wobble: new Map(),
     rng,
     time: 0,

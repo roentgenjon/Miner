@@ -35,7 +35,7 @@ export function generateWorld(seed: string): World {
   const width = WIDTH;
   const height = HEIGHT;
   const cells = new Uint8Array(width * height);
-  const world: World = { seed, width, height, cells, batSpawns: [], lavaSources: [] };
+  const world: World = { seed, width, height, cells, batSpawns: [] };
 
   for (let y = 1; y < HEART_DEPTH; y++) {
     const zone = zoneAt(y);
@@ -85,12 +85,6 @@ export function generateWorld(seed: string): World {
     cells[idx(world, START_X, y)] = zoneAt(y).base;
   }
 
-  // Lavaquellen einsammeln
-  for (let y = 1; y < HEART_DEPTH; y++) {
-    for (let x = 0; x < width; x++) {
-      if (cells[idx(world, x, y)] === Block.LavaSource) world.lavaSources.push({ x, y });
-    }
-  }
   return world;
 }
 
@@ -100,22 +94,12 @@ export function zoneBoundaries(): number[] {
 }
 
 /**
- * Entfernt einen Anteil der Fledermäuse und Lava (Quellen und Lavafelder) – für das Upgrade „Bannzeichen“.
+ * Entfernt einen Anteil der Fledermäuse – für das Upgrade „Bannzeichen“.
  * Deterministisch aus dem Seed: Die Welt bleibt für alle gleich (Tagesschacht), höhere Anteile
  * entfernen stets eine Obermenge dessen, was niedrigere entfernen.
- * Lava wird zum Gestein der jeweiligen Zone abgekühlt.
  */
 export function thinHazards(world: World, fraction: number): void {
   if (fraction <= 0) return;
   const batRng = createRng(`thin-bats:${world.seed}`);
   world.batSpawns = world.batSpawns.filter(() => batRng.next() >= fraction);
-
-  const lavaRng = createRng(`thin-lava:${world.seed}`);
-  const cells = world.cells;
-  for (let i = 0; i < cells.length; i++) {
-    const b = cells[i];
-    if (b !== Block.LavaSource && b !== Block.Lava) continue;
-    if (lavaRng.next() < fraction) cells[i] = zoneAt(Math.floor(i / world.width)).base;
-  }
-  world.lavaSources = world.lavaSources.filter((p) => cells[idx(world, p.x, p.y)] === Block.LavaSource);
 }

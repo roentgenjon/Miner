@@ -61,11 +61,6 @@ describe('Neue Upgrades', () => {
     expect(comboMult(100, m.comboMax)).toBe(6);
   });
 
-  it('Hitzeschutz reduziert Lavaschaden', () => {
-    const s = gameWith({ heat: 2 });
-    expect(s.mods.lavaReduction).toBe(2);
-  });
-
   it('Sparlampe und Schonende Hacke senken den Verbrauch', () => {
     const m = computeMods({ ...emptyUpgrades(), saver: 500, gentle: 500 });
     expect(m.drainMult).toBeCloseTo(0.7);

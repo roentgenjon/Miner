@@ -10,9 +10,7 @@ export function blankGame(fill: BlockId = Block.Dirt, seed = 'test'): GameState 
   const w = s.world;
   for (let y = 1; y < w.height - 1; y++) for (let x = 0; x < w.width; x++) w.cells[idx(w, x, y)] = fill;
   s.bats = [];
-  s.lava = [];
   s.rocks = [];
-  s.drops = [];
   s.player.x = START_X;
   s.player.y = 0;
   return s;

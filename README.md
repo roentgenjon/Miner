@@ -35,7 +35,7 @@ Benötigt Node.js ≥ 20.
 - **Zonen:** 100 Zonen à 1 000 m. Sie wechseln reihum zwischen Erde, Tiefschiefer, Magmazone und Kristallhöhle ("Erde I", "Tiefschiefer I", … "Kristallhöhle XXV"); jeder Durchlauf hat einen eigenen Farbton, ist dunkler, verbraucht mehr Lampenenergie, hat mehr Gefahren und wertvollere Erze. Das Herz (100 000 m = Sieg) liegt am Ende. Tiefe und Zonenzahl stehen als `HEART_DEPTH` und `ZONE_COUNT` in `src/config.ts`.
 - **Erze** bringen Münzen, aufeinanderfolgende Erze erhöhen den **Kombo-Multiplikator**.
 - **Truhen** enthalten Münzen, Kohle, Dynamit oder ein Leben. **Sprengkisten** explodieren, sobald man sie abbaut – und lösen Kettenreaktionen aus.
-- Gefahren: fallendes **Geröll**, tropfende **Lava**, **Fledermäuse** (Hineinlaufen = Schlag).
+- Gefahren: fallendes **Geröll**, **Fledermäuse** (Hineinlaufen = Schlag).
 - **Dynamit** sprengt einen Bereich um die Figur; weiteres Dynamit und Sprengkisten im Radius zünden nacheinander (Kettenreaktion). Start-Dynamit = 40 + 3 pro Upgrade-Stufe.
 - **Werkstatt:** 21 Upgrades, 15 davon mit 600 bis 1 000 000 Stufen (Sammelkauf ×10/×100/×1k/Max), bezahlt mit Münzen. **Missionen:** 3 zufällige pro Runde. **Erfolge:** 9 Stück.
 - **Tagesschacht:** gleicher Seed für alle am selben Kalendertag. Die **Rekordlinie** zeigt deine bisher größte Tiefe.
@@ -55,7 +55,7 @@ src/
     state.ts           GameState, Spieler, Entitäten, Schaden
     player.ts          Bewegung, Graben, Schwerkraft, Fallschaden
     bats.ts            Fledermäuse
-    physics.ts         Geröll (Wackeln, Fallen) und tropfende Lava
+    physics.ts         Geröll (Wackeln, Fallen)
     tnt.ts             Dynamit, Explosion, Kettenreaktion
     loot.ts            Erz/Kohle/Truhen, Kombo
     game.ts            step(): ein Logikschritt

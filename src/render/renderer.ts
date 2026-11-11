@@ -37,8 +37,6 @@ const ORE_LIGHT: Record<number, number> = {
   [Block.Diamond]: 1.7,
   [Block.Ruby]: 1.2,
   [Block.Gold]: 0.9,
-  [Block.Lava]: 2.0,
-  [Block.LavaSource]: 1.6,
 };
 
 /** Zeichnet den Spielzustand auf ein Canvas. Verändert den Zustand nie. */
@@ -129,9 +127,6 @@ export class Renderer {
         case 'rockLand':
           this.shake = Math.max(this.shake, 0.15);
           this.burst(e.x + 0.5, e.y + 1, '#7b7f8a', 6, 2);
-          break;
-        case 'lavaDrip':
-          this.burst(e.x + 0.5, e.y, '#ff8a1f', 2, 1);
           break;
         case 'batDie':
           this.burst(e.x + 0.5, e.y + 0.5, '#6a4a8c', 10, 3);
@@ -244,9 +239,6 @@ export class Renderer {
         } else if (cell === Block.Bedrock) {
           const t = this.tex.bedrock[Math.abs(h) % this.tex.bedrock.length];
           if (t) ctx.drawImage(t, px, py, T, T);
-        } else if (cell === Block.Lava) {
-          const t = this.tex.lava[Math.floor(this.time * 4 + x + y) % this.tex.lava.length];
-          if (t) ctx.drawImage(t, px, py, T, T);
         } else {
           const t = variants[Math.abs(h) % variants.length];
           if (t) ctx.drawImage(t, px, py, T, T);
@@ -290,12 +282,6 @@ export class Renderer {
     const rock = this.tex.overlay.get(Block.Boulder);
     for (const r of s.rocks) {
       if (rock) ctx.drawImage(rock, toX(r.x), toY(r.y + r.t / 0.07), T, T);
-    }
-
-    // Lavatropfen
-    ctx.fillStyle = '#ffb030';
-    for (const d of s.drops) {
-      ctx.fillRect(toX(d.x + 0.4), toY(d.y + d.t / 0.06 + 0.2), Math.round(T * 0.2), Math.round(T * 0.3));
     }
 
     // Dynamit
@@ -470,7 +456,6 @@ export class Renderer {
       }
     }
     for (const t of s.tnts) light(toX(t.x + 0.5), toY(t.y + 0.5), 1.8 + Math.sin(this.time * 30) * 0.2);
-    for (const dr of s.drops) light(toX(dr.x + 0.5), toY(dr.y + dr.t / 0.06 + 0.5), 1.0);
     for (const fl of this.flashes) light(toX(fl.x), toY(fl.y), fl.radius * 1.8, Math.min(1, fl.life * 4));
     d.globalCompositeOperation = 'source-over';
 

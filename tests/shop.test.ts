@@ -139,8 +139,8 @@ describe('Sammelkauf', () => {
   it('hält an der Maximalstufe an', () => {
     const m = defaultMeta();
     m.money = 1e12;
-    m.upgrades.heat = 1;
-    const r = buyUpgradeMany(m, 'heat', 10);
+    m.upgrades.helmet = 1;
+    const r = buyUpgradeMany(m, 'helmet', 10);
     expect(r.bought).toBe(1);
     expect(r.stoppedBy).toBe('max');
   });

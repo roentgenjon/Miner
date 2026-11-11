@@ -1,12 +1,11 @@
-import { LAVA, ROCK } from '../config';
+import { ROCK } from '../config';
 import { damagePlayer, emit, type GameState } from './state';
 import { Block } from './types';
 import { getCell, idx, setCell } from './world';
 
-/** Geröll (Wackeln, Fallen, Landen) und tropfende Lava. */
+/** Geröll (Wackeln, Fallen, Landen). */
 export function updatePhysics(s: GameState, dt: number): void {
   updateRocks(s, dt);
-  updateLava(s, dt);
 }
 
 function updateRocks(s: GameState, dt: number): void {
@@ -63,39 +62,4 @@ function updateRocks(s: GameState, dt: number): void {
     if (alive) remaining.push(r);
   }
   s.rocks = remaining;
-}
-
-function updateLava(s: GameState, dt: number): void {
-  const w = s.world;
-  const p = s.player;
-
-  for (const l of s.lava) {
-    if (l.y < p.y - LAVA.scanUp || l.y > p.y + LAVA.scanDown) continue;
-    if (getCell(w, l.x, l.y) !== Block.LavaSource) continue;
-    l.next -= dt;
-    if (l.next > 0) continue;
-    l.next = LAVA.dripMin + s.rng.next() * (LAVA.dripMax - LAVA.dripMin);
-    if (getCell(w, l.x, l.y + 1) === Block.Air) {
-      s.drops.push({ x: l.x, y: l.y + 1, t: 0 });
-      emit(s, { type: 'lavaDrip', x: l.x, y: l.y + 1 });
-    }
-  }
-
-  const remaining = [];
-  for (const d of s.drops) {
-    d.t += dt;
-    let alive = true;
-    while (alive && d.t >= LAVA.dropStep) {
-      d.t -= LAVA.dropStep;
-      if (p.x === d.x && p.y === d.y) {
-        damagePlayer(s, s.mods.lavaReduction >= 2 ? 0 : LAVA.dropDamage, 'lava');
-        alive = false;
-        break;
-      }
-      if (getCell(w, d.x, d.y + 1) === Block.Air) d.y++;
-      else alive = false;
-    }
-    if (alive) remaining.push(d);
-  }
-  s.drops = remaining;
 }

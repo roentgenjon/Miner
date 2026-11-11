@@ -123,12 +123,6 @@ export class Sfx {
       case 'rockLand':
         this.noise(0.14, 0.3, 600, 80);
         break;
-      case 'lavaDrip':
-        if (this.throttle('lava', 200)) this.noise(0.12, 0.08, 6000, 2500);
-        break;
-      case 'lava':
-        this.noise(0.3, 0.3, 5000, 800);
-        break;
       case 'batHit':
         this.tone(1400, 0.1, 'square', 0.1, 800);
         break;

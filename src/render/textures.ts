@@ -116,36 +116,6 @@ function boulder(): Tex {
   return c;
 }
 
-function lavaSource(): Tex {
-  const { c, g } = make();
-  g.fillStyle = '#2b1414';
-  g.fillRect(2, 2, 12, 9);
-  g.fillStyle = '#ff7a1a';
-  g.fillRect(4, 8, 8, 4);
-  g.fillStyle = '#ffd23a';
-  g.fillRect(6, 9, 4, 3);
-  g.fillStyle = '#ff7a1a';
-  g.fillRect(7, 12, 2, 3);
-  g.fillStyle = '#ffd23a';
-  g.fillRect(7, 14, 2, 1);
-  return c;
-}
-
-function lavaFrame(t: number): Tex {
-  const rng = createRng('lava');
-  const { c, g } = make();
-  g.fillStyle = '#d9480f';
-  g.fillRect(0, 0, S, S);
-  for (let y = 0; y < S; y++) {
-    for (let x = 0; x < S; x++) {
-      const v = Math.sin((x + t * 3) * 0.9) + Math.cos((y - t * 2) * 0.8) + rng.next() * 0.6;
-      g.fillStyle = v > 1.1 ? '#ffd23a' : v > 0.3 ? '#ff8a1f' : v < -1.0 ? '#8c2a07' : '#e85d0c';
-      g.fillRect(x, y, 1, 1);
-    }
-  }
-  return c;
-}
-
 function grass(): Tex {
   const { c, g } = make();
   g.fillStyle = '#4caf3a';
@@ -167,7 +137,6 @@ export interface Textures {
   forZone(index: number): ZoneTextures;
   bedrock: Tex[];
   overlay: Map<number, Tex>;
-  lava: Tex[];
   grass: Tex;
   sky: Tex;
   player: { right: Tex; left: Tex };
@@ -257,7 +226,6 @@ export function createTextures(): Textures {
   overlay.set(Block.Chest, fromSprite(ALL_SPRITES.CHEST as Sprite));
   overlay.set(Block.Crate, fromSprite(ALL_SPRITES.CRATE as Sprite));
   overlay.set(Block.Boulder, boulder());
-  overlay.set(Block.LavaSource, lavaSource());
   overlay.set(Block.Heart, fromSprite(ALL_SPRITES.HEART as Sprite));
 
   const sky = make(S, S);
@@ -272,7 +240,6 @@ export function createTextures(): Textures {
     forZone,
     bedrock: [0, 1, 2].map((i) => stone(`bed-${i}`, '#1d1d22', '#121216', '#2e2e36', 0.3)),
     overlay,
-    lava: [0, 1, 2, 3].map((i) => lavaFrame(i)),
     grass: grass(),
     sky: sky.c,
     player: { right: player, left: flipped(player) },
@@ -300,7 +267,5 @@ export const BLOCK_COLORS: Record<number, string> = {
   [Block.Chest]: '#9a6535',
   [Block.Crate]: '#a8723c',
   [Block.Boulder]: '#7b7f8a',
-  [Block.LavaSource]: '#ff7a1a',
-  [Block.Lava]: '#ff8a1f',
   [Block.Heart]: '#e0334a',
 };

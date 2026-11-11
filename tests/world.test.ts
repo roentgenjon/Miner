@@ -10,7 +10,6 @@ describe('Weltgenerierung', () => {
     const b = generateWorld(dailySeed(new Date(2026, 10, 10, 23, 59)));
     expect(Array.from(a.cells)).toEqual(Array.from(b.cells));
     expect(a.batSpawns).toEqual(b.batSpawns);
-    expect(a.lavaSources).toEqual(b.lavaSources);
   });
 
   it('unterscheidet sich zwischen Tagen und Seeds', () => {
@@ -85,6 +84,17 @@ describe('Weltgenerierung', () => {
     for (const z of ZONES) expect(counts.get(z.index) ?? 0, z.name).toBeGreaterThan(3000);
   });
 
+  it('enthält keine Lava mehr, aber Fledermäuse, Geröll und Sprengkisten', () => {
+    const w = generateWorld('keine-lava');
+    const kinds = new Set<number>(w.cells);
+    expect(Object.keys(Block)).not.toContain('Lava');
+    expect(Object.keys(Block)).not.toContain('LavaSource');
+    expect(kinds.has(Block.Boulder)).toBe(true);
+    expect(kinds.has(Block.Crate)).toBe(true);
+    expect(kinds.has(Block.Chest)).toBe(true);
+    expect(w.batSpawns.length).toBeGreaterThan(0);
+  });
+
   it('platziert zonenspezifische Erze und Gefahren', () => {
     const w = generateWorld('inhalt');
     const has = (b: number, from: number, to: number): boolean => {
@@ -95,8 +105,7 @@ describe('Weltgenerierung', () => {
     const magma = ZONES[2]?.from ?? 0;
     expect(has(Block.Diamond, 0, kristall)).toBe(false);
     expect(has(Block.Diamond, kristall, HEART_DEPTH)).toBe(true);
-    expect(has(Block.LavaSource, 0, magma)).toBe(false);
-    expect(w.lavaSources.length).toBeGreaterThan(0);
+    expect(magma).toBeGreaterThan(0);
     expect(w.batSpawns.length).toBeGreaterThan(0);
   });
 });

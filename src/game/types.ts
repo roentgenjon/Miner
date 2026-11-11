@@ -16,8 +16,6 @@ export const Block = {
   Chest: 13,
   Crate: 14,
   Boulder: 15,
-  LavaSource: 16,
-  Lava: 17,
   Heart: 18,
 } as const;
 
@@ -45,7 +43,6 @@ export interface World {
   height: number;
   cells: Uint8Array;
   batSpawns: Point[];
-  lavaSources: Point[];
 }
 
 export type UpgradeId =
@@ -64,7 +61,6 @@ export type UpgradeId =
   | 'saver'
   | 'light'
   | 'legs'
-  | 'heat'
   | 'master'
   | 'revive'
   | 'lift'
@@ -95,8 +91,6 @@ export interface Mods {
   lightBonus: number;
   /** Multiplikator auf die Laufgeschwindigkeit. */
   moveSpeed: number;
-  /** Verringert Lavaschaden (Berührung -1 je Stufe, Tropfen ab Stufe 2 wirkungslos). */
-  lavaReduction: number;
   /** Obergrenze des Kombo-Multiplikators. */
   comboMax: number;
   /** Wiederbelebungen pro Runde. */
@@ -105,7 +99,7 @@ export interface Mods {
   startDepth: number;
   /** Multiplikator auf den Energieverbrauch beim Graben. */
   digCostMult: number;
-  /** Anteil der Fledermäuse und Lavaquellen/-felder, der beim Rundenstart entfernt wird (0..0,9). */
+  /** Anteil der Fledermäuse, der beim Rundenstart entfernt wird (0..0,9). */
   hazardReduction: number;
 }
 
@@ -135,8 +129,6 @@ export type GameEvent =
   | { type: 'land'; x: number; y: number; fall: number }
   | { type: 'rockFall'; x: number; y: number }
   | { type: 'rockLand'; x: number; y: number }
-  | { type: 'lavaDrip'; x: number; y: number }
-  | { type: 'lava'; x: number; y: number }
   | { type: 'batHit'; x: number; y: number }
   | { type: 'batDie'; x: number; y: number }
   | { type: 'zone'; zone: ZoneId; name: string }
