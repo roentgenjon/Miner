@@ -18,7 +18,7 @@ function canFall(s: GameState): boolean {
 }
 
 /** Höchstzahl kurzer Aktionen, die in einem Logikschritt nacheinander ablaufen dürfen. */
-const MAX_CHAIN = 4;
+const MAX_CHAIN = 32;
 
 export function updatePlayer(s: GameState, dt: number): void {
   const p = s.player;

@@ -52,7 +52,7 @@ describe('Werkstatt', () => {
 
   it('Upgrades wirken auf die Spielwerte', () => {
     const m = defaultMeta();
-    m.upgrades.pick = 5000;
+    m.upgrades.pick = 500;
     m.upgrades.armor = 2;
     m.upgrades.lamp = 4;
     const mods = computeMods(m.upgrades);
@@ -96,14 +96,15 @@ describe('Stufenverlauf', () => {
 });
 
 describe('Spitzhacke', () => {
-  it('hat 1 Million Stufen; das Tempo steigt stetig, nach Stufe 10000 nur noch langsam', () => {
+  it('hat 1 Million Stufen; das Tempo steigt stetig, nach Stufe 10000 nur noch langsamer', () => {
     const def = UPGRADES.find((u) => u.id === 'pick');
     expect(def?.maxLevel).toBe(1_000_000);
     const speed = (l: number): number => computeMods({ ...defaultMeta().upgrades, pick: l }).digSpeed;
-    const levels = [0, 1, 1000, 5000, 10_000, 10_001, 100_000, 1_000_000];
+    const levels = [0, 1, 250, 1000, 10_000, 10_001, 100_000, 1_000_000];
     for (let i = 1; i < levels.length; i++) expect(speed(levels[i] as number)).toBeGreaterThan(speed(levels[i - 1] as number));
-    expect(speed(10_000)).toBeCloseTo(7);
-    expect(speed(1_000_000)).toBeCloseTo(7 + 9.9);
+    expect(speed(1000)).toBeCloseTo(7);
+    expect(speed(10_000)).toBeCloseTo(61);
+    expect(speed(1_000_000)).toBeCloseTo(61 + 99);
   });
 
   it('Preise bleiben auch bei Stufe 1 Million im sechsstelligen Bereich', () => {

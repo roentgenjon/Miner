@@ -350,8 +350,8 @@ export interface UpgradeDef {
   tailStep?: number;
 }
 
-/** Spitzhacke: bis `softCap` +0,0006/Stufe (→ ×7), danach nur noch langsam weiter (→ ×17 bei Stufe 1 000 000). */
-export const PICK = { softCap: 10_000, tailPerLevel: 0.00001 };
+/** Spitzhacke: bis `softCap` +0,006/Stufe (→ ×61), danach nur noch +0,0001/Stufe weiter (→ ×160 bei Stufe 1 000 000). */
+export const PICK = { softCap: 10_000, tailPerLevel: 0.0001 };
 
 /** Die ersten `EXP_LEVELS` Stufen wachsen exponentiell im Preis, danach linear bis zum Endpreis. */
 const EXP_LEVELS = 100;
@@ -381,7 +381,7 @@ function longUpgrade(
  * ausgenommen Dynamit (Vorgabe: +3 pro Stufe).
  */
 export const UPGRADES: readonly UpgradeDef[] = [
-  longUpgrade('pick', 'Spitzhacke', 'Schneller graben', 1_000_000, 40, 0.0006, 300_000),
+  longUpgrade('pick', 'Spitzhacke', 'Schneller graben', 1_000_000, 40, 0.006, 300_000),
   longUpgrade('lamp', 'Grubenlampe', 'Mehr Lampenenergie', 2500, 35, 0.75, 200_000),
   { id: 'armor', name: 'Lederwams', desc: '+1 Leben pro Stufe', maxLevel: 10, baseCost: 120, growth: 1.6, perLevel: 1 },
   longUpgrade('tnt', 'Dynamitvorrat', '+3 Dynamit pro Stufe', 3000, 30, TNT.perLevel, 150_000),
