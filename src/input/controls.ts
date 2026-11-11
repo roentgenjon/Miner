@@ -5,6 +5,8 @@ export interface ControlHooks {
   onPause: () => void;
   /** Liefert die Bildschirmposition des Spielers in Canvas-Gerätepixeln (für Tippen). */
   playerScreen: () => { x: number; y: number };
+  /** Auto-Dynamit umschalten (Taste T oder Button). */
+  onToggleAuto: () => void;
   /** Erste Nutzergeste (Audio freischalten). */
   onGesture: () => void;
 }
@@ -75,6 +77,11 @@ export class Controls {
       this.hooks.onGesture();
       if (this.enabled && this.target) this.target.tnt = true;
     });
+    pad.querySelector<HTMLElement>('[data-action="auto"]')?.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      this.hooks.onGesture();
+      if (this.enabled) this.hooks.onToggleAuto();
+    });
     for (const ev of ['contextmenu', 'gesturestart', 'dblclick']) {
       document.addEventListener(ev, (e) => e.preventDefault());
     }
@@ -116,6 +123,11 @@ export class Controls {
     if (!this.enabled) return;
     if (e.code === 'Space') {
       if (!e.repeat && this.target) this.target.tnt = true;
+      e.preventDefault();
+      return;
+    }
+    if (e.code === 'KeyT') {
+      if (!e.repeat) this.hooks.onToggleAuto();
       e.preventDefault();
       return;
     }

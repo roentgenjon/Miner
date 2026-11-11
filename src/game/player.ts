@@ -25,6 +25,7 @@ export function updatePlayer(s: GameState, dt: number): void {
   const inp = s.input;
   p.invuln = Math.max(0, p.invuln - dt);
   p.climb = Math.max(0, p.climb - dt);
+  p.digT = Math.max(0, p.digT - dt);
 
   if (inp.queued) {
     inp.queuedAge += dt;
@@ -138,6 +139,8 @@ function startAct(s: GameState, dir: Dir, carry: number): void {
   }
 
   const dur = digTime(s, cell);
+  p.digDir = dir;
+  p.digT = 0.3;
   p.action = { kind: 'dig', tx, ty, dir, dur, left: dur + carry };
 }
 

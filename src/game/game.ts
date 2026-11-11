@@ -4,7 +4,7 @@ import { updatePhysics } from './physics';
 import { updatePlayer } from './player';
 import { addBonus } from './loot';
 import { damagePlayer, emit, type GameState } from './state';
-import { updateTnt } from './tnt';
+import { updateAutoTnt, updateTnt } from './tnt';
 import { updateMissions } from '../meta/missions';
 
 export { createGame, drainEvents } from './state';
@@ -16,6 +16,7 @@ export function step(s: GameState, dt: number): void {
   s.tick++;
 
   updatePlayer(s, dt);
+  if (s.status === 'playing') updateAutoTnt(s, dt);
   if (s.status === 'playing') updateTnt(s, dt);
   if (s.status === 'playing') updatePhysics(s, dt);
   if (s.status === 'playing') updateBats(s, dt);

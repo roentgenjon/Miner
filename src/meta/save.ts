@@ -28,6 +28,8 @@ export interface Meta {
   /** Freigeschaltete Erfolge: id -> Zeitstempel. */
   achievements: Record<string, number>;
   sound: boolean;
+  /** Auto-Dynamit beim Rundenstart eingeschaltet. */
+  autoTnt: boolean;
   daily: DailyRecord;
 }
 
@@ -42,6 +44,7 @@ export function defaultMeta(): Meta {
     totals: { ores: 0, tntBlocks: 0, chests: 0, bats: 0, coal: 0, earned: 0 },
     achievements: {},
     sound: true,
+    autoTnt: false,
     daily: { date: '', best: 0, runs: 0 },
   };
 }
@@ -74,6 +77,7 @@ export function parseMeta(raw: unknown): Meta {
   m.runs = Math.floor(num(r.runs));
   m.wins = Math.floor(num(r.wins));
   if (typeof r.sound === 'boolean') m.sound = r.sound;
+  if (typeof r.autoTnt === 'boolean') m.autoTnt = r.autoTnt;
 
   const up = r.upgrades;
   if (typeof up === 'object' && up !== null) {

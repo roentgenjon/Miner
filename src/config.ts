@@ -279,6 +279,15 @@ export const TNT = {
   blastLoot: 0.6,
 };
 
+/** Auto-Dynamit: wirft beim Graben selbstständig Ladungen voraus (verletzt den Spieler nicht). */
+export const AUTO_TNT = {
+  /** Mindestabstand zwischen zwei automatischen Ladungen (s). */
+  interval: 1.2,
+  /** So viele Felder voraus in Grabrichtung wird die Ladung gelegt. */
+  ahead: 3,
+  fuse: 0.5,
+};
+
 /* ---------- Gefahren ---------- */
 export const ROCK = {
   /** Wackelzeit, bevor Geröll ohne Halt fällt. */

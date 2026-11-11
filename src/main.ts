@@ -47,6 +47,7 @@ let endTimer = 0;
 
 const controls = new Controls(canvas, pad, {
   onPause: () => togglePause(),
+  onToggleAuto: () => toggleAuto(),
   playerScreen: () => renderer.playerScreen,
   onGesture: () => sfx.unlock(),
 });
@@ -84,6 +85,21 @@ async function forceUpdate(): Promise<void> {
   }
 }
 
+function setAuto(on: boolean): void {
+  state.input.autoTnt = on;
+  pad.querySelector('[data-action="auto"]')?.classList.toggle('on', on);
+  pad.querySelector('[data-action="auto"]')?.setAttribute('aria-pressed', String(on));
+}
+
+function toggleAuto(): void {
+  if (mode !== 'playing') return;
+  const on = !state.input.autoTnt;
+  setAuto(on);
+  meta.autoTnt = on;
+  saveMeta(meta);
+  hud.toast(on ? 'Auto-Dynamit AN – legt beim Graben 3 Felder voraus' : 'Auto-Dynamit AUS', on ? 'good' : 'info');
+}
+
 function startRun(daily: boolean): void {
   sfx.unlock();
   state = createGame({
@@ -93,6 +109,7 @@ function startRun(daily: boolean): void {
     record: meta.bestDepth,
   });
   controls.setTarget(state.input);
+  setAuto(meta.autoTnt);
   controls.enabled = true;
   stepper.reset();
   endTimer = 0;

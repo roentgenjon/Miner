@@ -26,6 +26,7 @@ Benötigt Node.js ≥ 20.
 | --- | --- |
 | ← → ↓ ↑ / A D S W | links, rechts, nach unten graben bzw. laufen; ↑ / W klettert und gräbt nach oben |
 | Leertaste / Button „TNT“ | Dynamit legen |
+| T / Button „AUTO“ | Auto-Dynamit an/aus: legt beim Graben selbstständig Ladungen 3 Felder voraus (verletzen dich nicht) |
 | P / Esc / Button „II“ | Pause |
 | Tippen | in Richtung des Tippens (relativ zur Spielfigur, auch nach oben) graben, gedrückt halten = weitergraben |
 | Wischen | in Wischrichtung graben oder klettern |

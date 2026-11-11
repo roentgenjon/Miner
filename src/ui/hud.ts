@@ -62,7 +62,8 @@ export class Hud {
     });
     this.set('depth', String(p.y), () => (this.depth.textContent = `${fmt(p.y)} m / ${fmt(HEART_DEPTH)}`));
     this.set('money', String(s.wallet), () => (this.money.textContent = `● ${fmt(s.wallet)}`));
-    this.set('tnt', String(p.tnt), () => (this.tnt.textContent = `TNT ${p.tnt}`));
+    const auto = s.input.autoTnt;
+    this.set('tnt', `${p.tnt}:${auto}`, () => (this.tnt.textContent = `${auto ? 'AUTO ' : ''}TNT ${p.tnt}`));
 
     const c = s.combo;
     const ck = c.count > 1 ? `${c.count}:${Math.ceil(c.timer * 4)}` : '';

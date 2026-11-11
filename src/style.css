@@ -185,6 +185,21 @@ button {
 .pad-btn:active {
   background: rgba(255, 210, 58, 0.45);
 }
+.tnt-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.auto-btn {
+  width: 78px;
+  height: 44px;
+  font-size: 15px;
+}
+.auto-btn.on {
+  background: rgba(94, 209, 106, 0.7);
+  border-color: #fff;
+}
 .tnt-btn {
   width: 78px;
   height: 78px;

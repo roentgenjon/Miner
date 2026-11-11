@@ -30,6 +30,9 @@ export interface Player {
   climb: number;
   /** Zuletzt abgebautes Feld (für das schnellere Nachrücken). */
   lastDug: { x: number; y: number } | null;
+  /** Richtung des letzten Grabens und wie lange das noch als „gräbt gerade“ gilt (s). */
+  digDir: Dir | null;
+  digT: number;
 }
 
 export interface Bat {
@@ -54,6 +57,8 @@ export interface Tnt {
   y: number;
   fuse: number;
   kind: 'tnt' | 'crate';
+  /** Automatisch gelegte Ladung: verletzt den Spieler nicht. */
+  safe?: boolean;
 }
 
 export interface Rock {
@@ -67,6 +72,8 @@ export interface Input {
   queued: Dir | null;
   queuedAge: number;
   tnt: boolean;
+  /** Auto-Dynamit eingeschaltet. */
+  autoTnt: boolean;
 }
 
 export type GameStatus = 'playing' | 'won' | 'dead' | 'ended';
@@ -97,6 +104,8 @@ export interface GameState {
   status: GameStatus;
   events: GameEvent[];
   input: Input;
+  /** Zeit seit der letzten automatischen Ladung. */
+  autoTntT: number;
   /** Verbleibende Wiederbelebungen. */
   revives: number;
   /** Rekordtiefe zu Rundenbeginn. */
@@ -147,6 +156,8 @@ export function createGame(opts: CreateGameOptions): GameState {
       darkT: 0,
       climb: 0,
       lastDug: null,
+      digDir: null,
+      digT: 0,
     },
     bats: [],
     batChunks: new Set(),
@@ -163,7 +174,8 @@ export function createGame(opts: CreateGameOptions): GameState {
     wallet: 0,
     status: 'playing',
     events: [],
-    input: { held: null, queued: null, queuedAge: 0, tnt: false },
+    input: { held: null, queued: null, queuedAge: 0, tnt: false, autoTnt: false },
+    autoTntT: 0,
     revives: opts.mods.revives,
     record: opts.record ?? 0,
     zone: zoneAt(startY).id,

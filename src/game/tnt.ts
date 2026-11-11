@@ -1,7 +1,7 @@
-import { TNT } from '../config';
+import { AUTO_TNT, TNT } from '../config';
 import { collectCoal, collectOre, openChest } from './loot';
 import { damagePlayer, emit, type GameState } from './state';
-import { Block } from './types';
+import { Block, DIRS } from './types';
 import { getCell, setCell } from './world';
 import { isOre } from '../config';
 
@@ -21,6 +21,31 @@ export function lightCrate(s: GameState, x: number, y: number, fuse: number = TN
   s.tnts.push({ id: s.nextId++, x, y, fuse, kind: 'crate' });
 }
 
+/**
+ * Auto-Dynamit: Beim Graben wird in festen Abständen eine Ladung `AUTO_TNT.ahead` Felder voraus
+ * in Grabrichtung gelegt, sofern dort Gestein ist. Die Ladung verletzt den Spieler nicht.
+ */
+export function updateAutoTnt(s: GameState, dt: number): void {
+  s.autoTntT += dt;
+  const p = s.player;
+  if (!s.input.autoTnt || p.tnt <= 0 || s.autoTntT < AUTO_TNT.interval) return;
+  if (p.digT <= 0 || !p.digDir) return; // nur während des Grabens
+  const [dx, dy] = DIRS[p.digDir];
+  const x = p.x + dx * AUTO_TNT.ahead;
+  const y = p.y + dy * AUTO_TNT.ahead;
+  if (y < 1) return;
+  // Nur sprengen, wenn dort (oder davor) Gestein ist – nicht in Höhlen oder gegen Grundgestein.
+  const target = getCell(s.world, x, y);
+  const before = getCell(s.world, p.x + dx * (AUTO_TNT.ahead - 1), p.y + dy * (AUTO_TNT.ahead - 1));
+  const solid = (b: number): boolean => b !== Block.Air && b !== Block.Bedrock;
+  if (!solid(target) && !solid(before)) return;
+  if (s.tnts.some((t) => Math.hypot(t.x - x, t.y - y) < 2.5)) return;
+  p.tnt--;
+  s.autoTntT = 0;
+  s.tnts.push({ id: s.nextId++, x, y, fuse: AUTO_TNT.fuse, kind: 'tnt', safe: true });
+  emit(s, { type: 'tntPlace', x, y });
+}
+
 /** Zündschnüre herunterzählen und fällige Ladungen zünden. */
 export function updateTnt(s: GameState, dt: number): void {
   if (s.tnts.length === 0) return;
@@ -32,7 +57,7 @@ export function updateTnt(s: GameState, dt: number): void {
   if (due.length === 0) return;
   s.tnts = s.tnts.filter((t) => t.fuse > 0);
   for (const t of due) {
-    explode(s, t.x, t.y, t.kind === 'crate' ? TNT.crateRadius : s.mods.tntRadius);
+    explode(s, t.x, t.y, t.kind === 'crate' ? TNT.crateRadius : s.mods.tntRadius, t.safe === true);
   }
 }
 
@@ -40,7 +65,7 @@ export function updateTnt(s: GameState, dt: number): void {
  * Explosion bei (cx, cy): zerstört Blöcke, löst Sprengkisten und weiteres
  * Dynamit im Radius aus (Kettenreaktion), verletzt Spieler, tötet Fledermäuse.
  */
-export function explode(s: GameState, cx: number, cy: number, radius: number): void {
+export function explode(s: GameState, cx: number, cy: number, radius: number, safe = false): void {
   const r2 = radius * radius;
   const reach = Math.ceil(radius);
   const w = s.world;
@@ -92,7 +117,7 @@ export function explode(s: GameState, cx: number, cy: number, radius: number): v
 
   // Spieler
   const p = s.player;
-  if (Math.hypot(p.x - cx, p.y - cy) <= radius) {
+  if (!safe && Math.hypot(p.x - cx, p.y - cy) <= radius) {
     damagePlayer(s, TNT.playerDamage, 'tnt');
   }
 
