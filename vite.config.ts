@@ -39,22 +39,44 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+const HOME = new URL('./', scope).href;
+
+// Seitenaufrufe: zuerst das Netz (immer die neueste Version), bei Ausfall der Cache (offline).
+async function networkFirst(req) {
+  const cache = await caches.open(CACHE);
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(req, { cache: 'no-cache', signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) {
+      cache.put(HOME, res.clone());
+    }
+    return res;
+  } catch {
+    return (await cache.match(HOME)) || (await caches.match(req)) || Response.error();
+  }
+}
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || !req.url.startsWith(scope)) return;
+  if (req.mode === 'navigate') {
+    e.respondWith(networkFirst(req));
+    return;
+  }
+  // Dateien mit Hash im Namen ändern sich nie: Cache zuerst.
   e.respondWith(
     caches.match(req, { ignoreSearch: true }).then(
       (hit) =>
         hit ||
-        fetch(req)
-          .then((res) => {
-            if (res.ok) {
-              const copy = res.clone();
-              caches.open(CACHE).then((c) => c.put(req, copy));
-            }
-            return res;
-          })
-          .catch(() => (req.mode === 'navigate' ? caches.match(new URL('./', scope).href) : Response.error())),
+        fetch(req).then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+          }
+          return res;
+        }),
     ),
   );
 });

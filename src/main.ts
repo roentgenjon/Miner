@@ -179,7 +179,18 @@ if (import.meta.env.DEV) {
 }
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  const hadController = navigator.serviceWorker.controller !== null;
+  let updateReady = false;
+  // Neue Version aktiv: Seite neu laden – aber nie mitten in einer Runde.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return; // Erstinstallation, nichts zu aktualisieren
+    updateReady = true;
+    if (mode === 'menu' || mode === 'result') window.location.reload();
+  });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
   });
+  window.setInterval(() => {
+    if (updateReady && (mode === 'menu' || mode === 'result')) window.location.reload();
+  }, 1000);
 }
