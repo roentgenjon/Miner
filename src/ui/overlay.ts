@@ -467,10 +467,10 @@ export class Overlay {
           { class: 'acc-actions' },
           onlineName
             ? null
-            : this.btn('Online machen', () => {
-                // Das alte Konto aktivieren und unten die Anmeldung zeigen: dort wird sein Spielstand hochgeladen.
+            : this.btn('Online machen …', () => {
+                // Das (alte) Konto aktivieren und den Bildschirm zum Online-Machen zeigen.
                 if (!active) this.act.accounts.switchTo(a.id);
-                this.showAccounts(`Konto „${a.name}“ ist jetzt aktiv. Melde dich unten an oder registriere dich, um es online zu sichern.`, true);
+                this.showGoOnline();
               }, 'small primary'),
           active ? null : this.btn('Wechseln', () => { this.act.accounts.switchTo(a.id); this.showAccounts(`Konto „${a.name}“ aktiv.`); }, 'small primary'),
           this.btn('Name', () => {
@@ -503,6 +503,93 @@ export class Overlay {
       if (focusOnline) this.root.querySelector('.online-box')?.scrollIntoView({ block: 'center' });
   }
 
+  /** Meldet das aktive Konto beim Server an oder registriert es und sagt, wie es weitergeht. */
+  private async connect(
+    mode: 'login' | 'register',
+    name: string,
+    password: string,
+  ): Promise<{ kind: 'done'; message: string } | { kind: 'choice' } | { kind: 'error'; message: string }> {
+    const r = await this.act.cloud.signIn(mode, name, password);
+    if (!r.ok) return { kind: 'error', message: r.message };
+    const online = this.act.cloud.info().name ?? name.trim();
+    if (r.plan === 'upload') {
+      const e = await this.act.cloud.push();
+      return e
+        ? { kind: 'error', message: `Verbunden, aber das Hochladen hat nicht geklappt: ${e}` }
+        : { kind: 'done', message: `Dein Spielstand ist jetzt online gesichert – als „${online}“.` };
+    }
+    if (r.plan === 'adopt') {
+      const e = this.act.cloud.adopt();
+      return e ? { kind: 'error', message: e } : { kind: 'done', message: `Online-Konto „${online}“ verbunden, sein Spielstand wurde geladen.` };
+    }
+    return { kind: 'choice' };
+  }
+
+  /** Eigener Bildschirm: ein (altes) lokales Konto online machen – mit klaren Schritten und sichtbarem Fortschritt. */
+  showGoOnline(msg: string | null = null, prefill = ''): void {
+    const acc = activeAccount(this.act.accounts.list());
+    const m = this.meta();
+    const name = h('input', { class: 'text-input' });
+    name.type = 'text';
+    name.maxLength = 16;
+    name.placeholder = 'Online-Name (3–16 Zeichen)';
+    name.autocomplete = 'username';
+    name.value = prefill;
+    name.setAttribute('aria-label', 'Online-Name');
+    plainInput(name);
+    const pw = h('input', { class: 'text-input' });
+    pw.type = 'password';
+    pw.maxLength = 128;
+    pw.placeholder = 'Passwort (mind. 8 Zeichen)';
+    pw.autocomplete = 'current-password';
+    pw.setAttribute('aria-label', 'Passwort');
+    plainInput(pw);
+
+    const busy = h('p', { class: 'notice' }, '⏳ Verbinde mit dem Server … (kann ein paar Sekunden dauern)');
+    busy.hidden = true;
+    const buttons: HTMLButtonElement[] = [];
+    const go = (mode: 'login' | 'register'): void => {
+      if (!name.value.trim() || !pw.value) return this.showGoOnline('Bitte Online-Name und Passwort eingeben.', name.value);
+      busy.hidden = false;
+      buttons.forEach((b) => (b.disabled = true));
+      void this.connect(mode, name.value, pw.value).then((r) => {
+        if (r.kind === 'error') return this.showGoOnline(r.message, name.value);
+        if (r.kind === 'choice') return this.showCloudChoice();
+        this.showOnlineDone(r.message);
+      });
+    };
+    onEnter(name, () => pw.focus());
+    onEnter(pw, () => go('register'));
+    const reg = this.btn('Neu registrieren', () => go('register'), 'primary');
+    const login = this.btn('Ich habe schon ein Online-Konto: Anmelden', () => go('login'), 'small');
+    buttons.push(reg, login);
+
+    this.show(
+      h('h2', {}, `„${acc.name}“ online machen`),
+      h('div', { class: 'gift-card' }, h('b', {}, acc.name), h('span', {}, `● ${fmt(m.money)} · Rekord ${fmt(m.bestDepth)} m · ${m.runs} Runden`), h('span', {}, 'Dieser Spielstand wird online gesichert.')),
+      h('p', { class: 'hint' }, '1. Denk dir einen Online-Namen und ein Passwort aus. 2. Tippe auf „Neu registrieren“. Erst dann ist das Konto online.'),
+      msg ? h('p', { class: 'notice' }, msg) : null,
+      name,
+      pw,
+      busy,
+      reg,
+      login,
+      h('p', { class: 'hint' }, 'Das Passwort kann nicht zurückgesetzt werden – merk es dir gut. Der Name ist für andere sichtbar (Geschenke).'),
+      this.btn('Zurück', () => this.showAccounts()),
+    );
+  }
+
+  /** Bestätigung nach erfolgreichem Verbinden. */
+  showOnlineDone(message: string): void {
+    const info = this.act.cloud.info();
+    this.show(
+      h('h2', { class: 'win' }, '✓ Online!'),
+      h('div', { class: 'gift-card' }, h('b', {}, info.name ?? ''), h('span', {}, message)),
+      h('p', { class: 'hint' }, 'Von jetzt an wird der Spielstand automatisch gesichert, und du kannst Spielern Geschenke schicken. In der Kontenliste steht das Konto jetzt mit „☁ online“.'),
+      this.btn('Weiter', () => this.showAccounts(), 'primary'),
+    );
+  }
+
   /** Bereich „Online-Konto“ im Konten-Bildschirm. */
   private onlineBox(): Node {
     const info = this.act.cloud.info();
@@ -531,15 +618,18 @@ export class Overlay {
       onEnter(name, () => pw.focus());
       onEnter(pw, () => submit('login'));
       const submit = (mode: 'login' | 'register'): void => {
+        if (!name.value.trim() || !pw.value) return this.showAccounts('Bitte Online-Name und Passwort eingeben.');
         const btns = box.querySelectorAll('button');
         btns.forEach((b) => (b.disabled = true));
-        void this.act.cloud.signIn(mode, name.value, pw.value).then((r) => {
-          if (!r.ok) return this.showAccounts(r.message);
-          if (r.plan === 'upload') return void this.act.cloud.push().then((e) => this.showAccounts(e ?? `Online-Konto „${name.value.trim()}“ verbunden. Dein Spielstand ist jetzt online gesichert.`));
-          if (r.plan === 'adopt') return this.showAccounts(this.act.cloud.adopt() ?? 'Online-Spielstand geladen.');
-          return this.showCloudChoice();
+        busy.hidden = false;
+        void this.connect(mode, name.value, pw.value).then((r) => {
+          if (r.kind === 'error') return this.showAccounts(r.message);
+          if (r.kind === 'choice') return this.showCloudChoice();
+          this.showOnlineDone(r.message);
         });
       };
+      const busy = h('p', { class: 'notice' }, '⏳ Verbinde mit dem Server …');
+      busy.hidden = true;
       const box = h(
         'div',
         { class: 'online-box' },
@@ -548,6 +638,7 @@ export class Overlay {
         info.state === 'expired' ? h('p', { class: 'notice' }, status.expired) : null,
         h('div', { class: 'new-account' }, name),
         h('div', { class: 'new-account' }, pw),
+        busy,
         h('div', { class: 'btn-row' }, this.btn('Anmelden', () => submit('login'), 'small primary'), this.btn('Neu registrieren', () => submit('register'), 'small')),
         h('p', { class: 'hint' }, 'Das Passwort kann nicht zurückgesetzt werden – merk es dir gut. Der Name ist für andere sichtbar (Geschenke).'),
       );
