@@ -9,7 +9,21 @@ import { Controls } from './input/controls';
 import { FixedStepper } from './loop';
 import { evaluateAchievements } from './meta/achievements';
 import { applyRunResult } from './meta/progress';
-import { loadMeta, saveMeta } from './meta/save';
+import { ACCOUNTS } from './config';
+import {
+  accountKey,
+  activeAccount,
+  createAccount,
+  deleteAccount,
+  exportAccount,
+  importAccount,
+  loadAccounts,
+  renameAccount,
+  saveAccounts,
+  switchAccount,
+} from './meta/accounts';
+import { defaultStore, loadMeta, saveMeta, type Meta } from './meta/save';
+import { selectedSkin } from './meta/skins';
 import { computeMods, emptyUpgrades } from './meta/shop';
 import { Renderer } from './render/renderer';
 import { Hud } from './ui/hud';
@@ -31,7 +45,15 @@ function el<T extends HTMLElement>(id: string): T {
   return e as T;
 }
 
-const meta = loadMeta();
+// Konten: lokale Profile auf diesem Gerät, jedes mit eigenem Spielstand (siehe meta/accounts.ts).
+const store = defaultStore();
+let accounts = loadAccounts(store);
+saveAccounts(accounts, store);
+let meta: Meta = loadMeta(store, accountKey(accounts.active));
+/** Speichert den Spielstand des aktiven Kontos. */
+function persist(): void {
+  saveMeta(meta, store, accountKey(accounts.active));
+}
 const sfx = new Sfx();
 sfx.enabled = meta.sound;
 
@@ -62,12 +84,76 @@ const overlay = new Overlay(el('overlay'), () => meta, {
   toggleSound: () => {
     meta.sound = !meta.sound;
     sfx.enabled = meta.sound;
-    saveMeta(meta);
+    persist();
   },
-  save: () => saveMeta(meta),
+  save: () => persist(),
   forceUpdate: () => void forceUpdate(),
   sfx: (k) => sfx.ui(k),
+  skinPreview: (id, size) => renderer.skinPreview(id, size),
+  accounts: {
+    list: () => accounts,
+    peek: (id) => (id === accounts.active ? meta : loadMeta(store, accountKey(id))),
+    switchTo: (id) => {
+      persist();
+      if (!switchAccount(accounts, id)) return;
+      saveAccounts(accounts, store);
+      meta = loadMeta(store, accountKey(id));
+      sfx.enabled = meta.sound;
+    },
+    create: (name) => {
+      persist();
+      const r = createAccount(accounts, name);
+      if (!r.ok) return accountError(r.reason);
+      saveAccounts(accounts, store);
+      saveMeta(loadMeta(null), store, accountKey(r.id)); // leerer Spielstand
+      return null;
+    },
+    rename: (id, name) => {
+      const r = renameAccount(accounts, id, name);
+      if (!r.ok) return accountError(r.reason);
+      saveAccounts(accounts, store);
+      return null;
+    },
+    remove: (id) => {
+      if (!deleteAccount(accounts, id, store)) return false;
+      saveAccounts(accounts, store);
+      meta = loadMeta(store, accountKey(accounts.active));
+      sfx.enabled = meta.sound;
+      return true;
+    },
+    exportFile: (id) => {
+      persist();
+      const acc = accounts.accounts.find((a) => a.id === id) ?? activeAccount(accounts);
+      const data = exportAccount(acc.name, loadMeta(store, accountKey(acc.id)));
+      download(`schacht-${acc.name.replace(/[^a-z0-9äöüß_-]+/gi, '_')}.json`, data);
+    },
+    importText: (text) => {
+      persist();
+      const r = importAccount(accounts, store, saveMeta, text);
+      if (!r.ok) return r.reason === 'limit' ? accountError('limit') : 'Das ist keine gültige Konto-Datei.';
+      saveAccounts(accounts, store);
+      return null;
+    },
+  },
 });
+
+function accountError(reason: 'name' | 'duplicate' | 'limit'): string {
+  if (reason === 'duplicate') return 'Diesen Namen gibt es schon.';
+  if (reason === 'limit') return `Höchstens ${ACCOUNTS.max} Konten pro Gerät.`;
+  return 'Bitte einen Namen eingeben.';
+}
+
+/** Löst den Download einer Textdatei aus. */
+function download(filename: string, text: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
 
 /** Service Worker und Caches entfernen und neu laden. Der Spielstand (localStorage) bleibt unberührt. */
 async function forceUpdate(): Promise<void> {
@@ -96,7 +182,7 @@ function toggleAuto(): void {
   const on = !state.input.autoTnt;
   setAuto(on);
   meta.autoTnt = on;
-  saveMeta(meta);
+  persist();
   hud.toast(on ? 'Auto-Dynamit AN – legt beim Graben 3 Felder voraus' : 'Auto-Dynamit AUS', on ? 'good' : 'info');
 }
 
@@ -107,6 +193,7 @@ function startRun(daily: boolean): void {
     daily,
     mods: computeMods(meta.upgrades),
     record: meta.bestDepth,
+    skin: selectedSkin(meta).id,
   });
   controls.setTarget(state.input);
   setAuto(meta.autoTnt);
@@ -148,7 +235,7 @@ function finishRun(): void {
   controls.enabled = false;
   controls.setTarget(null);
   const result = applyRunResult(meta, state);
-  saveMeta(meta);
+  persist();
   hud.show(false);
   pad.hidden = true;
   overlay.showResult(state, result);
@@ -167,7 +254,7 @@ function onEvents(events: GameEvent[]): void {
   if (fresh.length > 0) {
     for (const a of fresh) hud.toast(`Erfolg: ${a.name}`, 'good');
     sfx.ui('achievement');
-    saveMeta(meta);
+    persist();
   }
 }
 
@@ -215,7 +302,9 @@ if (import.meta.env.DEV) {
     get state() {
       return state;
     },
-    meta,
+    get meta() {
+      return meta;
+    },
     startRun,
     renderer,
   };

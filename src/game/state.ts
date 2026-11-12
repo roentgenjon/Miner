@@ -1,4 +1,4 @@
-import { HEART_DEPTH, PLAYER, START_X, ZONE_TOAST_EVERY, zoneAt } from '../config';
+import { DEFAULT_SKIN, HEART_DEPTH, PLAYER, START_X, ZONE_TOAST_EVERY, zoneAt } from '../config';
 import { createMissions, type MissionState } from '../meta/missions';
 import { createRng, type Rng } from './rng';
 import { type Dir, type GameEvent, type Mods, type RunStats, type World, type ZoneId } from './types';
@@ -112,6 +112,8 @@ export interface GameState {
   revives: number;
   /** Rekordtiefe zu Rundenbeginn. */
   record: number;
+  /** Gewählter Skin der Spielfigur (nur Darstellung). */
+  skin: string;
   zone: ZoneId;
   /** Nummer des zuletzt gemeldeten Zonen-Meilensteins. */
   zoneMilestone: number;
@@ -123,6 +125,7 @@ export interface CreateGameOptions {
   daily?: boolean;
   mods: Mods;
   record?: number;
+  skin?: string;
   /** Nur Tests: vorgefertigte Welt statt generierter. */
   world?: World;
 }
@@ -183,6 +186,7 @@ export function createGame(opts: CreateGameOptions): GameState {
     autoTntT: 0,
     revives: opts.mods.revives,
     record: opts.record ?? 0,
+    skin: opts.skin ?? DEFAULT_SKIN,
     zone: zoneAt(startY).id,
     zoneMilestone: Math.floor(zoneAt(startY).index / ZONE_TOAST_EVERY),
     nextId,

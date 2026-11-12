@@ -1,4 +1,5 @@
 import { createRng } from '../game/rng';
+import { SKINS, type SkinDef } from '../config';
 import { Block } from '../game/types';
 import { SPRITE_SIZE as S, type Sprite, ALL_SPRITES } from './sprites';
 
@@ -139,7 +140,8 @@ export interface Textures {
   overlay: Map<number, Tex>;
   grass: Tex;
   sky: Tex;
-  player: { right: Tex; left: Tex };
+  /** Spielfigur im gewählten Skin; `time` steuert den Regenbogen-Effekt. */
+  playerFor(skinId: string, facing: 'left' | 'right', time: number): Tex;
   bat: Tex[];
   tnt: Tex;
   crate: Tex;
@@ -235,14 +237,38 @@ export function createTextures(): Textures {
   sky.g.fillStyle = grad;
   sky.g.fillRect(0, 0, S, S);
 
-  const player = fromSprite(ALL_SPRITES.PLAYER as Sprite);
+  // Spielfigur je Skin (Farben der Vorlage ersetzen); Regenbogen: 12 Farbstufen
+  const playerCache = new Map<string, { right: Tex; left: Tex }>();
+  const playerSet = (skin: SkinDef, step: number): { right: Tex; left: Tex } => {
+    const key = `${skin.id}:${step}`;
+    const hit = playerCache.get(key);
+    if (hit) return hit;
+    const base = ALL_SPRITES.PLAYER as Sprite;
+    const palette: Record<string, string> = { ...base.palette, ...skin.palette };
+    if (skin.effect === 'rainbow') {
+      for (const letter of ['b', 'B', 'y', 'Y']) {
+        const c = base.palette[letter];
+        if (c) palette[letter] = shiftHue(c.startsWith('#') ? c : '#3b6ea5', step * 30 + (letter === 'y' || letter === 'Y' ? 150 : 0));
+      }
+    }
+    const right = fromSprite({ rows: base.rows, palette });
+    const set = { right, left: flipped(right) };
+    playerCache.set(key, set);
+    return set;
+  };
+  const playerFor = (skinId: string, facing: 'left' | 'right', time: number): Tex => {
+    const skin = SKINS.find((s) => s.id === skinId) ?? (SKINS[0] as SkinDef);
+    const step = skin.effect === 'rainbow' ? Math.floor(time * 6) % 12 : 0;
+    const set = playerSet(skin, step);
+    return facing === 'left' ? set.left : set.right;
+  };
   return {
     forZone,
     bedrock: [0, 1, 2].map((i) => stone(`bed-${i}`, '#1d1d22', '#121216', '#2e2e36', 0.3)),
     overlay,
     grass: grass(),
     sky: sky.c,
-    player: { right: player, left: flipped(player) },
+    playerFor,
     bat: [fromSprite(ALL_SPRITES.BAT_A as Sprite), fromSprite(ALL_SPRITES.BAT_B as Sprite)],
     tnt: fromSprite(ALL_SPRITES.TNT as Sprite),
     crate: fromSprite(ALL_SPRITES.CRATE as Sprite),

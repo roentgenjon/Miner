@@ -1,4 +1,4 @@
-import { ENERGY, HEART_DEPTH, STEP, WIDTH, ZONE_COUNT, ZONE_LENGTH, ZONE_TOAST_EVERY, zoneAt, zoneByIndex } from '../config';
+import { ENERGY, HEART_DEPTH, SKINS, STEP, WIDTH, ZONE_COUNT, ZONE_LENGTH, ZONE_TOAST_EVERY, zoneAt, zoneByIndex } from '../config';
 import type { GameState } from '../game/state';
 import { Block, type GameEvent } from '../game/types';
 import { getCell } from '../game/world';
@@ -162,6 +162,21 @@ export class Renderer {
     if (this.particles.length > 600) this.particles.splice(0, this.particles.length - 600);
   }
 
+  /** Vorschau der Spielfigur in einem Skin (für die Skin-Auswahl), vergrößert und scharf. */
+  skinPreview(skinId: string, size = 64): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    c.className = 'skin-preview';
+    const g = c.getContext('2d');
+    if (g) {
+      g.imageSmoothingEnabled = false;
+      if (SKINS.find((k) => k.id === skinId)?.effect === 'ghost') g.globalAlpha = 0.55;
+      g.drawImage(this.tex.playerFor(skinId, 'right', 0), 0, 0, size, size);
+    }
+    return c;
+  }
+
   private visualPos(s: GameState, alpha: number): { x: number; y: number; swing: number } {
     const p = s.player;
     const a = p.action;
@@ -309,9 +324,12 @@ export class Renderer {
     const ppy = toY(vis.y);
     this.playerScreen = { x: ppx + T / 2, y: ppy + T / 2, t: T };
     if (visible) {
-      const sprite = pl.facing === 'left' ? this.tex.player.left : this.tex.player.right;
+      const skinDef = SKINS.find((k) => k.id === s.skin);
+      const sprite = this.tex.playerFor(s.skin, pl.facing === 'left' ? 'left' : 'right', this.time);
+      if (skinDef?.effect === 'ghost') ctx.globalAlpha = 0.55;
       const bob = pl.action?.kind === 'move' ? Math.abs(Math.sin(this.time * 30)) * T * 0.04 : 0;
       ctx.drawImage(sprite, ppx, ppy - Math.round(bob), T, T);
+      ctx.globalAlpha = 1;
       if (pl.action?.kind === 'dig') this.drawPick(ppx, ppy, pl.action.dir, vis.swing);
     }
 

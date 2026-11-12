@@ -114,6 +114,9 @@ export class Controls {
 
   private onKeyDown(e: KeyboardEvent): void {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // In Eingabefeldern (z. B. Kontoname) darf getippt werden: keine Spieltasten abfangen.
+    const tag = (e.target as HTMLElement | null)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     this.hooks.onGesture();
     if (e.code === 'KeyP' || e.code === 'Escape') {
       if (!e.repeat) this.hooks.onPause();

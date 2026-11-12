@@ -40,7 +40,9 @@ Benötigt Node.js ≥ 20.
 - **Dynamit** sprengt einen Bereich um die Figur; weiteres Dynamit und Sprengkisten im Radius zünden nacheinander (Kettenreaktion). Start-Dynamit = 40 + 3 pro Upgrade-Stufe.
 - **Werkstatt:** 21 Upgrades, 15 davon mit 600 bis 1 000 000 Stufen (Sammelkauf ×10/×100/×1k/Max), bezahlt mit Münzen. **Missionen:** 3 zufällige pro Runde. **Erfolge:** 9 Stück.
 - **Tagesschacht:** gleicher Seed für alle am selben Kalendertag. Die **Rekordlinie** zeigt deine bisher größte Tiefe.
-- Fortschritt liegt in `localStorage` unter dem Schlüssel `schacht-meta`.
+- **Konten:** Im Menü unter „Konto“ gibt es lokale Profile auf diesem Gerät (bis zu 12), jedes mit eigenem Spielstand: anlegen, wechseln, umbenennen, löschen. Das erste Konto („Spieler“) nutzt den Schlüssel `schacht-meta` weiter, vorhandene Spielstände laufen also unverändert. Es gibt **keine Anmeldung und keinen Server**: Ein Konto lebt nur in diesem Browser. Mit **Export** speicherst du ein Konto als Datei (`schacht-<Name>.json`), mit **Import** legst du daraus auf einem anderen Gerät ein neues Konto an.
+- **Skins:** 8 Aussehen der Spielfigur (Bergmann, Rotkittel, Moosgrün, Amethyst, Nachtschicht, Goldhelm, Bergbaugeist, Regenbogen). Die meisten kauft man mit Münzen, der Geist wird durch den Erfolg „Herz des Bergs“ freigeschaltet. Skins gehören zum Konto.
+- Fortschritt liegt in `localStorage`: das Hauptkonto unter `schacht-meta`, weitere Konten unter `schacht-meta:<Kennung>`, die Kontenliste unter `schacht-accounts`.
 
 ## Projektstruktur
 
@@ -62,6 +64,8 @@ src/
     game.ts            step(): ein Logikschritt
   meta/                Fortschritt über Runden hinweg
     save.ts            localStorage, fehlertolerantes Laden
+    accounts.ts        lokale Konten (Profile), Export/Import
+    skins.ts           Skins kaufen und auswählen
     shop.ts            Upgrade-Preise, Kauf, Umrechnung in Spielwerte
     missions.ts        Missionen ziehen und verfolgen
     achievements.ts    Erfolge

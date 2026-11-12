@@ -437,6 +437,97 @@ button {
   height: 100%;
   background: var(--gold);
 }
+.skin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 56vh;
+  touch-action: pan-y;
+  text-align: center;
+}
+.skin-card {
+  background: var(--panel-2);
+  border: 2px solid #000;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.skin-card.selected {
+  border-color: var(--gold);
+}
+.skin-card.locked .skin-preview {
+  filter: grayscale(1) brightness(0.55);
+}
+.skin-card span {
+  font-size: 11px;
+  color: var(--muted);
+  min-height: 2.6em;
+}
+.skin-preview {
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+  background: #2a1f17;
+  border: 2px solid #000;
+}
+.account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 40vh;
+  text-align: left;
+  touch-action: pan-y;
+}
+.account {
+  background: var(--panel-2);
+  border: 2px solid #000;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.account.active {
+  border-color: var(--gold);
+}
+.account .info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.account .info span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.acc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.new-account {
+  display: flex;
+  gap: 8px;
+}
+.text-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 16px; /* verhindert Zoom beim Fokussieren auf iOS */
+  padding: 8px 10px;
+  color: var(--ink);
+  background: #1a130e;
+  border: 3px solid #000;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.notice {
+  margin: 0;
+  color: var(--gold);
+  font-size: 13px;
+}
 .trophy {
   background: var(--panel-2);
   border: 2px solid #000;

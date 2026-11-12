@@ -439,5 +439,41 @@ export const MISSION = {
   tierWeights: [0.5, 0.35, 0.15],
 };
 
+/* ---------- Skins ---------- */
+export interface SkinDef {
+  id: string;
+  name: string;
+  desc: string;
+  /** Preis in Münzen; 0 = von Anfang an frei. */
+  cost: number;
+  /** Alternativ: wird durch diesen Erfolg freigeschaltet (nicht kaufbar). */
+  achievement?: string;
+  /** Farben, die in der Spielfigur ersetzt werden (Buchstaben siehe render/sprites.ts: PLAYER). */
+  palette: Record<string, string>;
+  /** Sondereffekt: Geist (durchscheinend), Regenbogen (wechselnde Farben). */
+  effect?: 'ghost' | 'rainbow';
+}
+
+export const DEFAULT_SKIN = 'miner';
+
+export const SKINS: readonly SkinDef[] = [
+  { id: 'miner', name: 'Bergmann', desc: 'Der Klassiker mit gelbem Helm.', cost: 0, palette: {} },
+  { id: 'rot', name: 'Rotkittel', desc: 'Roter Overall.', cost: 300, palette: { b: '#c8372d', B: '#8f241d', p: '#4a2c2c' } },
+  { id: 'gruen', name: 'Moosgrün', desc: 'Grüner Overall, grüner Helm.', cost: 300, palette: { b: '#3f9a4a', B: '#2a6b33', y: '#8bd16a', Y: '#4f9a3a' } },
+  { id: 'violett', name: 'Amethyst', desc: 'Violetter Overall und Helm.', cost: 600, palette: { b: '#7a4ac8', B: '#52309a', y: '#b074ff', Y: '#7a3fc0' } },
+  { id: 'nacht', name: 'Nachtschicht', desc: 'Dunkle Kluft, kaltes Licht.', cost: 2000, palette: { b: '#2a2f45', B: '#1b1f30', p: '#1b1b26', y: '#2b3a55', Y: '#1c2740', w: '#6df0ff' } },
+  { id: 'gold', name: 'Goldhelm', desc: 'Glänzender Helm und Gürtel.', cost: 5000, palette: { y: '#ffe066', Y: '#d9a521', w: '#ffffff', g: '#ffd23a' } },
+  { id: 'geist', name: 'Bergbaugeist', desc: 'Durchscheinend. Freigeschaltet durch „Herz des Bergs“.', cost: 0, achievement: 'herz', palette: { b: '#cfe8ff', B: '#9cc4ee', y: '#e8f4ff', Y: '#b7d6f5', p: '#9cc4ee', o: '#7aa6d8', s: '#f0f7ff' }, effect: 'ghost' },
+  { id: 'regenbogen', name: 'Regenbogen', desc: 'Farben wechseln ständig.', cost: 100_000, palette: {}, effect: 'rainbow' },
+];
+
+/* ---------- Konten (lokal auf dem Gerät) ---------- */
+export const ACCOUNTS = {
+  /** Maximale Anzahl Konten pro Gerät. */
+  max: 12,
+  /** Maximale Länge des Kontonamens. */
+  nameMax: 16,
+};
+
 /* ---------- Sonstiges ---------- */
 export const SAVE_KEY = 'schacht-meta';

@@ -1,4 +1,4 @@
-import { SAVE_KEY, UPGRADES } from '../config';
+import { DEFAULT_SKIN, SAVE_KEY, SKINS, UPGRADES } from '../config';
 import { emptyUpgrades } from './shop';
 import type { UpgradeId, Upgrades } from '../game/types';
 
@@ -30,6 +30,9 @@ export interface Meta {
   sound: boolean;
   /** Auto-Dynamit beim Rundenstart eingeschaltet. */
   autoTnt: boolean;
+  /** Gewählter Skin und gekaufte Skins. */
+  skin: string;
+  skins: string[];
   daily: DailyRecord;
 }
 
@@ -45,6 +48,8 @@ export function defaultMeta(): Meta {
     achievements: {},
     sound: true,
     autoTnt: false,
+    skin: DEFAULT_SKIN,
+    skins: [],
     daily: { date: '', best: 0, runs: 0 },
   };
 }
@@ -53,9 +58,10 @@ export function defaultMeta(): Meta {
 export interface KeyValueStore {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem?(key: string): void;
 }
 
-function defaultStore(): KeyValueStore | null {
+export function defaultStore(): KeyValueStore | null {
   try {
     return typeof localStorage === 'undefined' ? null : localStorage;
   } catch {
@@ -96,6 +102,16 @@ export function parseMeta(raw: unknown): Meta {
   if (typeof ach === 'object' && ach !== null) {
     for (const [k, v] of Object.entries(ach)) m.achievements[k] = num(v, 1);
   }
+  // Skins: nur bekannte, gekaufte; der gewählte muss freigeschaltet sein (Erfolge oben bereits eingelesen).
+  if (Array.isArray(r.skins)) {
+    m.skins = [...new Set(r.skins.filter((x): x is string => typeof x === 'string' && SKINS.some((s) => s.id === x && s.cost > 0)))];
+  }
+  if (typeof r.skin === 'string') {
+    const def = SKINS.find((s) => s.id === r.skin);
+    const unlocked =
+      def !== undefined && (def.cost === 0 && !def.achievement ? true : m.skins.includes(def.id) || (def.achievement !== undefined && m.achievements[def.achievement] !== undefined));
+    if (def && unlocked) m.skin = def.id;
+  }
   const d = r.daily;
   if (typeof d === 'object' && d !== null) {
     const dd = d as Record<string, unknown>;
@@ -108,10 +124,10 @@ export function parseMeta(raw: unknown): Meta {
   return m;
 }
 
-export function loadMeta(store: KeyValueStore | null = defaultStore()): Meta {
+export function loadMeta(store: KeyValueStore | null = defaultStore(), key: string = SAVE_KEY): Meta {
   if (!store) return defaultMeta();
   try {
-    const raw = store.getItem(SAVE_KEY);
+    const raw = store.getItem(key);
     if (!raw) return defaultMeta();
     return parseMeta(JSON.parse(raw));
   } catch {
@@ -119,10 +135,10 @@ export function loadMeta(store: KeyValueStore | null = defaultStore()): Meta {
   }
 }
 
-export function saveMeta(meta: Meta, store: KeyValueStore | null = defaultStore()): boolean {
+export function saveMeta(meta: Meta, store: KeyValueStore | null = defaultStore(), key: string = SAVE_KEY): boolean {
   if (!store) return false;
   try {
-    store.setItem(SAVE_KEY, JSON.stringify(meta));
+    store.setItem(key, JSON.stringify(meta));
     return true;
   } catch {
     return false;
