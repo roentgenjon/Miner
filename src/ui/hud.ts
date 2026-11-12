@@ -2,6 +2,7 @@ import type { GameState } from '../game/state';
 import { comboMult } from '../game/loot';
 import { HEART_DEPTH } from '../config';
 import { h, fmt } from './dom';
+import { fmtCoins } from '../format';
 
 /** Spielanzeige als DOM-Overlay. Liest nur den Zustand. */
 export class Hud {
@@ -66,7 +67,7 @@ export class Hud {
       this.energyFill.classList.toggle('low', f < 0.25);
     });
     this.set('depth', String(p.y), () => (this.depth.textContent = `${fmt(p.y)} m / ${fmt(HEART_DEPTH)}`));
-    this.set('money', String(s.wallet), () => (this.money.textContent = `● ${fmt(s.wallet)}`));
+    this.set('money', String(s.wallet), () => (this.money.textContent = `● ${fmtCoins(s.wallet)}`));
     const auto = s.input.autoTnt;
     this.set('tnt', `${p.tnt}:${auto}`, () => (this.tnt.textContent = `${auto ? 'AUTO ' : ''}TNT ${p.tnt}`));
 

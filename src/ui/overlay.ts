@@ -11,6 +11,7 @@ import { buyUpgradeMany, costOfNext, describeLevel, upgradeCost } from '../meta/
 import type { GiftBody, InboxGift } from '../net/api';
 import type { SignInOutcome, SyncState } from '../net/sync';
 import { copyText, fmt, h, onEnter, plainInput } from './dom';
+import { fmtCoins } from '../format';
 
 export interface OverlayActions {
   startRun(daily: boolean): void;
@@ -113,7 +114,7 @@ export class Overlay {
       h(
         'div',
         { class: 'stat-row' },
-        h('div', {}, h('b', {}, `● ${fmt(m.money)}`), h('span', {}, 'Münzen')),
+        h('div', {}, h('b', {}, `● ${fmtCoins(m.money)}`), h('span', {}, 'Münzen')),
         h('div', {}, h('b', {}, `${fmt(m.bestDepth)} m`), h('span', {}, 'Rekord')),
         h('div', {}, h('b', {}, `${Object.keys(m.achievements).length}/${ACHIEVEMENTS.length}`), h('span', {}, 'Erfolge')),
       ),
@@ -136,10 +137,10 @@ export class Overlay {
   showShop(): void {
     const m = this.meta();
     const list = h('div', { class: 'shop-list' });
-    const money = h('b', {}, `● ${fmt(m.money)}`);
+    const money = h('b', {}, `● ${fmtCoins(m.money)}`);
 
     const render = (): void => {
-      money.textContent = `● ${fmt(this.meta().money)}`;
+      money.textContent = `● ${fmtCoins(this.meta().money)}`;
       list.replaceChildren(
         ...UPGRADES.map((u) => {
           const lvl = this.meta().upgrades[u.id];
@@ -169,7 +170,7 @@ export class Overlay {
             { class: 'buy-col' },
             maxed
               ? h('button', { class: 'btn small buy maxed' }, 'Max')
-              : buyBtn(`● ${fmt(cost)}`, 1, ''),
+              : buyBtn(`● ${fmtCoins(cost)}`, 1, ''),
             !maxed && u.maxLevel >= 30
               ? h(
                   'div',
@@ -226,7 +227,7 @@ export class Overlay {
     amount.min = '1';
     amount.step = '1';
     amount.inputMode = 'numeric';
-    amount.placeholder = `Münzen (du hast ${fmt(m.money)})`;
+    amount.placeholder = `Münzen (du hast ${fmtCoins(m.money)})`;
     amount.setAttribute('aria-label', 'Anzahl Münzen');
     const skinSel = h('select', { class: 'text-input' });
     for (const s of giftable) {
@@ -248,7 +249,7 @@ export class Overlay {
     recipient.autocomplete = 'off';
     plainInput(recipient);
 
-    const labelOf = (): string => (kind === 'coins' ? `${fmt(Number(amount.value) || 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === skinSel.value)?.name ?? ''}“`);
+    const labelOf = (): string => (kind === 'coins' ? `${fmtCoins(Number(amount.value) || 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === skinSel.value)?.name ?? ''}“`);
 
     const create = this.btn('Geschenk erstellen', () => {
       const spec: GiftSpec =
@@ -327,7 +328,7 @@ export class Overlay {
             h(
               'div',
               { class: 'gift-card' },
-              h('b', {}, g.kind === 'coins' ? `● ${fmt(g.amount ?? 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === g.skin)?.name ?? g.skin}“`),
+              h('b', {}, g.kind === 'coins' ? `● ${fmtCoins(g.amount ?? 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === g.skin)?.name ?? g.skin}“`),
               h('span', {}, `von ${g.from}`),
               g.note ? h('em', {}, `„${g.note}“`) : null,
               this.btn('Annehmen', () => {
@@ -383,7 +384,7 @@ export class Overlay {
     const money = h('b', {}, '');
     const render = (): void => {
       const m = this.meta();
-      money.textContent = `● ${fmt(m.money)}`;
+      money.textContent = `● ${fmtCoins(m.money)}`;
       list.replaceChildren(
         ...SKINS.map((skin) => {
           const unlocked = isSkinUnlocked(m, skin.id);
@@ -406,7 +407,7 @@ export class Overlay {
             label = 'Gesperrt';
             cls += ' poor';
           } else {
-            label = `● ${fmt(skin.cost)}`;
+            label = `● ${fmtCoins(skin.cost)}`;
             cls += m.money >= skin.cost ? ' primary' : ' poor';
             action = () => {
               const r = buySkin(this.meta(), skin.id);
@@ -461,7 +462,7 @@ export class Overlay {
       return h(
         'div',
         { class: `account ${active ? 'active' : ''}` },
-        h('div', { class: 'info' }, h('b', {}, `${a.name}${active ? '  (aktiv)' : ''}`), h('span', {}, `● ${fmt(m.money)} · Rekord ${fmt(m.bestDepth)} m · ${m.runs} Runden`), h('span', {}, onlineName ? `☁ online als ${onlineName}` : 'nur auf diesem Gerät')),
+        h('div', { class: 'info' }, h('b', {}, `${a.name}${active ? '  (aktiv)' : ''}`), h('span', {}, `● ${fmtCoins(m.money)} · Rekord ${fmt(m.bestDepth)} m · ${m.runs} Runden`), h('span', {}, onlineName ? `☁ online als ${onlineName}` : 'nur auf diesem Gerät')),
         h(
           'div',
           { class: 'acc-actions' },
@@ -566,7 +567,7 @@ export class Overlay {
 
     this.show(
       h('h2', {}, `„${acc.name}“ online machen`),
-      h('div', { class: 'gift-card' }, h('b', {}, acc.name), h('span', {}, `● ${fmt(m.money)} · Rekord ${fmt(m.bestDepth)} m · ${m.runs} Runden`), h('span', {}, 'Dieser Spielstand wird online gesichert.')),
+      h('div', { class: 'gift-card' }, h('b', {}, acc.name), h('span', {}, `● ${fmtCoins(m.money)} · Rekord ${fmt(m.bestDepth)} m · ${m.runs} Runden`), h('span', {}, 'Dieser Spielstand wird online gesichert.')),
       h('p', { class: 'hint' }, '1. Denk dir einen Online-Namen und ein Passwort aus. 2. Tippe auf „Neu registrieren“. Erst dann ist das Konto online.'),
       msg ? h('p', { class: 'notice' }, msg) : null,
       name,
@@ -660,7 +661,7 @@ export class Overlay {
   showCloudChoice(): void {
     const online = this.act.cloud.pending();
     const dev = this.meta();
-    const summary = (m: Meta): string => `● ${fmt(m.money)} · Rekord ${fmt(m.bestDepth)} m · ${m.runs} Runden`;
+    const summary = (m: Meta): string => `● ${fmtCoins(m.money)} · Rekord ${fmt(m.bestDepth)} m · ${m.runs} Runden`;
     this.show(
       h('h2', {}, 'Welcher Stand gilt?'),
       h('p', { class: 'hint' }, 'Auf diesem Gerät und online liegt ein unterschiedlicher Spielstand. Einer ersetzt den anderen – das lässt sich nicht rückgängig machen.'),
@@ -717,7 +718,7 @@ export class Overlay {
         h('p', {}, `Tiefe: ${fmt(s.stats.depth)} m`, r.newBest ? h('strong', {}, '  Neuer Rekord!') : null),
         h('p', {}, `Erze: ${s.stats.ores} · Truhen: ${s.stats.chests} · Fledermäuse: ${s.stats.bats}`),
         h('p', {}, `Gesprengt: ${s.stats.tntBlocks} Blöcke`),
-        h('p', {}, `Verdient: ● ${fmt(s.wallet)}`, s.status === 'dead' ? ` → gutgeschrieben ● ${fmt(r.banked)}` : ''),
+        h('p', {}, `Verdient: ● ${fmtCoins(s.wallet)}`, s.status === 'dead' ? ` → gutgeschrieben ● ${fmtCoins(r.banked)}` : ''),
       ),
       h(
         'ul',

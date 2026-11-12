@@ -1,4 +1,5 @@
 import { ENERGY, HEART_DEPTH, SKINS, STEP, WIDTH, ZONE_COUNT, ZONE_LENGTH, ZONE_TOAST_EVERY, zoneAt, zoneByIndex } from '../config';
+import { fmtCoins } from '../format';
 import type { GameState } from '../game/state';
 import { Block, type GameEvent } from '../game/types';
 import { getCell } from '../game/world';
@@ -105,7 +106,7 @@ export class Renderer {
         case 'ore':
           if (ores++ >= 6) break;
           this.burst(e.x + 0.5, e.y + 0.5, BLOCK_COLORS[e.block] ?? '#fff', 10, 4);
-          this.floaters.push({ x: e.x + 0.5, y: e.y, text: `+${e.value}${e.mult > 1 ? ` ×${e.mult.toFixed(2).replace(/\.?0+$/, '')}` : ''}`, color: '#ffd23a', life: 1.1 });
+          this.floaters.push({ x: e.x + 0.5, y: e.y, text: `+${fmtCoins(e.value)}${e.mult > 1 ? ` ×${e.mult.toFixed(2).replace(/\.?0+$/, '')}` : ''}`, color: '#ffd23a', life: 1.1 });
           break;
         case 'coal':
           this.floaters.push({ x: e.x + 0.5, y: e.y, text: `+${e.energy} ⚡`, color: '#9be0ff', life: 1 });
