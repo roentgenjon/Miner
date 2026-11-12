@@ -4,6 +4,9 @@ import { MAX_FRAME, STEP } from './config';
  * Fester Zeitschritt: unabhängig von der Bildwiederholrate (60/120/144 Hz)
  * läuft die Spiellogik in identischen STEP-Schritten.
  */
+/** Höchstens so viele Millisekunden pro Bild für Logikschritte (danach läuft das Spiel lieber langsamer, als einzufrieren). */
+export const STEP_BUDGET_MS = 24;
+
 export class FixedStepper {
   private acc = 0;
 
@@ -13,12 +16,18 @@ export class FixedStepper {
   ) {}
 
   /** Verarbeitet eine Frame-Zeit (Sekunden) und liefert den Interpolationsfaktor 0..1. */
-  advance(frameDt: number, update: (dt: number) => void): number {
+  advance(frameDt: number, update: (dt: number) => void, budgetMs: number = STEP_BUDGET_MS): number {
+    const t0 = performance.now();
     this.acc += Math.min(Math.max(frameDt, 0), this.maxFrame);
     // kleine Toleranz gegen Gleitkommafehler (z. B. 7 x 1/120 s ≈ 1/60 s * 3.5)
     while (this.acc >= this.step - 1e-9) {
       update(this.step);
       this.acc -= this.step;
+      // Zu langsames Gerät (oder extrem teure Schritte): Rest verwerfen, statt immer mehr nachholen zu wollen.
+      if (performance.now() - t0 > budgetMs) {
+        this.acc = 0;
+        break;
+      }
     }
     if (this.acc < 0) this.acc = 0;
     return this.acc / this.step;

@@ -98,6 +98,7 @@ export class Renderer {
     // Bei extremem Tempo entstehen Tausende Ereignisse pro Schritt: nur eine Auswahl wird gezeigt.
     let digs = 0;
     let ores = 0;
+    let booms = 0;
     for (const e of events) {
       switch (e.type) {
         case 'dig':
@@ -106,18 +107,20 @@ export class Renderer {
         case 'ore':
           if (ores++ >= 6) break;
           this.burst(e.x + 0.5, e.y + 0.5, BLOCK_COLORS[e.block] ?? '#fff', 10, 4);
-          this.floaters.push({ x: e.x + 0.5, y: e.y, text: `+${fmtCoins(e.value)}${e.mult > 1 ? ` ×${e.mult.toFixed(2).replace(/\.?0+$/, '')}` : ''}`, color: '#ffd23a', life: 1.1 });
+          if (this.floaters.length < 40) this.floaters.push({ x: e.x + 0.5, y: e.y, text: `+${fmtCoins(e.value)}${e.mult > 1 ? ` ×${e.mult.toFixed(2).replace(/\.?0+$/, '')}` : ''}`, color: '#ffd23a', life: 1.1 });
           break;
         case 'coal':
-          this.floaters.push({ x: e.x + 0.5, y: e.y, text: `+${e.energy} ⚡`, color: '#9be0ff', life: 1 });
+          if (this.floaters.length < 40) this.floaters.push({ x: e.x + 0.5, y: e.y, text: `+${e.energy} ⚡`, color: '#9be0ff', life: 1 });
           break;
         case 'chest':
           this.burst(e.x + 0.5, e.y + 0.5, '#f5c542', 16, 5);
           this.floaters.push({ x: e.x + 0.5, y: e.y - 0.2, text: e.text, color: '#fff3a8', life: 1.6 });
           break;
         case 'explosion':
+          // Hunderte Sprengungen pro Schritt (Bohrer + Sprengkisten): nur die ersten zeigen
+          if (booms++ >= 4) break;
           this.shake = Math.max(this.shake, 0.5 + e.radius * 0.15);
-          this.flashes.push({ x: e.x + 0.5, y: e.y + 0.5, radius: e.radius + 1.5, life: 0.35 });
+          if (this.flashes.length < 30) this.flashes.push({ x: e.x + 0.5, y: e.y + 0.5, radius: e.radius + 1.5, life: 0.35 });
           for (let i = 0; i < 26; i++) {
             this.burst(e.x + 0.5, e.y + 0.5, i % 3 === 0 ? '#ffd23a' : i % 3 === 1 ? '#ff7a1a' : '#555', 1, 6, e.radius);
           }

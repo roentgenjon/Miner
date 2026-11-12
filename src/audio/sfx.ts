@@ -35,8 +35,20 @@ export class Sfx {
     return this.enabled && this.ctx !== null && this.master !== null && this.ctx.state === 'running';
   }
 
+  /** Höchstzahl neuer Klänge in einem 100-ms-Fenster: bei extremem Tempo entstünden sonst Tausende Oszillatoren (Absturz). */
+  private voiceWindow = 0;
+  private voiceCount = 0;
+  private voiceFree(): boolean {
+    const now = performance.now();
+    if (now - this.voiceWindow > 100) {
+      this.voiceWindow = now;
+      this.voiceCount = 0;
+    }
+    return ++this.voiceCount <= 14;
+  }
+
   private tone(freq: number, dur: number, type: Wave = 'square', vol = 0.2, slideTo?: number, delay = 0): void {
-    if (!this.ready() || !this.ctx || !this.master) return;
+    if (!this.ready() || !this.ctx || !this.master || !this.voiceFree()) return;
     const t = this.ctx.currentTime + delay;
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
@@ -51,7 +63,7 @@ export class Sfx {
   }
 
   private noise(dur: number, vol = 0.2, from = 3000, to = 300, delay = 0): void {
-    if (!this.ready() || !this.ctx || !this.master || !this.noiseBuf) return;
+    if (!this.ready() || !this.ctx || !this.master || !this.noiseBuf || !this.voiceFree()) return;
     const t = this.ctx.currentTime + delay;
     const src = this.ctx.createBufferSource();
     src.buffer = this.noiseBuf;
@@ -83,12 +95,14 @@ export class Sfx {
         else this.noise(0.09, 0.2, 3500, 600), this.tone(180, 0.05, 'square', 0.05);
         break;
       case 'ore': {
+        if (!this.throttle('ore', 45)) return;
         const base = 520 * Math.pow(1.06, Math.min(12, Math.round((e.mult - 1) * 4)));
         this.tone(base, 0.09, 'square', 0.12);
         this.tone(base * 1.5, 0.16, 'square', 0.12, undefined, 0.07);
         break;
       }
       case 'coal':
+        if (!this.throttle('coal', 80)) return;
         this.tone(330, 0.08, 'triangle', 0.18);
         this.tone(440, 0.12, 'triangle', 0.18, undefined, 0.06);
         break;

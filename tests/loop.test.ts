@@ -37,3 +37,17 @@ describe('Fester Zeitschritt', () => {
     expect(n).toBeLessThanOrEqual(Math.ceil(0.25 / STEP));
   });
 });
+
+describe('Zeitbudget', () => {
+  it('bricht bei sehr teuren Schritten ab, statt den Rückstand aufzuholen (kein Einfrieren)', () => {
+    const st = new FixedStepper(1 / 60, 0.25);
+    let n = 0;
+    st.advance(0.25, () => {
+      n++;
+      const t = performance.now();
+      while (performance.now() - t < 10); // 10 ms pro Schritt
+    }, 25);
+    expect(n).toBeLessThan(15); // ohne Budget wären es 15 Schritte
+    expect(n).toBeGreaterThanOrEqual(1);
+  });
+});
