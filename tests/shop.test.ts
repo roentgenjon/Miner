@@ -98,20 +98,20 @@ describe('Stufenverlauf', () => {
 });
 
 describe('Spitzhacke', () => {
-  it('hat 1 Million Stufen; das Tempo steigt stetig, nach Stufe 10000 nur noch langsamer', () => {
+  it('hat 10 Millionen Stufen; das Tempo steigt stetig, nach Stufe 10000 nur noch langsamer', () => {
     const def = UPGRADES.find((u) => u.id === 'pick');
-    expect(def?.maxLevel).toBe(1_000_000);
+    expect(def?.maxLevel).toBe(10_000_000);
     const speed = (l: number): number => computeMods({ ...defaultMeta().upgrades, pick: l }).digSpeed;
-    const levels = [0, 1, 10, 1000, 10_000, 10_001, 100_000, 1_000_000];
+    const levels = [0, 1, 10, 1000, 10_000, 10_001, 100_000, 1_000_000, 10_000_000];
     for (let i = 1; i < levels.length; i++) expect(speed(levels[i] as number)).toBeGreaterThan(speed(levels[i - 1] as number));
     expect(speed(10)).toBeCloseTo(7);
     expect(speed(10_000)).toBeCloseTo(6001);
-    expect(speed(1_000_000)).toBeCloseTo(6001 + 9900);
+    expect(speed(10_000_000)).toBeCloseTo(6001 + 99900);
   });
 
-  it('Preise bleiben auch bei Stufe 1 Million im sechsstelligen Bereich', () => {
+  it('Preise bleiben auch bei Stufe 10 Millionen im sechsstelligen Bereich', () => {
     expect(upgradeCost('pick', 99)).toBeLessThan(4000);
-    expect(upgradeCost('pick', 999_999)).toBeLessThanOrEqual(300_000);
+    expect(upgradeCost('pick', 9_999_999)).toBeLessThanOrEqual(3_000_000);
     expect(upgradeCost('pick', 100)).toBeGreaterThanOrEqual(upgradeCost('pick', 99));
   });
 });

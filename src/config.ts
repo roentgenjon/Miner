@@ -416,7 +416,7 @@ function longUpgrade(
  * ausgenommen Dynamit (Vorgabe: +3 pro Stufe).
  */
 export const UPGRADES: readonly UpgradeDef[] = [
-  longUpgrade('pick', 'Spitzhacke', 'Schneller graben', 1_000_000, 40, 0.6, 300_000),
+  longUpgrade('pick', 'Spitzhacke', 'Schneller graben', 10_000_000, 40, 0.6, 3_000_000),
   longUpgrade('lamp', 'Grubenlampe', 'Mehr Lampenenergie', 25_000, 35, 0.75, 200_000),
   { id: 'armor', name: 'Lederwams', desc: '+1 Leben pro Stufe', maxLevel: 40, baseCost: 120, growth: 1.25, perLevel: 1 },
   longUpgrade('tnt', 'Dynamitvorrat', '+3 Dynamit pro Stufe', 30_000, 30, TNT.perLevel, 150_000),
