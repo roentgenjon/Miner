@@ -3,6 +3,7 @@ import type { GameState } from '../game/state';
 import { Block, type GameEvent } from '../game/types';
 import { getCell } from '../game/world';
 import { followCamera } from './camera';
+import { zoneBlend } from './zoneblend';
 import { BLOCK_COLORS, createTextures, type Textures } from './textures';
 
 interface Particle {
@@ -238,6 +239,9 @@ export class Renderer {
       const zone = zoneAt(y);
       const zt = this.tex.forZone(zone.family, zone.ring);
       const variants = zt.base;
+      // Weicher Übergang: an den Zonengrenzen die Nachbarzone leicht darüberblenden (sonst harte Streifen alle 10 m)
+      const blend = zoneBlend(zone.index, y - zone.from);
+      const blendVariants = blend ? this.tex.forZone(blend.zone.family, blend.zone.ring).base : null;
       for (let x = -gutter; x < WIDTH + gutter; x++) {
         const px = toX(x);
         const py = toY(y);
@@ -247,6 +251,14 @@ export class Renderer {
         if (!inShaft) {
           const t = variants[Math.abs(h) % variants.length];
           if (t) ctx.drawImage(t, px, py, T, T);
+          if (blend && blendVariants) {
+            const bt = blendVariants[Math.abs(h) % blendVariants.length];
+            if (bt) {
+              ctx.globalAlpha = blend.alpha;
+              ctx.drawImage(bt, px, py, T, T);
+              ctx.globalAlpha = 1;
+            }
+          }
           ctx.fillStyle = 'rgba(0,0,0,0.45)';
           ctx.fillRect(px, py, T, T);
         } else if (cell === Block.Air) {
@@ -257,6 +269,14 @@ export class Renderer {
         } else {
           const t = variants[Math.abs(h) % variants.length];
           if (t) ctx.drawImage(t, px, py, T, T);
+          if (blend && blendVariants) {
+            const bt = blendVariants[Math.abs(h) % blendVariants.length];
+            if (bt) {
+              ctx.globalAlpha = blend.alpha;
+              ctx.drawImage(bt, px, py, T, T);
+              ctx.globalAlpha = 1;
+            }
+          }
           const ov = this.tex.overlay.get(cell);
           if (ov) {
             if (cell === Block.Heart) {
