@@ -4,10 +4,11 @@ import type { GameState } from '../game/state';
 import { ACHIEVEMENTS } from '../meta/achievements';
 import type { RunResult } from '../meta/progress';
 import { activeAccount, type AccountIndex } from '../meta/accounts';
-import type { Meta } from '../meta/save';
+import { describeGift, type Gift, type GiftSpec } from '../meta/gifts';
+import type { Meta, SentGift } from '../meta/save';
 import { buySkin, isSkinUnlocked, selectSkin } from '../meta/skins';
 import { buyUpgradeMany, costOfNext, describeLevel, upgradeCost } from '../meta/shop';
-import { fmt, h } from './dom';
+import { copyText, fmt, h } from './dom';
 
 export interface OverlayActions {
   startRun(daily: boolean): void;
@@ -20,6 +21,13 @@ export interface OverlayActions {
   sfx(kind: 'click' | 'buy' | 'deny'): void;
   /** Vorschaubild der Spielfigur in einem Skin. */
   skinPreview(skinId: string, size: number): HTMLCanvasElement;
+  gifts: {
+    create(spec: GiftSpec): { error: string } | { code: string; link: string; label: string };
+    /** Prüft einen Code/Link, ohne ihn einzulösen. */
+    preview(text: string): { error: string } | { gift: Gift };
+    redeem(text: string): { error: string } | { message: string };
+    link(code: string): string;
+  };
   accounts: {
     list(): AccountIndex;
     /** Spielstand eines Kontos lesen (ohne zu wechseln). */
@@ -95,8 +103,9 @@ export class Overlay {
       this.btn(`Tagesschacht · ${new Date().toLocaleDateString('de-DE')}`, () => this.act.startRun(true)),
       h('p', { class: 'hint' }, dailyBest > 0 ? `Heute bisher: ${dailyBest} m` : 'Gleicher Schacht für alle – pro Tag neu.'),
       h('div', { class: 'btn-row' }, this.btn('Werkstatt', () => this.showShop()), this.btn('Erfolge', () => this.showTrophies())),
-      h('div', { class: 'btn-row' }, this.btn('Skins', () => this.showSkins()), this.btn(`Konto: ${activeAccount(this.act.accounts.list()).name}`, () => this.showAccounts())),
-      h('div', { class: 'btn-row' }, this.soundBtn(), this.btn('Update erzwingen', () => this.act.forceUpdate(), 'small')),
+      h('div', { class: 'btn-row' }, this.btn('Skins', () => this.showSkins()), this.btn('Geschenke', () => this.showGifts())),
+      h('div', { class: 'btn-row' }, this.btn(`Konto: ${activeAccount(this.act.accounts.list()).name}`, () => this.showAccounts(), 'small'), this.soundBtn()),
+      this.btn('Update erzwingen', () => this.act.forceUpdate(), 'small'),
       h('p', { class: 'hint keys' }, '← → ↓ ↑ / A D S W graben & klettern · Leertaste: Dynamit · P / Esc: Pause · Wischen oder Tippen am Handy'),
       h('p', { class: 'hint keys' }, `Version ${__BUILD__}`),
     );
@@ -161,6 +170,120 @@ export class Overlay {
     };
     render();
     this.show(h('h2', {}, 'Werkstatt'), h('p', { class: 'wallet' }, 'Guthaben: ', money), list, this.btn('Zurück', () => this.showMenu()));
+  }
+
+  /** Annahme-Dialog für einen geöffneten Geschenk-Link. */
+  showIncomingGift(code: string): void {
+    const r = this.act.gifts.preview(code);
+    if ('error' in r) {
+      this.show(h('h2', {}, 'Geschenk'), h('p', { class: 'notice' }, r.error), this.btn('Weiter', () => this.showMenu(), 'primary'));
+      return;
+    }
+    const g = r.gift;
+    this.show(
+      h('h2', {}, 'Du hast ein Geschenk!'),
+      h('div', { class: 'gift-card' }, h('b', {}, describeGift(g)), h('span', {}, `von ${g.from}`), g.note ? h('em', {}, `„${g.note}“`) : null),
+      this.btn('Annehmen', () => {
+        const res = this.act.gifts.redeem(code);
+        this.act.sfx('error' in res ? 'deny' : 'buy');
+        this.showGifts('error' in res ? res.error : res.message);
+      }, 'primary'),
+      this.btn('Später', () => this.showMenu()),
+    );
+  }
+
+  showGifts(msg: string | null = null, created: { code: string; link: string; label: string } | null = null, kind: 'coins' | 'skin' = 'coins'): void {
+    const m = this.meta();
+    const giftable = SKINS.filter((s) => s.cost > 0 && !s.achievement && m.skins.includes(s.id));
+
+    const amount = h('input', { class: 'text-input' });
+    amount.type = 'number';
+    amount.min = '1';
+    amount.step = '1';
+    amount.inputMode = 'numeric';
+    amount.placeholder = `Münzen (du hast ${fmt(m.money)})`;
+    amount.setAttribute('aria-label', 'Anzahl Münzen');
+    const skinSel = h('select', { class: 'text-input' });
+    for (const s of giftable) skinSel.append(h('option', {}, `${s.name}`), );
+    skinSel.querySelectorAll('option').forEach((o, i) => (o.value = giftable[i]?.id ?? ''));
+    const note = h('input', { class: 'text-input' });
+    note.type = 'text';
+    note.maxLength = 40;
+    note.placeholder = 'Nachricht (optional)';
+    note.setAttribute('aria-label', 'Nachricht');
+    note.autocomplete = 'off';
+
+    const create = this.btn('Geschenk erstellen', () => {
+      const spec: GiftSpec =
+        kind === 'coins' ? { kind: 'coins', amount: Number(amount.value), note: note.value } : { kind: 'skin', skin: skinSel.value, note: note.value };
+      const label = kind === 'coins' ? `${fmt(Number(amount.value) || 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === skinSel.value)?.name ?? ''}“`;
+      if (!window.confirm(`${label} werden von deinem Konto abgebucht und in einen Code verpackt. Fortfahren?`)) return;
+      const r = this.act.gifts.create(spec);
+      if ('error' in r) {
+        this.act.sfx('deny');
+        this.showGifts(r.error, null, kind);
+      } else {
+        this.act.save();
+        this.showGifts(null, r, kind);
+      }
+    }, 'primary');
+
+    const redeemInput = h('input', { class: 'text-input' });
+    redeemInput.type = 'text';
+    redeemInput.placeholder = 'Code oder Link einfügen';
+    redeemInput.setAttribute('aria-label', 'Geschenk-Code');
+    redeemInput.autocomplete = 'off';
+
+    const copy = (text: string, what: string): void => {
+      void copyText(text).then((ok) => this.showGifts(ok ? `${what} kopiert.` : 'Kopieren nicht möglich – bitte den Code von Hand markieren.', created, kind));
+    };
+    const share = (c: { code: string; link: string; label: string }): void => {
+      const text = `Ich schenke dir ${c.label} in Schacht!`;
+      if (navigator.share) void navigator.share({ title: 'Schacht-Geschenk', text, url: c.link }).catch(() => undefined);
+      else copy(`${text} ${c.link}`, 'Nachricht mit Link');
+    };
+
+    const card = created
+      ? h(
+          'div',
+          { class: 'gift-card' },
+          h('b', {}, `Geschenk bereit: ${created.label}`),
+          h('span', {}, 'Schick den Link oder Code an deine Freundin / deinen Freund. Er ist bereits von deinem Konto abgebucht.'),
+          h('textarea', { class: 'code-box' }, created.code),
+          h('div', { class: 'acc-actions' }, this.btn('Link kopieren', () => copy(created.link, 'Link'), 'small primary'), this.btn('Code kopieren', () => copy(created.code, 'Code'), 'small'), this.btn('Teilen', () => share(created), 'small')),
+        )
+      : null;
+    if (card) {
+      const ta = card.querySelector('textarea');
+      if (ta) {
+        ta.readOnly = true;
+        ta.rows = 3;
+        ta.addEventListener('focus', () => ta.select());
+      }
+    }
+
+    this.show(
+      h('h2', {}, 'Geschenke'),
+      h('p', { class: 'hint' }, 'Verschenke Münzen oder einen gekauften Skin per Link oder Code. Ein Code lässt sich pro Gerät nur einmal einlösen. Ohne Server kann ich nicht verhindern, dass jemand ihn weitergibt – verschick ihn nur an Leute, denen du vertraust.'),
+      msg ? h('p', { class: 'notice' }, msg) : null,
+      card,
+      h('h3', {}, 'Verschenken'),
+      h('div', { class: 'btn-row' }, this.btn('Münzen', () => this.showGifts(null, created, 'coins'), kind === 'coins' ? 'small primary' : 'small'), this.btn('Skin', () => this.showGifts(null, created, 'skin'), kind === 'skin' ? 'small primary' : 'small')),
+      kind === 'coins' ? amount : giftable.length > 0 ? skinSel : h('p', { class: 'hint' }, 'Du hast keinen gekauften Skin, den du verschenken könntest.'),
+      note,
+      kind === 'coins' || giftable.length > 0 ? create : null,
+      h('h3', {}, 'Einlösen'),
+      h('div', { class: 'new-account' }, redeemInput, this.btn('Einlösen', () => {
+        const r = this.act.gifts.redeem(redeemInput.value);
+        this.act.sfx('error' in r ? 'deny' : 'buy');
+        this.showGifts('error' in r ? r.error : r.message, created, kind);
+      }, 'small primary')),
+      m.sentGifts.length > 0 ? h('h3', {}, 'Zuletzt verschenkt') : null,
+      ...m.sentGifts.map((g: SentGift) =>
+        h('div', { class: 'account' }, h('div', { class: 'info' }, h('b', {}, g.label), h('span', {}, new Date(g.created).toLocaleString('de-DE'))), this.btn('Link erneut kopieren', () => copy(this.act.gifts.link(g.code), 'Link'), 'small')),
+      ),
+      this.btn('Zurück', () => this.showMenu()),
+    );
   }
 
   showSkins(): void {

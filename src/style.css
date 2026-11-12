@@ -523,6 +523,45 @@ button {
   user-select: text;
   -webkit-user-select: text;
 }
+.panel h3 {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--gold);
+  text-align: left;
+}
+.gift-card {
+  background: var(--panel-2);
+  border: 2px solid var(--gold);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.gift-card b {
+  font-size: 17px;
+}
+.gift-card span,
+.gift-card em {
+  font-size: 12px;
+  color: var(--muted);
+}
+.code-box {
+  width: 100%;
+  font: inherit;
+  font-size: 12px;
+  word-break: break-all;
+  color: var(--ink);
+  background: #1a130e;
+  border: 3px solid #000;
+  padding: 6px;
+  resize: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+select.text-input {
+  width: 100%;
+}
 .notice {
   margin: 0;
   color: var(--gold);

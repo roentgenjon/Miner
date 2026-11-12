@@ -475,5 +475,17 @@ export const ACCOUNTS = {
   nameMax: 16,
 };
 
+/* ---------- Geschenke ---------- */
+export const GIFTS = {
+  /** Größte erlaubte Münzmenge in einem Geschenk. */
+  maxCoins: 1_000_000_000_000,
+  /** So viele zuletzt verschenkte Geschenke bleiben im Konto sichtbar (zum erneuten Kopieren). */
+  keepSent: 20,
+  /** Länge der Nachricht. */
+  noteMax: 40,
+  /** Pro Gerät merken wir so viele eingelöste/gesendete Geschenk-Kennungen. */
+  ledgerMax: 500,
+};
+
 /* ---------- Sonstiges ---------- */
 export const SAVE_KEY = 'schacht-meta';

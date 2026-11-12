@@ -1,4 +1,4 @@
-import { DEFAULT_SKIN, SAVE_KEY, SKINS, UPGRADES } from '../config';
+import { DEFAULT_SKIN, GIFTS, SAVE_KEY, SKINS, UPGRADES } from '../config';
 import { emptyUpgrades } from './shop';
 import type { UpgradeId, Upgrades } from '../game/types';
 
@@ -17,6 +17,13 @@ export interface DailyRecord {
   runs: number;
 }
 
+export interface SentGift {
+  id: string;
+  code: string;
+  label: string;
+  created: number;
+}
+
 export interface Meta {
   version: 1;
   money: number;
@@ -33,6 +40,8 @@ export interface Meta {
   /** Gewählter Skin und gekaufte Skins. */
   skin: string;
   skins: string[];
+  /** Zuletzt verschenkte Geschenke (damit man den Code erneut kopieren kann). */
+  sentGifts: SentGift[];
   daily: DailyRecord;
 }
 
@@ -50,6 +59,7 @@ export function defaultMeta(): Meta {
     autoTnt: false,
     skin: DEFAULT_SKIN,
     skins: [],
+    sentGifts: [],
     daily: { date: '', best: 0, runs: 0 },
   };
 }
@@ -111,6 +121,12 @@ export function parseMeta(raw: unknown): Meta {
     const unlocked =
       def !== undefined && (def.cost === 0 && !def.achievement ? true : m.skins.includes(def.id) || (def.achievement !== undefined && m.achievements[def.achievement] !== undefined));
     if (def && unlocked) m.skin = def.id;
+  }
+  if (Array.isArray(r.sentGifts)) {
+    m.sentGifts = r.sentGifts
+      .filter((g): g is SentGift => !!g && typeof g.id === 'string' && typeof g.code === 'string' && typeof g.label === 'string' && g.code.length < 2000)
+      .slice(0, GIFTS.keepSent)
+      .map((g) => ({ id: g.id.slice(0, 40), code: g.code, label: g.label.slice(0, 80), created: typeof g.created === 'number' ? g.created : 0 }));
   }
   const d = r.daily;
   if (typeof d === 'object' && d !== null) {

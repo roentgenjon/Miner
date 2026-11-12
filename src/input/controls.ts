@@ -116,7 +116,7 @@ export class Controls {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     // In Eingabefeldern (z. B. Kontoname) darf getippt werden: keine Spieltasten abfangen.
     const tag = (e.target as HTMLElement | null)?.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     this.hooks.onGesture();
     if (e.code === 'KeyP' || e.code === 'Escape') {
       if (!e.repeat) this.hooks.onPause();

@@ -42,7 +42,8 @@ Benötigt Node.js ≥ 20.
 - **Tagesschacht:** gleicher Seed für alle am selben Kalendertag. Die **Rekordlinie** zeigt deine bisher größte Tiefe.
 - **Konten:** Im Menü unter „Konto“ gibt es lokale Profile auf diesem Gerät (bis zu 12), jedes mit eigenem Spielstand: anlegen, wechseln, umbenennen, löschen. Das erste Konto („Spieler“) nutzt den Schlüssel `schacht-meta` weiter, vorhandene Spielstände laufen also unverändert. Es gibt **keine Anmeldung und keinen Server**: Ein Konto lebt nur in diesem Browser. Mit **Export** speicherst du ein Konto als Datei (`schacht-<Name>.json`), mit **Import** legst du daraus auf einem anderen Gerät ein neues Konto an.
 - **Skins:** 8 Aussehen der Spielfigur (Bergmann, Rotkittel, Moosgrün, Amethyst, Nachtschicht, Goldhelm, Bergbaugeist, Regenbogen). Die meisten kauft man mit Münzen, der Geist wird durch den Erfolg „Herz des Bergs“ freigeschaltet. Skins gehören zum Konto.
-- Fortschritt liegt in `localStorage`: das Hauptkonto unter `schacht-meta`, weitere Konten unter `schacht-meta:<Kennung>`, die Kontenliste unter `schacht-accounts`.
+- **Geschenke:** Im Menü unter „Geschenke“ verschenkst du **Münzen** oder einen **gekauften Skin** (Standard- und Erfolgs-Skins nicht). Du bekommst einen Code und einen Link, die du selbst verschickst (Chat, Mail, „Teilen“). Beim Erstellen wird das Geschenk sofort von deinem Konto abgebucht; unter „Zuletzt verschenkt“ kannst du den Link erneut kopieren. Der Empfänger öffnet den Link (oder fügt den Code unter „Einlösen“ ein) und nimmt an. Ein Code funktioniert pro Gerät nur einmal (auch über Konten hinweg); eigene Geschenke lassen sich nicht selbst einlösen; einen schon vorhandenen Skin lehnt das Spiel ab, ohne den Code zu verbrauchen. **Grenze ohne Server:** Ein Code ist nicht an eine Person gebunden, und die Prüfsumme erkennt nur Tippfehler, keine absichtlichen Fälschungen. Für echte Sicherheit (Tausch, Bestenlisten, Handel) bräuchte es einen Server.
+- Fortschritt liegt in `localStorage`: das Hauptkonto unter `schacht-meta`, weitere Konten unter `schacht-meta:<Kennung>`, die Kontenliste unter `schacht-accounts`, das Geschenk-Gerätebuch unter `schacht-gifts`.
 
 ## Projektstruktur
 
@@ -66,6 +67,7 @@ src/
     save.ts            localStorage, fehlertolerantes Laden
     accounts.ts        lokale Konten (Profile), Export/Import
     skins.ts           Skins kaufen und auswählen
+    gifts.ts           Geschenke: Codes, Verschenken, Einlösen
     shop.ts            Upgrade-Preise, Kauf, Umrechnung in Spielwerte
     missions.ts        Missionen ziehen und verfolgen
     achievements.ts    Erfolge

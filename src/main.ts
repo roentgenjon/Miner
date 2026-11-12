@@ -23,6 +23,7 @@ import {
   switchAccount,
 } from './meta/accounts';
 import { defaultStore, loadMeta, saveMeta, type Meta } from './meta/save';
+import { createGift, decodeGift, giftLink, extractCode, loadLedger, redeemGift, saveLedger } from './meta/gifts';
 import { selectedSkin } from './meta/skins';
 import { computeMods, emptyUpgrades } from './meta/shop';
 import { Renderer } from './render/renderer';
@@ -66,6 +67,8 @@ const hud = new Hud(el('hud'), el('toasts'), () => togglePause());
 let mode: Mode = 'menu';
 let state: GameState = createGame({ seed: 'menu', mods: computeMods(emptyUpgrades()) });
 let endTimer = 0;
+/** Geschenk-Code aus einem geöffneten Link, der noch angezeigt werden soll. */
+let pendingGift: string | null = null;
 
 const controls = new Controls(canvas, pad, {
   onPause: () => togglePause(),
@@ -90,6 +93,38 @@ const overlay = new Overlay(el('overlay'), () => meta, {
   forceUpdate: () => void forceUpdate(),
   sfx: (k) => sfx.ui(k),
   skinPreview: (id, size) => renderer.skinPreview(id, size),
+  gifts: {
+    create: (spec) => {
+      persist();
+      const ledger = loadLedger(store);
+      const r = createGift(meta, activeAccount(accounts).name, spec, ledger);
+      if (!r.ok) return { error: r.reason === 'money' ? 'So viele Münzen hast du nicht.' : r.reason === 'skin' ? 'Diesen Skin kannst du nicht verschenken.' : 'Bitte eine ganze Menge ab 1 eingeben.' };
+      persist();
+      saveLedger(ledger, store);
+      return { code: r.code, link: giftLink(r.code, giftBase()), label: r.label };
+    },
+    preview: (text) => {
+      const d = decodeGift(text);
+      if (!d.ok) return { error: giftDecodeError(d.reason) };
+      const ledger = loadLedger(store);
+      if (ledger.sent.includes(d.gift.id) || meta.sentGifts.some((g) => g.id === d.gift.id)) return { error: 'Das ist dein eigenes Geschenk.' };
+      if (ledger.redeemed.includes(d.gift.id)) return { error: 'Dieses Geschenk wurde auf diesem Gerät schon eingelöst.' };
+      return { gift: d.gift };
+    },
+    redeem: (text) => {
+      const d = decodeGift(text);
+      if (!d.ok) return { error: giftDecodeError(d.reason) };
+      const ledger = loadLedger(store);
+      const r = redeemGift(meta, d.gift, ledger);
+      if (!r.ok) {
+        return { error: r.reason === 'own' ? 'Das ist dein eigenes Geschenk.' : r.reason === 'used' ? 'Dieses Geschenk wurde auf diesem Gerät schon eingelöst.' : 'Diesen Skin hast du schon – gib das Geschenk an jemand anderen weiter.' };
+      }
+      persist();
+      saveLedger(ledger, store);
+      return { message: `Eingelöst: ${r.label}` };
+    },
+    link: (code) => giftLink(code, giftBase()),
+  },
   accounts: {
     list: () => accounts,
     peek: (id) => (id === accounts.active ? meta : loadMeta(store, accountKey(id))),
@@ -136,6 +171,16 @@ const overlay = new Overlay(el('overlay'), () => meta, {
     },
   },
 });
+
+function giftBase(): string {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+function giftDecodeError(reason: 'format' | 'checksum' | 'invalid'): string {
+  if (reason === 'checksum') return 'Der Code ist beschädigt oder falsch abgetippt.';
+  if (reason === 'invalid') return 'Dieses Geschenk ist ungültig.';
+  return 'Das ist kein Geschenk-Code.';
+}
 
 function accountError(reason: 'name' | 'duplicate' | 'limit'): string {
   if (reason === 'duplicate') return 'Diesen Namen gibt es schon.';
@@ -227,6 +272,7 @@ function showMenu(): void {
   hud.show(false);
   pad.hidden = true;
   overlay.showMenu();
+  if (pendingGift) checkIncomingGift();
 }
 
 function finishRun(): void {
@@ -295,6 +341,25 @@ document.addEventListener('visibilitychange', () => {
 
 showMenu();
 requestAnimationFrame(frame);
+
+// Geschenk-Link (…#gift=CODE): Annahme-Dialog zeigen und den Code aus der Adresse entfernen.
+// Gilt beim Start und auch, wenn der Link in einem schon offenen Tab geöffnet wird (nur der #-Teil ändert sich).
+// Läuft gerade eine Runde, wird das Geschenk gemerkt und erst im Menü gezeigt.
+function checkIncomingGift(): void {
+  const code = extractCode(window.location.hash.replace(/^#/, '?'));
+  if (code) {
+    pendingGift = code;
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+  if (pendingGift && (mode === 'menu' || mode === 'result')) {
+    const c = pendingGift;
+    pendingGift = null;
+    overlay.showIncomingGift(c);
+  }
+}
+
+window.addEventListener('hashchange', checkIncomingGift);
+checkIncomingGift();
 
 // Nur im Dev-Server: Debug-Zugriff für manuelle Tests (wird im Build entfernt).
 if (import.meta.env.DEV) {

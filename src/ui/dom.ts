@@ -23,3 +23,26 @@ export function h<K extends keyof HTMLElementTagNameMap>(
 export function fmt(n: number): string {
   return Math.round(n).toLocaleString('de-DE');
 }
+
+/** Text in die Zwischenablage kopieren (mit Ersatzweg für ältere Browser). Liefert, ob es geklappt hat. */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.append(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
