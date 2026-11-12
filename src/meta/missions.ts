@@ -29,7 +29,7 @@ export const MISSION_DEFS: readonly MissionDef[] = [
   { id: 'chests', label: (n) => `Öffne ${n} Truhe${n === 1 ? '' : 'n'}`, stat: 'chests', targets: [1, 2, 4], rewards: [60, 130, 270] },
   { id: 'bats', label: (n) => `Erledige ${n} ${n === 1 ? 'Fledermaus' : 'Fledermäuse'}`, stat: 'bats', targets: [1, 3, 6], rewards: [60, 140, 280] },
   { id: 'coal', label: (n) => `Sammle ${n} Kohle`, stat: 'coal', targets: [3, 7, 12], rewards: [40, 100, 220] },
-  { id: 'money', label: (n) => `Verdiene ${n} Münzen`, stat: 'money', targets: [150, 400, 900], rewards: [50, 130, 300] },
+  { id: 'money', label: (n) => `Verdiene ${n} Münzen`, stat: 'money', targets: [1500, 4000, 9000], rewards: [50, 130, 300] },
 ];
 
 function pickTier(rng: Rng): number {

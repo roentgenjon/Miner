@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HEART_DEPTH, ROCK, STEP } from '../src/config';
+import { HEART_DEPTH, ORE_VALUE_MULT, ROCK, STEP } from '../src/config';
 import { step } from '../src/game/game';
 import { Block } from '../src/game/types';
 import { blankGame, cell, put } from './helpers';
@@ -65,8 +65,9 @@ describe('Spieler', () => {
     run(s, 2);
     expect(s.stats.ores).toBe(3);
     expect(s.combo.count).toBe(3);
-    // 6 + 6*1.25 + 6*1.5 = 6 + 8 + 9
-    expect(s.stats.money).toBe(6 + 8 + 9);
+    // Kupfer-Grundwert 6 × Erzfaktor, Kombo ×1 / ×1,25 / ×1,5
+    const base = 6 * ORE_VALUE_MULT;
+    expect(s.stats.money).toBe(Math.round(base) + Math.round(base * 1.25) + Math.round(base * 1.5));
   });
 
   it('Sieg beim Abbauen des Herzens', () => {

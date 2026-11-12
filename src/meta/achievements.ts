@@ -24,7 +24,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
   { id: 'fledermaus', name: 'Fledermausjäger', desc: 'Erledige insgesamt 10 Fledermäuse.', check: (m, r) => m.totals.bats + r.bats >= 10 },
   { id: 'truhen', name: 'Schatzsucher', desc: 'Öffne insgesamt 10 Truhen.', check: (m, r) => m.totals.chests + r.chests >= 10 },
   { id: 'sprengmeister', name: 'Sprengmeister', desc: 'Sprenge insgesamt 500 Blöcke mit Dynamit.', check: (m, r) => m.totals.tntBlocks + r.tntBlocks >= 500 },
-  { id: 'goldrausch', name: 'Goldrausch', desc: 'Verdiene insgesamt 5000 Münzen.', check: (m, r) => m.totals.earned + r.money >= 5000 },
+  { id: 'goldrausch', name: 'Goldrausch', desc: 'Verdiene insgesamt 50.000 Münzen.', check: (m, r) => m.totals.earned + r.money >= 50_000 },
 ];
 
 /** Schaltet neu erfüllte Erfolge frei (mutiert meta) und gibt sie zurück. */

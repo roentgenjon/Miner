@@ -1,4 +1,4 @@
-import { BLOCKS, CHEST, COMBO, ENERGY, zoneValueScale } from '../config';
+import { BLOCKS, CHEST, COMBO, ENERGY, ORE_VALUE_MULT, zoneValueScale } from '../config';
 import { emit, type GameState } from './state';
 import { Block, type BlockId } from './types';
 
@@ -24,7 +24,7 @@ export function collectOre(s: GameState, block: BlockId, x: number, y: number): 
   s.combo.timer = s.mods.comboWindow;
   s.stats.comboMax = Math.max(s.stats.comboMax, s.combo.count);
   const mult = comboMult(s.combo.count, s.mods.comboMax);
-  const value = Math.round(base * s.mods.oreMult * mult * zoneValueScale(y));
+  const value = Math.round(base * ORE_VALUE_MULT * s.mods.oreMult * mult * zoneValueScale(y));
   addMoney(s, value);
   s.stats.ores++;
   emit(s, { type: 'ore', x, y, block, value, mult });

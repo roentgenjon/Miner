@@ -285,6 +285,9 @@ export const ENERGY = {
   lightMin: 1.1,
 };
 
+/** Faktor auf den Münzwert aller Erze (Grundwerte unten ×10). Ein Regler für „mehr Geld pro Erz“. */
+export const ORE_VALUE_MULT = 10;
+
 /* ---------- Kombo ---------- */
 export const COMBO = {
   window: 3.0,
