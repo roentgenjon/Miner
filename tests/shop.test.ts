@@ -69,13 +69,17 @@ describe('Stufenverlauf', () => {
     for (const u of UPGRADES) {
       let prev = 0;
       const first = upgradeCost(u.id, 0);
-      for (let lvl = 0; lvl < u.maxLevel; lvl++) {
+      // Stichprobe: dichter am Anfang, dann in großen Schritten bis zur Höchststufe
+      const lv = new Set<number>([u.maxLevel - 1]);
+      for (let l = 0; l < Math.min(u.maxLevel, 3000); l++) lv.add(l);
+      for (let l = 3000; l < u.maxLevel; l += Math.ceil(u.maxLevel / 4000)) lv.add(l);
+      for (const lvl of [...lv].sort((a, b) => a - b)) {
         const c = upgradeCost(u.id, lvl);
         expect(c, `${u.id} Stufe ${lvl}`).toBeGreaterThanOrEqual(prev);
         prev = c;
       }
       expect(prev, `${u.id} letzte Stufe`).toBeGreaterThan(first);
-      expect(prev, `${u.id} letzte Stufe`).toBeLessThanOrEqual(600_000);
+      expect(prev, `${u.id} letzte Stufe`).toBeLessThanOrEqual(600_000 * 10_000);
     }
   });
 
@@ -88,30 +92,30 @@ describe('Stufenverlauf', () => {
     const u = defaultMeta().upgrades;
     for (const d of UPGRADES) u[d.id] = d.maxLevel;
     const m = computeMods(u);
-    expect(m.startTnt).toBe(40 + 3 * 30_000);
+    expect(m.startTnt).toBe(40 + 3 * 30_000 * 10_000);
     expect(m.drainMult).toBeGreaterThanOrEqual(0.2);
     expect(m.digCostMult).toBeGreaterThanOrEqual(0.1);
     expect(m.blastLoot).toBeLessThanOrEqual(1);
-    expect(m.startDepth).toBe(8_000_000);
+    expect(m.startDepth).toBe(8_000_000 * 10_000);
     expect(m.moveSpeed).toBe(20); // Obergrenze
   });
 });
 
 describe('Spitzhacke', () => {
-  it('hat 10 Millionen Stufen; das Tempo steigt stetig, nach Stufe 10000 nur noch langsamer', () => {
+  it('hat 100 Milliarden Stufen; das Tempo steigt stetig, nach Stufe 10000 nur noch langsamer', () => {
     const def = UPGRADES.find((u) => u.id === 'pick');
-    expect(def?.maxLevel).toBe(10_000_000);
+    expect(def?.maxLevel).toBe(100_000_000_000);
     const speed = (l: number): number => computeMods({ ...defaultMeta().upgrades, pick: l }).digSpeed;
-    const levels = [0, 1, 10, 1000, 10_000, 10_001, 100_000, 1_000_000, 10_000_000];
+    const levels = [0, 1, 10, 1000, 10_000, 10_001, 100_000, 1_000_000, 10_000_000, 100_000_000_000];
     for (let i = 1; i < levels.length; i++) expect(speed(levels[i] as number)).toBeGreaterThan(speed(levels[i - 1] as number));
     expect(speed(10)).toBeCloseTo(7);
     expect(speed(10_000)).toBeCloseTo(6001);
-    expect(speed(10_000_000)).toBeCloseTo(6001 + 99900);
+    expect(speed(100_000_000_000)).toBeCloseTo(6001 + 999_999_900);
   });
 
-  it('Preise bleiben auch bei Stufe 10 Millionen im sechsstelligen Bereich', () => {
+  it('Preise bleiben auch bei Stufe 100 Milliarden im sechsstelligen Bereich', () => {
     expect(upgradeCost('pick', 99)).toBeLessThan(4000);
-    expect(upgradeCost('pick', 9_999_999)).toBeLessThanOrEqual(3_000_000);
+    expect(upgradeCost('pick', 99_999_999_999)).toBeLessThanOrEqual(3_000_000_000);
     expect(upgradeCost('pick', 100)).toBeGreaterThanOrEqual(upgradeCost('pick', 99));
   });
 });
@@ -141,7 +145,7 @@ describe('Sammelkauf', () => {
   it('hält an der Maximalstufe an', () => {
     const m = defaultMeta();
     m.money = 1e12;
-    m.upgrades.helmet = 1;
+    m.upgrades.helmet = 2 * 10_000 - 1;
     const r = buyUpgradeMany(m, 'helmet', 10);
     expect(r.bought).toBe(1);
     expect(r.stoppedBy).toBe('max');

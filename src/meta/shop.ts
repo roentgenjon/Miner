@@ -51,6 +51,8 @@ export interface BulkResult {
   stoppedBy: 'max' | 'money' | null;
 }
 
+const BULK_LIMIT = 1_000_000;
+
 /** Kauft bis zu `count` Stufen am Stück (`Infinity` = so viele wie möglich). */
 export function buyUpgradeMany(meta: Meta, id: UpgradeId, count: number): BulkResult {
   const d = getDef(id);
@@ -58,7 +60,8 @@ export function buyUpgradeMany(meta: Meta, id: UpgradeId, count: number): BulkRe
   let spent = 0;
   let level = meta.upgrades[id];
   let stoppedBy: BulkResult['stoppedBy'] = null;
-  while (bought < count) {
+  // Sicherung: bei bis zu 10^11 Stufen nie unbegrenzt in einem Klick rechnen.
+  while (bought < Math.min(count, BULK_LIMIT)) {
     if (level >= d.maxLevel) {
       stoppedBy = 'max';
       break;

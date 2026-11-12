@@ -184,7 +184,7 @@ export class Overlay {
           return h(
             'div',
             { class: 'shop-item' },
-            h('div', { class: 'info' }, h('b', {}, `${u.name}  ${lvl}/${u.maxLevel}`), h('span', {}, u.desc), bar, h('em', {}, describeLevel(u.id, lvl) + (maxed ? '' : `  →  ${describeLevel(u.id, lvl + 1)}`))),
+            h('div', { class: 'info' }, h('b', {}, `${u.name}  ${lvl.toLocaleString("de-DE")}/${u.maxLevel.toLocaleString("de-DE")}`), h('span', {}, u.desc), bar, h('em', {}, describeLevel(u.id, lvl) + (maxed ? '' : `  →  ${describeLevel(u.id, lvl + 1)}`))),
             buy,
           );
         }),

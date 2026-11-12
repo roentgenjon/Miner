@@ -150,7 +150,7 @@ describe('Konten', () => {
     if (!r.ok) return;
     const m = loadMeta(store, accountKey(r.id));
     expect(m.money).toBe(0);
-    expect(m.upgrades.pick).toBe(10_000_000);
+    expect(m.upgrades.pick).toBe(100_000_000_000);
     expect(m.skin).toBe('miner');
     expect(m.skins).toEqual(['regenbogen']); // bekannte Skins bleiben, Unbekanntes fliegt raus
   });

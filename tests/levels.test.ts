@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { UPGRADES } from '../src/config';
+import { LEVEL_SCALE, UPGRADES } from '../src/config';
 import { createGame } from '../src/game/state';
 import { buyUpgrade, computeMods, emptyUpgrades, MAX_LIGHT_BONUS, MAX_MOVE_SPEED, MAX_TNT_RADIUS, upgradeCost } from '../src/meta/shop';
 import { defaultMeta, parseMeta } from '../src/meta/save';
 
-const max = (id: string): number => UPGRADES.find((u) => u.id === id)?.maxLevel ?? 0;
+/** Höchststufe in der Grundauslegung (vor dem Faktor LEVEL_SCALE). */
+const max = (id: string): number => (UPGRADES.find((u) => u.id === id)?.maxLevel ?? 0) / LEVEL_SCALE;
 
 describe('Mehr Stufen', () => {
   it('die Upgrades haben deutlich mehr Stufen', () => {
@@ -16,7 +17,7 @@ describe('Mehr Stufen', () => {
     expect(max('boots')).toBe(40);
     expect(max('revive')).toBe(25);
     // ohne die Spitzhacke (1 Mio.) waren es vorher rund 33 000 Stufen, jetzt über 180 000
-    expect(UPGRADES.filter((u) => u.id !== 'pick').reduce((a, u) => a + u.maxLevel, 0)).toBeGreaterThan(180_000);
+    expect(UPGRADES.filter((u) => u.id !== 'pick').reduce((a, u) => a + u.maxLevel, 0)).toBeGreaterThan(180_000 * LEVEL_SCALE);
   });
 
   it('Höchststufen von Lederwams, Federstiefeln und Zweitem Leben wirken', () => {
@@ -43,23 +44,27 @@ describe('Mehr Stufen', () => {
     for (const u of UPGRADES) {
       const last = upgradeCost(u.id, u.maxLevel - 1);
       expect(last, u.id).toBeGreaterThan(upgradeCost(u.id, 0));
-      expect(last, u.id).toBeLessThanOrEqual(600_000);
+      expect(last, u.id).toBeLessThanOrEqual(600_000 * LEVEL_SCALE);
     }
   });
 
   it('man kann Lederwams und Federstiefel bis zur neuen Höchststufe kaufen, dann ist Schluss', () => {
     const m = defaultMeta();
-    m.money = 1e9;
-    for (let i = 0; i < 40; i++) expect(buyUpgrade(m, 'armor').ok).toBe(true);
+    m.money = 1e15;
+    const top = UPGRADES.find((u) => u.id === 'armor')?.maxLevel ?? 0;
+    expect(top).toBe(40 * LEVEL_SCALE);
+    m.upgrades.armor = top - 1;
+    expect(buyUpgrade(m, 'armor').ok).toBe(true);
     expect(buyUpgrade(m, 'armor')).toEqual({ ok: false, reason: 'max' });
-    expect(m.upgrades.armor).toBe(40);
+    expect(m.upgrades.armor).toBe(top);
   });
 
   it('alte Spielstände bleiben gültig, zu hohe Stufen werden begrenzt', () => {
     const m = parseMeta({ upgrades: { armor: 10, lamp: 2500, boots: 999, revive: 5 } });
     expect(m.upgrades.armor).toBe(10);
     expect(m.upgrades.lamp).toBe(2500);
-    expect(m.upgrades.boots).toBe(40);
+    expect(m.upgrades.boots).toBe(999);
     expect(m.upgrades.revive).toBe(5);
+    expect(parseMeta({ upgrades: { boots: 1e30 } }).upgrades.boots).toBe(40 * LEVEL_SCALE);
   });
 });

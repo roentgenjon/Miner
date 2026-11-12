@@ -391,6 +391,8 @@ export const PICK = { softCap: 10_000, tailPerLevel: 0.01 };
 /** Die ersten `EXP_LEVELS` Stufen wachsen exponentiell im Preis, danach linear bis zum Endpreis. */
 const EXP_LEVELS = 100;
 const EXP_GROWTH = 1.045;
+/** Jedes Upgrade hat so viel mal so viele Stufen wie in der Grundauslegung. */
+export const LEVEL_SCALE = 10_000;
 
 /**
  * Upgrade mit sehr vielen Stufen: Preis steigt in den ersten 100 Stufen um 4,5 % je Stufe,
@@ -406,7 +408,9 @@ function longUpgrade(
   endCost: number,
 ): UpgradeDef {
   const expEnd = baseCost * Math.pow(EXP_GROWTH, EXP_LEVELS - 1);
+  // Der Preis je Stufe bleibt wie bei der Grundstufenzahl; es kommen nur LEVEL_SCALE × so viele Stufen dazu.
   const tailStep = Math.max(0, (endCost - expEnd) / (maxLevel - EXP_LEVELS));
+  maxLevel *= LEVEL_SCALE;
   return { id, name, desc, maxLevel, baseCost, growth: EXP_GROWTH, perLevel, tailFrom: EXP_LEVELS, tailStep };
 }
 
@@ -415,24 +419,30 @@ function longUpgrade(
  * Die Wirkung pro Stufe ist entsprechend kleiner (Gesamtwirkung auf Höchststufe ≈ 2–5 × früher),
  * ausgenommen Dynamit (Vorgabe: +3 pro Stufe).
  */
+/** Kurzes exponentielles Upgrade auf LEVEL_SCALE × so viele Stufen erweitern; danach steigt der Preis linear. */
+function shortUpgrade(d: UpgradeDef): UpgradeDef {
+  const lastExp = d.baseCost * Math.pow(d.growth, d.maxLevel - 1);
+  return { ...d, maxLevel: d.maxLevel * LEVEL_SCALE, tailFrom: d.maxLevel, tailStep: lastExp / 1000 };
+}
+
 export const UPGRADES: readonly UpgradeDef[] = [
   longUpgrade('pick', 'Spitzhacke', 'Schneller graben', 10_000_000, 40, 0.6, 3_000_000),
   longUpgrade('lamp', 'Grubenlampe', 'Mehr Lampenenergie', 25_000, 35, 0.75, 200_000),
-  { id: 'armor', name: 'Lederwams', desc: '+1 Leben pro Stufe', maxLevel: 40, baseCost: 120, growth: 1.25, perLevel: 1 },
+  shortUpgrade({ id: 'armor', name: 'Lederwams', desc: '+1 Leben pro Stufe', maxLevel: 40, baseCost: 120, growth: 1.25, perLevel: 1 }),
   longUpgrade('tnt', 'Dynamitvorrat', '+3 Dynamit pro Stufe', 30_000, 30, TNT.perLevel, 150_000),
   longUpgrade('coal', 'Kohleofen', 'Kohle gibt mehr Energie', 20_000, 50, 0.005, 150_000),
   longUpgrade('ore', 'Erzgespür', 'Erze sind mehr wert', 30_000, 60, 0.005, 400_000),
   longUpgrade('combo', 'Kombo-Kette', 'Kombo-Fenster länger offen', 15_000, 80, 0.02, 150_000),
-  { id: 'boots', name: 'Federstiefel', desc: 'Weniger Fallschaden', maxLevel: 40, baseCost: 90, growth: 1.2, perLevel: 1 },
-  { id: 'helmet', name: 'Schutzhelm', desc: 'Weniger Steinschlagschaden', maxLevel: 2, baseCost: 100, growth: 2.2, perLevel: 1 },
+  shortUpgrade({ id: 'boots', name: 'Federstiefel', desc: 'Weniger Fallschaden', maxLevel: 40, baseCost: 90, growth: 1.2, perLevel: 1 }),
+  shortUpgrade({ id: 'helmet', name: 'Schutzhelm', desc: 'Weniger Steinschlagschaden', maxLevel: 2, baseCost: 100, growth: 2.2, perLevel: 1 }),
   longUpgrade('luck', 'Glückshände', 'Bessere Beute aus Truhen', 20_000, 70, 0.004, 200_000),
   longUpgrade('power', 'Sprengkraft', 'Dynamit sprengt größere Bereiche', 840, 150, 0.0125, 400_000),
-  { id: 'blast', name: 'Schürfsprengstoff', desc: 'Mehr Erz aus Sprengungen', maxLevel: 5, baseCost: 90, growth: 1.6, perLevel: 0.08 },
+  shortUpgrade({ id: 'blast', name: 'Schürfsprengstoff', desc: 'Mehr Erz aus Sprengungen', maxLevel: 5, baseCost: 90, growth: 1.6, perLevel: 0.08 }),
   longUpgrade('saver', 'Sparlampe', 'Lampe verbraucht weniger', 1200, 60, 0.0006, 150_000),
   longUpgrade('light', 'Scheinwerfer', 'Größerer Lichtkegel', 4500, 55, 0.009, 100_000),
   longUpgrade('legs', 'Laufschuhe', 'Schneller zur Seite laufen', 9500, 45, 0.002, 100_000),
   longUpgrade('master', 'Kombo-Meister', 'Höherer Kombo-Multiplikator', 14_000, 120, 0.025, 400_000),
-  { id: 'revive', name: 'Zweites Leben', desc: 'Einmal pro Stufe wiederbeleben', maxLevel: 25, baseCost: 800, growth: 1.4, perLevel: 1 },
+  shortUpgrade({ id: 'revive', name: 'Zweites Leben', desc: 'Einmal pro Stufe wiederbeleben', maxLevel: 25, baseCost: 800, growth: 1.4, perLevel: 1 }),
   longUpgrade('lift', 'Fahrstuhl', 'Start in größerer Tiefe (+2000 m pro Stufe)', 4000, 100, 2000, 500_000),
   longUpgrade('gentle', 'Schonende Hacke', 'Graben kostet weniger Lampenenergie', 700, 50, 0.0012, 100_000),
   longUpgrade('ward', 'Bannzeichen', 'Weniger Fledermäuse', 900, 80, 0.001, 300_000),
