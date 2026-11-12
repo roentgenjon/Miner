@@ -51,6 +51,11 @@ export class Hud {
     const p = s.player;
     this.set('hearts', `${p.hp}/${p.maxHp}`, () => {
       this.hearts.replaceChildren();
+      if (p.maxHp > 12) {
+        // Viele Leben (Lederwams): kompakt als Zahl statt als Herzreihe
+        this.hearts.append(h('span', { class: 'heart full' }, '♥'), h('span', { class: 'hp-num' }, ` ${p.hp}/${p.maxHp}`));
+        return;
+      }
       for (let i = 0; i < p.maxHp; i++) {
         this.hearts.append(h('span', { class: i < p.hp ? 'heart full' : 'heart empty' }, '♥'));
       }

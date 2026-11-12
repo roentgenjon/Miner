@@ -2,6 +2,11 @@ import { COMBO, PICK, PLAYER, TNT, UPGRADES, UPGRADE_PRICE_MULT, type UpgradeDef
 import type { Mods, UpgradeId, Upgrades } from '../game/types';
 import type { Meta } from './save';
 
+/** Höchstwerte, die nach Erreichen keinen Spielvorteil mehr bringen. */
+export const MAX_TNT_RADIUS = 12;
+export const MAX_LIGHT_BONUS = 40;
+export const MAX_MOVE_SPEED = 20;
+
 export function emptyUpgrades(): Upgrades {
   const u = {} as Upgrades;
   for (const d of UPGRADES) u[d.id] = 0;
@@ -95,11 +100,12 @@ export function computeMods(u: Upgrades): Mods {
     fallReduction: per('boots') * u.boots,
     rockReduction: per('helmet') * u.helmet,
     lootMult: 1 + per('luck') * u.luck,
-    tntRadius: TNT.radius + per('power') * u.power,
+    // Obergrenzen: sehr große Radien/Lichtkegel/Lauftempo bringen spielerisch nichts mehr (und kosten Rechenzeit)
+    tntRadius: Math.min(MAX_TNT_RADIUS, TNT.radius + per('power') * u.power),
     blastLoot: Math.min(1, TNT.blastLoot + per('blast') * u.blast),
     drainMult: Math.max(0.2, 1 - per('saver') * u.saver),
-    lightBonus: per('light') * u.light,
-    moveSpeed: 1 + per('legs') * u.legs,
+    lightBonus: Math.min(MAX_LIGHT_BONUS, per('light') * u.light),
+    moveSpeed: Math.min(MAX_MOVE_SPEED, 1 + per('legs') * u.legs),
     comboMax: COMBO.maxMult + per('master') * u.master,
     revives: per('revive') * u.revive,
     startDepth: per('lift') * u.lift,

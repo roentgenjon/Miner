@@ -88,12 +88,12 @@ describe('Stufenverlauf', () => {
     const u = defaultMeta().upgrades;
     for (const d of UPGRADES) u[d.id] = d.maxLevel;
     const m = computeMods(u);
-    expect(m.startTnt).toBe(40 + 3 * 3000);
+    expect(m.startTnt).toBe(40 + 3 * 30_000);
     expect(m.drainMult).toBeGreaterThanOrEqual(0.2);
     expect(m.digCostMult).toBeGreaterThanOrEqual(0.1);
     expect(m.blastLoot).toBeLessThanOrEqual(1);
     expect(m.startDepth).toBe(8_000_000);
-    expect(m.moveSpeed).toBeCloseTo(4);
+    expect(m.moveSpeed).toBe(20); // Obergrenze
   });
 });
 

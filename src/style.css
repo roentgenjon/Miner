@@ -87,6 +87,11 @@ button {
   font-size: 22px;
   line-height: 1;
 }
+.hp-num {
+  font-size: 15px;
+  font-weight: bold;
+  align-self: center;
+}
 .heart.full {
   color: var(--red);
 }
