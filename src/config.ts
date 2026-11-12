@@ -404,7 +404,9 @@ export const PICK = {
 const EXP_LEVELS = 100;
 const EXP_GROWTH = 1.045;
 /** Jedes Upgrade hat so viel mal so viele Stufen wie in der Grundauslegung. */
-export const LEVEL_SCALE = 10_000;
+export const LEVEL_SCALE = 10_000_000_000;
+/** Größte Stufenzahl, die sich als Zahl noch exakt hochzählen lässt (2^53 − 1 wäre die absolute Grenze). */
+export const MAX_LEVEL_CAP = 9_000_000_000_000_000;
 
 /**
  * Upgrade mit sehr vielen Stufen: Preis steigt in den ersten 100 Stufen um 4,5 % je Stufe,
@@ -422,7 +424,7 @@ function longUpgrade(
   const expEnd = baseCost * Math.pow(EXP_GROWTH, EXP_LEVELS - 1);
   // Der Preis je Stufe bleibt wie bei der Grundstufenzahl; es kommen nur LEVEL_SCALE × so viele Stufen dazu.
   const tailStep = Math.max(0, (endCost - expEnd) / (maxLevel - EXP_LEVELS));
-  maxLevel *= LEVEL_SCALE;
+  maxLevel = Math.min(MAX_LEVEL_CAP, maxLevel * LEVEL_SCALE);
   return { id, name, desc, maxLevel, baseCost, growth: EXP_GROWTH, perLevel, tailFrom: EXP_LEVELS, tailStep };
 }
 
@@ -434,7 +436,7 @@ function longUpgrade(
 /** Kurzes exponentielles Upgrade auf LEVEL_SCALE × so viele Stufen erweitern; danach steigt der Preis linear. */
 function shortUpgrade(d: UpgradeDef): UpgradeDef {
   const lastExp = d.baseCost * Math.pow(d.growth, d.maxLevel - 1);
-  return { ...d, maxLevel: d.maxLevel * LEVEL_SCALE, tailFrom: d.maxLevel, tailStep: lastExp / 1000 };
+  return { ...d, maxLevel: Math.min(MAX_LEVEL_CAP, d.maxLevel * LEVEL_SCALE), tailFrom: d.maxLevel, tailStep: lastExp / 1000 };
 }
 
 export const UPGRADES: readonly UpgradeDef[] = [

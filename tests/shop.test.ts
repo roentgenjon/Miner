@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { UPGRADES } from '../src/config';
+import { LEVEL_SCALE, MAX_LEVEL_CAP, UPGRADES } from '../src/config';
 import { defaultMeta } from '../src/meta/save';
 import { buyUpgrade, buyUpgradeMany, computeMods, costOfNext, upgradeCost } from '../src/meta/shop';
 
@@ -79,7 +79,7 @@ describe('Stufenverlauf', () => {
         prev = c;
       }
       expect(prev, `${u.id} letzte Stufe`).toBeGreaterThan(first);
-      expect(prev, `${u.id} letzte Stufe`).toBeLessThanOrEqual(600_000 * 10_000);
+      expect(prev, `${u.id} letzte Stufe`).toBeLessThanOrEqual(600_000 * LEVEL_SCALE);
     }
   });
 
@@ -92,30 +92,30 @@ describe('Stufenverlauf', () => {
     const u = defaultMeta().upgrades;
     for (const d of UPGRADES) u[d.id] = d.maxLevel;
     const m = computeMods(u);
-    expect(m.startTnt).toBe(40 + 3 * 30_000 * 10_000);
+    expect(m.startTnt).toBe(40 + 3 * 30_000 * LEVEL_SCALE);
     expect(m.drainMult).toBeGreaterThanOrEqual(0.2);
     expect(m.digCostMult).toBeGreaterThanOrEqual(0.1);
     expect(m.blastLoot).toBeLessThanOrEqual(1);
-    expect(m.startDepth).toBe(8_000_000 * 10_000);
+    expect(m.startDepth).toBe(8_000_000 * LEVEL_SCALE);
     expect(m.moveSpeed).toBe(20); // Obergrenze
   });
 });
 
 describe('Spitzhacke', () => {
-  it('hat 100 Milliarden Stufen; das Tempo steigt stetig, nach Stufe 10000 nur noch langsamer', () => {
+  it('hat 9 Billiarden Stufen; das Tempo steigt stetig, nach Stufe 10000 nur noch langsamer', () => {
     const def = UPGRADES.find((u) => u.id === 'pick');
-    expect(def?.maxLevel).toBe(100_000_000_000);
+    expect(def?.maxLevel).toBe(MAX_LEVEL_CAP);
     const speed = (l: number): number => computeMods({ ...defaultMeta().upgrades, pick: l }).digSpeed;
-    const levels = [0, 1, 10, 1000, 10_000, 10_001, 100_000, 1_000_000, 10_000_000, 100_000_000_000];
+    const levels = [0, 1, 10, 1000, 10_000, 10_001, 100_000, 1_000_000, 10_000_000, 100_000_000_000, MAX_LEVEL_CAP];
     for (let i = 1; i < levels.length; i++) expect(speed(levels[i] as number)).toBeGreaterThan(speed(levels[i - 1] as number));
     expect(speed(10)).toBeCloseTo(7);
     expect(speed(10_000)).toBeCloseTo(6001);
-    expect(speed(100_000_000_000)).toBeCloseTo(6001 + 999_999_900);
+    expect(speed(MAX_LEVEL_CAP) / (0.01 * MAX_LEVEL_CAP)).toBeCloseTo(1, 3);
   });
 
   it('Preise bleiben auch bei Stufe 100 Milliarden im sechsstelligen Bereich', () => {
     expect(upgradeCost('pick', 99)).toBeLessThan(4000);
-    expect(upgradeCost('pick', 99_999_999_999)).toBeLessThanOrEqual(3_000_000_000);
+    expect(upgradeCost('pick', MAX_LEVEL_CAP - 1)).toBeLessThanOrEqual(6e15);
     expect(upgradeCost('pick', 100)).toBeGreaterThanOrEqual(upgradeCost('pick', 99));
   });
 });
@@ -145,7 +145,7 @@ describe('Sammelkauf', () => {
   it('hält an der Maximalstufe an', () => {
     const m = defaultMeta();
     m.money = 1e12;
-    m.upgrades.helmet = 2 * 10_000 - 1;
+    m.upgrades.helmet = 2 * LEVEL_SCALE - 1;
     const r = buyUpgradeMany(m, 'helmet', 10);
     expect(r.bought).toBe(1);
     expect(r.stoppedBy).toBe('max');
@@ -172,5 +172,23 @@ describe('Sammelkauf bei sehr vielen Stufen', () => {
     for (let i = 0; i < 50_000; i++) exact += upgradeCost('lamp', 1000 + i);
     const { cost } = costOfNext('lamp', 1000, 50_000);
     expect(Math.abs(cost - exact) / exact).toBeLessThan(0.001);
+  });
+});
+
+describe('Billiarden Stufen', () => {
+  it('Max terminiert auch bei Billiarden Stufen und bleibt unter der Höchststufe', () => {
+    for (const id of ['pick', 'lamp', 'armor'] as const) {
+      const m = defaultMeta();
+      m.money = 1e40;
+      const r = buyUpgradeMany(m, id, Infinity);
+      const top = UPGRADES.find((u) => u.id === id)?.maxLevel ?? 0;
+      expect(m.upgrades[id], id).toBeLessThanOrEqual(top);
+      expect(Number.isSafeInteger(m.upgrades[id]), id).toBe(true);
+      expect(r.bought).toBe(m.upgrades[id]);
+      expect(m.money).toBeGreaterThanOrEqual(0);
+    }
+    const m = defaultMeta();
+    m.money = 1e12;
+    expect(buyUpgradeMany(m, 'lamp', Infinity).stoppedBy).toBe('money');
   });
 });

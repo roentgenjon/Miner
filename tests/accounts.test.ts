@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ACCOUNTS, SAVE_KEY } from '../src/config';
+import { ACCOUNTS, MAX_LEVEL_CAP, SAVE_KEY } from '../src/config';
 import {
   ACCOUNTS_KEY,
   MAIN_ID,
@@ -150,7 +150,7 @@ describe('Konten', () => {
     if (!r.ok) return;
     const m = loadMeta(store, accountKey(r.id));
     expect(m.money).toBe(0);
-    expect(m.upgrades.pick).toBe(100_000_000_000);
+    expect(m.upgrades.pick).toBe(MAX_LEVEL_CAP);
     expect(m.skin).toBe('miner');
     expect(m.skins).toEqual(['regenbogen']); // bekannte Skins bleiben, Unbekanntes fliegt raus
   });

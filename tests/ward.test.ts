@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { UPGRADES } from '../src/config';
+import { LEVEL_SCALE, UPGRADES } from '../src/config';
 import { createGame } from '../src/game/state';
 import { batSpawnsIn, generateWorld, getCell } from '../src/game/world';
 import { computeMods, describeLevel, emptyUpgrades } from '../src/meta/shop';
@@ -13,7 +13,7 @@ function world(seed: string, batReduction: number): ReturnType<typeof generateWo
 describe('Bannzeichen: weniger Fledermäuse', () => {
   it('ist ein Upgrade mit vielen Stufen und Obergrenze 90 %', () => {
     const def = UPGRADES.find((u) => u.id === 'ward');
-    expect(def?.maxLevel).toBe(900 * 10_000);
+    expect(def?.maxLevel).toBe(900 * LEVEL_SCALE);
     expect(computeMods({ ...emptyUpgrades(), ward: 100 }).hazardReduction).toBeCloseTo(0.1);
     expect(computeMods({ ...emptyUpgrades(), ward: 900 }).hazardReduction).toBeCloseTo(0.9);
     expect(computeMods(emptyUpgrades()).hazardReduction).toBe(0);

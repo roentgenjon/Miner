@@ -96,7 +96,7 @@ export function buyUpgradeMany(meta: Meta, id: UpgradeId, count: number): BulkRe
     let lo = 0;
     let hi = want;
     while (lo < hi) {
-      const mid = Math.floor((lo + hi + 1) / 2);
+      const mid = lo + Math.ceil((hi - lo) / 2);
       if (sumCost(d, level, mid) <= meta.money) lo = mid;
       else hi = mid - 1;
     }
