@@ -8,6 +8,8 @@ import { describeGift, type Gift, type GiftSpec } from '../meta/gifts';
 import type { Meta, SentGift } from '../meta/save';
 import { buySkin, isSkinUnlocked, selectSkin } from '../meta/skins';
 import { buyUpgradeMany, costOfNext, describeLevel, upgradeCost } from '../meta/shop';
+import type { GiftBody, InboxGift } from '../net/api';
+import type { SignInOutcome, SyncState } from '../net/sync';
 import { copyText, fmt, h } from './dom';
 
 export interface OverlayActions {
@@ -21,6 +23,20 @@ export interface OverlayActions {
   sfx(kind: 'click' | 'buy' | 'deny'): void;
   /** Vorschaubild der Spielfigur in einem Skin. */
   skinPreview(skinId: string, size: number): HTMLCanvasElement;
+  cloud: {
+    info(): { state: SyncState; name: string | null; accountName: string | null };
+    signIn(mode: 'login' | 'register', name: string, password: string): Promise<SignInOutcome>;
+    /** Online-Stand, der bei einer Auswahl oder einem Konflikt vorliegt. */
+    pending(): { meta: Meta; version: number } | null;
+    adopt(): string | null;
+    push(): Promise<string | null>;
+    resolve(choice: 'cloud' | 'local'): Promise<string | null>;
+    signOut(): Promise<void>;
+    pull(): Promise<string | null>;
+    send(body: GiftBody): Promise<{ error: string } | { message: string }>;
+    inbox(): Promise<{ error: string } | { gifts: InboxGift[] }>;
+    claim(id: string): Promise<{ error: string } | { message: string }>;
+  };
   gifts: {
     create(spec: GiftSpec): { error: string } | { code: string; link: string; label: string };
     /** Prüft einen Code/Link, ohne ihn einzulösen. */
@@ -105,6 +121,10 @@ export class Overlay {
       h('div', { class: 'btn-row' }, this.btn('Werkstatt', () => this.showShop()), this.btn('Erfolge', () => this.showTrophies())),
       h('div', { class: 'btn-row' }, this.btn('Skins', () => this.showSkins()), this.btn('Geschenke', () => this.showGifts())),
       h('div', { class: 'btn-row' }, this.btn(`Konto: ${activeAccount(this.act.accounts.list()).name}`, () => this.showAccounts(), 'small'), this.soundBtn()),
+      (() => {
+        const c = this.act.cloud.info();
+        return c.state === 'synced' || c.state === 'dirty' ? h('p', { class: 'hint' }, `Online als ${c.name ?? ''}${c.state === 'synced' ? ' ✓' : ' …'}`) : null;
+      })(),
       this.btn('Update erzwingen', () => this.act.forceUpdate(), 'small'),
       h('p', { class: 'hint keys' }, '← → ↓ ↑ / A D S W graben & klettern · Leertaste: Dynamit · P / Esc: Pause · Wischen oder Tippen am Handy'),
       h('p', { class: 'hint keys' }, `Version ${__BUILD__}`),
@@ -192,9 +212,12 @@ export class Overlay {
     );
   }
 
-  showGifts(msg: string | null = null, created: { code: string; link: string; label: string } | null = null, kind: 'coins' | 'skin' = 'coins'): void {
+  showGifts(msg: string | null = null, created: { code: string; link: string; label: string } | null = null, kind: 'coins' | 'skin' = 'coins', via: 'code' | 'online' = 'code'): void {
     const m = this.meta();
     const giftable = SKINS.filter((s) => s.cost > 0 && !s.achievement && m.skins.includes(s.id));
+    const cloud = this.act.cloud.info();
+    const online = cloud.state === 'synced' || cloud.state === 'dirty';
+    const go = (message: string | null, c: typeof created = created, k: typeof kind = kind, v: typeof via = via): void => this.showGifts(message, c, k, v);
 
     const amount = h('input', { class: 'text-input' });
     amount.type = 'number';
@@ -204,28 +227,51 @@ export class Overlay {
     amount.placeholder = `Münzen (du hast ${fmt(m.money)})`;
     amount.setAttribute('aria-label', 'Anzahl Münzen');
     const skinSel = h('select', { class: 'text-input' });
-    for (const s of giftable) skinSel.append(h('option', {}, `${s.name}`), );
-    skinSel.querySelectorAll('option').forEach((o, i) => (o.value = giftable[i]?.id ?? ''));
+    for (const s of giftable) {
+      const opt = h('option', {}, s.name);
+      opt.value = s.id;
+      skinSel.append(opt);
+    }
     const note = h('input', { class: 'text-input' });
     note.type = 'text';
     note.maxLength = 40;
     note.placeholder = 'Nachricht (optional)';
     note.setAttribute('aria-label', 'Nachricht');
     note.autocomplete = 'off';
+    const recipient = h('input', { class: 'text-input' });
+    recipient.type = 'text';
+    recipient.maxLength = 16;
+    recipient.placeholder = 'Name des Spielers';
+    recipient.setAttribute('aria-label', 'Name des Empfängers');
+    recipient.autocomplete = 'off';
+
+    const labelOf = (): string => (kind === 'coins' ? `${fmt(Number(amount.value) || 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === skinSel.value)?.name ?? ''}“`);
 
     const create = this.btn('Geschenk erstellen', () => {
       const spec: GiftSpec =
         kind === 'coins' ? { kind: 'coins', amount: Number(amount.value), note: note.value } : { kind: 'skin', skin: skinSel.value, note: note.value };
-      const label = kind === 'coins' ? `${fmt(Number(amount.value) || 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === skinSel.value)?.name ?? ''}“`;
-      if (!window.confirm(`${label} werden von deinem Konto abgebucht und in einen Code verpackt. Fortfahren?`)) return;
+      if (!window.confirm(`${labelOf()} werden von deinem Konto abgebucht und in einen Code verpackt. Fortfahren?`)) return;
       const r = this.act.gifts.create(spec);
       if ('error' in r) {
         this.act.sfx('deny');
-        this.showGifts(r.error, null, kind);
+        go(r.error);
       } else {
         this.act.save();
-        this.showGifts(null, r, kind);
+        go(null, r);
       }
+    }, 'primary');
+
+    const sendOnline = this.btn('An Spieler schicken', () => {
+      const to = recipient.value.trim();
+      if (!to) return go('Bitte den Namen des Spielers eingeben.');
+      if (!window.confirm(`${labelOf()} an „${to}“ schicken? Es wird sofort von deinem Konto abgebucht.`)) return;
+      const body: GiftBody =
+        kind === 'coins' ? { to, kind: 'coins', amount: Number(amount.value), note: note.value } : { to, kind: 'skin', skin: skinSel.value, note: note.value };
+      sendOnline.disabled = true;
+      void this.act.cloud.send(body).then((r) => {
+        this.act.sfx('error' in r ? 'deny' : 'buy');
+        go('error' in r ? r.error : r.message);
+      });
     }, 'primary');
 
     const redeemInput = h('input', { class: 'text-input' });
@@ -235,7 +281,7 @@ export class Overlay {
     redeemInput.autocomplete = 'off';
 
     const copy = (text: string, what: string): void => {
-      void copyText(text).then((ok) => this.showGifts(ok ? `${what} kopiert.` : 'Kopieren nicht möglich – bitte den Code von Hand markieren.', created, kind));
+      void copyText(text).then((ok) => go(ok ? `${what} kopiert.` : 'Kopieren nicht möglich – bitte den Code von Hand markieren.'));
     };
     const share = (c: { code: string; link: string; label: string }): void => {
       const text = `Ich schenke dir ${c.label} in Schacht!`;
@@ -262,23 +308,58 @@ export class Overlay {
       }
     }
 
+    // Posteingang (Geschenke von anderen Spielern): wird nachgeladen
+    const inboxBox = h('div', { class: 'inbox' });
+    if (online) {
+      void this.act.cloud.inbox().then((r) => {
+        if ('error' in r) return;
+        if (r.gifts.length === 0) {
+          inboxBox.replaceChildren(h('p', { class: 'hint' }, 'Dein Posteingang ist leer.'));
+          return;
+        }
+        inboxBox.replaceChildren(
+          ...r.gifts.map((g) =>
+            h(
+              'div',
+              { class: 'gift-card' },
+              h('b', {}, g.kind === 'coins' ? `● ${fmt(g.amount ?? 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === g.skin)?.name ?? g.skin}“`),
+              h('span', {}, `von ${g.from}`),
+              g.note ? h('em', {}, `„${g.note}“`) : null,
+              this.btn('Annehmen', () => {
+                void this.act.cloud.claim(g.id).then((res) => {
+                  this.act.sfx('error' in res ? 'deny' : 'buy');
+                  go('error' in res ? res.error : res.message);
+                });
+              }, 'small primary'),
+            ),
+          ),
+        );
+      });
+    }
+
     this.show(
       h('h2', {}, 'Geschenke'),
-      h('p', { class: 'hint' }, 'Verschenke Münzen oder einen gekauften Skin per Link oder Code. Ein Code lässt sich pro Gerät nur einmal einlösen. Ohne Server kann ich nicht verhindern, dass jemand ihn weitergibt – verschick ihn nur an Leute, denen du vertraust.'),
+      h('p', { class: 'hint' }, 'Verschenke Münzen oder einen gekauften Skin: an einen Spieler mit Online-Konto direkt, oder per Link/Code an alle anderen.'),
       msg ? h('p', { class: 'notice' }, msg) : null,
+      online ? h('h3', {}, 'Posteingang') : null,
+      online ? inboxBox : null,
       card,
       h('h3', {}, 'Verschenken'),
-      h('div', { class: 'btn-row' }, this.btn('Münzen', () => this.showGifts(null, created, 'coins'), kind === 'coins' ? 'small primary' : 'small'), this.btn('Skin', () => this.showGifts(null, created, 'skin'), kind === 'skin' ? 'small primary' : 'small')),
+      h('div', { class: 'btn-row' }, this.btn('Münzen', () => go(null, created, 'coins'), kind === 'coins' ? 'small primary' : 'small'), this.btn('Skin', () => go(null, created, 'skin'), kind === 'skin' ? 'small primary' : 'small')),
+      h('div', { class: 'btn-row' }, this.btn('An Spieler (online)', () => go(null, created, kind, 'online'), via === 'online' ? 'small primary' : 'small'), this.btn('Per Code / Link', () => go(null, created, kind, 'code'), via === 'code' ? 'small primary' : 'small')),
+      via === 'online' && !online ? h('p', { class: 'hint' }, 'Dafür brauchst du ein verbundenes Online-Konto (Menü → Konto → Online-Konto). Beide Spieler brauchen eines.') : null,
+      via === 'online' && online ? recipient : null,
       kind === 'coins' ? amount : giftable.length > 0 ? skinSel : h('p', { class: 'hint' }, 'Du hast keinen gekauften Skin, den du verschenken könntest.'),
       note,
-      kind === 'coins' || giftable.length > 0 ? create : null,
-      h('h3', {}, 'Einlösen'),
+      kind === 'coins' || giftable.length > 0 ? (via === 'online' ? (online ? sendOnline : null) : create) : null,
+      via === 'code' ? h('p', { class: 'hint' }, 'Ein Code lässt sich pro Gerät nur einmal einlösen, ist aber nicht an eine Person gebunden – verschick ihn nur an Leute, denen du vertraust.') : null,
+      h('h3', {}, 'Code einlösen'),
       h('div', { class: 'new-account' }, redeemInput, this.btn('Einlösen', () => {
         const r = this.act.gifts.redeem(redeemInput.value);
         this.act.sfx('error' in r ? 'deny' : 'buy');
-        this.showGifts('error' in r ? r.error : r.message, created, kind);
+        go('error' in r ? r.error : r.message);
       }, 'small primary')),
-      m.sentGifts.length > 0 ? h('h3', {}, 'Zuletzt verschenkt') : null,
+      m.sentGifts.length > 0 ? h('h3', {}, 'Zuletzt per Code verschenkt') : null,
       ...m.sentGifts.map((g: SentGift) =>
         h('div', { class: 'account' }, h('div', { class: 'info' }, h('b', {}, g.label), h('span', {}, new Date(g.created).toLocaleString('de-DE'))), this.btn('Link erneut kopieren', () => copy(this.act.gifts.link(g.code), 'Link'), 'small')),
       ),
@@ -387,13 +468,94 @@ export class Overlay {
     });
     this.show(
       h('h2', {}, 'Konten'),
-      h('p', { class: 'hint' }, 'Konten liegen nur auf diesem Gerät. Über Export und Import nimmst du ein Konto auf ein anderes Gerät mit.'),
+      h('p', { class: 'hint' }, 'Konten liegen zunächst nur auf diesem Gerät. Mit einem Online-Konto wird der Spielstand des aktiven Kontos online gesichert, und du kannst Spielern Geschenke schicken.'),
       msg ? h('p', { class: 'notice' }, msg) : null,
+      this.onlineBox(),
       h('div', { class: 'account-list' }, ...rows),
       h('div', { class: 'new-account' }, input, this.btn('Anlegen', () => this.showAccounts(this.act.accounts.create(input.value) ?? 'Konto angelegt.'), 'small primary')),
       this.btn('Konto importieren (Datei)', () => file.click(), 'small'),
       file,
       this.btn('Zurück', () => this.showMenu()),
+    );
+  }
+
+  /** Bereich „Online-Konto“ im Konten-Bildschirm. */
+  private onlineBox(): Node {
+    const info = this.act.cloud.info();
+    const status: Record<SyncState, string> = {
+      off: '',
+      'other-account': '',
+      synced: '✓ Online gesichert',
+      dirty: '⏳ Änderungen werden gleich gesichert …',
+      conflict: '⚠ Konflikt: Online- und Gerätestand sind verschieden',
+      expired: '✕ Sitzung abgelaufen – bitte neu anmelden',
+    };
+    if (info.state === 'off' || info.state === 'expired') {
+      const name = h('input', { class: 'text-input' });
+      name.type = 'text';
+      name.maxLength = 16;
+      name.placeholder = 'Online-Name';
+      name.autocomplete = 'username';
+      name.setAttribute('aria-label', 'Online-Name');
+      const pw = h('input', { class: 'text-input' });
+      pw.type = 'password';
+      pw.maxLength = 128;
+      pw.placeholder = 'Passwort (mind. 8 Zeichen)';
+      pw.autocomplete = 'current-password';
+      pw.setAttribute('aria-label', 'Passwort');
+      const submit = (mode: 'login' | 'register'): void => {
+        const btns = box.querySelectorAll('button');
+        btns.forEach((b) => (b.disabled = true));
+        void this.act.cloud.signIn(mode, name.value, pw.value).then((r) => {
+          if (!r.ok) return this.showAccounts(r.message);
+          if (r.plan === 'upload') return void this.act.cloud.push().then((e) => this.showAccounts(e ?? `Online-Konto „${name.value.trim()}“ verbunden. Dein Spielstand ist jetzt online gesichert.`));
+          if (r.plan === 'adopt') return this.showAccounts(this.act.cloud.adopt() ?? 'Online-Spielstand geladen.');
+          return this.showCloudChoice();
+        });
+      };
+      const box = h(
+        'div',
+        { class: 'online-box' },
+        h('h3', {}, 'Online-Konto'),
+        info.state === 'expired' ? h('p', { class: 'notice' }, status.expired) : null,
+        h('div', { class: 'new-account' }, name),
+        h('div', { class: 'new-account' }, pw),
+        h('div', { class: 'btn-row' }, this.btn('Anmelden', () => submit('login'), 'small primary'), this.btn('Neu registrieren', () => submit('register'), 'small')),
+        h('p', { class: 'hint' }, 'Das Passwort kann nicht zurückgesetzt werden – merk es dir gut. Der Name ist für andere sichtbar (Geschenke).'),
+      );
+      return box;
+    }
+    if (info.state === 'other-account') {
+      return h('div', { class: 'online-box' }, h('h3', {}, 'Online-Konto'), h('p', { class: 'hint' }, `„${info.name ?? ''}“ ist mit dem Konto „${info.accountName ?? '?'}“ verbunden. Wechsle dorthin, um zu synchronisieren.`),
+        this.btn('Online-Konto trennen', () => void this.act.cloud.signOut().then(() => this.showAccounts('Online-Konto getrennt.')), 'small'));
+    }
+    return h(
+      'div',
+      { class: 'online-box' },
+      h('h3', {}, 'Online-Konto'),
+      h('div', { class: 'account active' }, h('div', { class: 'info' }, h('b', {}, info.name ?? ''), h('span', {}, status[info.state]))),
+      info.state === 'conflict'
+        ? this.btn('Konflikt lösen …', () => this.showCloudChoice(), 'small primary')
+        : this.btn('Jetzt sichern und prüfen', () => void this.act.cloud.push().then(async (e) => this.showAccounts(e ?? ((await this.act.cloud.pull()) ?? 'Alles synchron.'))), 'small'),
+      this.btn('Abmelden', () => void this.act.cloud.signOut().then(() => this.showAccounts('Online-Konto abgemeldet. Dein Gerätestand bleibt erhalten.')), 'small'),
+    );
+  }
+
+  /** Auswahl bei abweichenden Ständen: Gerät oder Online? Zeigt beide nebeneinander. */
+  showCloudChoice(): void {
+    const online = this.act.cloud.pending();
+    const dev = this.meta();
+    const summary = (m: Meta): string => `● ${fmt(m.money)} · Rekord ${fmt(m.bestDepth)} m · ${m.runs} Runden`;
+    this.show(
+      h('h2', {}, 'Welcher Stand gilt?'),
+      h('p', { class: 'hint' }, 'Auf diesem Gerät und online liegt ein unterschiedlicher Spielstand. Einer ersetzt den anderen – das lässt sich nicht rückgängig machen.'),
+      h('div', { class: 'gift-card' }, h('b', {}, 'Dieses Gerät'), h('span', {}, summary(dev)),
+        this.btn('Gerätestand behalten und hochladen', () => void this.act.cloud.resolve('local').then((e) => this.showAccounts(e ?? 'Gerätestand ist jetzt online.')), 'small primary')),
+      online
+        ? h('div', { class: 'gift-card' }, h('b', {}, 'Online'), h('span', {}, summary(online.meta)),
+            this.btn('Online-Stand laden', () => void this.act.cloud.resolve('cloud').then((e) => this.showAccounts(e ?? 'Online-Stand geladen.')), 'small primary'))
+        : h('p', { class: 'notice' }, 'Der Online-Stand konnte nicht gelesen werden. Bitte später erneut versuchen.'),
+      this.btn('Später entscheiden', () => this.showAccounts()),
     );
   }
 

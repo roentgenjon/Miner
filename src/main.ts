@@ -25,6 +25,8 @@ import {
 import { defaultStore, loadMeta, saveMeta, type Meta } from './meta/save';
 import { createGift, decodeGift, giftLink, extractCode, loadLedger, redeemGift, saveLedger } from './meta/gifts';
 import { selectedSkin } from './meta/skins';
+import { createApi } from './net/api';
+import { CloudSync } from './net/sync';
 import { computeMods, emptyUpgrades } from './meta/shop';
 import { Renderer } from './render/renderer';
 import { Hud } from './ui/hud';
@@ -54,9 +56,32 @@ let meta: Meta = loadMeta(store, accountKey(accounts.active));
 /** Speichert den Spielstand des aktiven Kontos. */
 function persist(): void {
   saveMeta(meta, store, accountKey(accounts.active));
+  sync.markDirty();
+  scheduleCloudPush();
+}
+
+/** Online-Konto: Spielstand etwa 4 s nach der letzten Änderung sichern. */
+let pushTimer: number | undefined;
+function scheduleCloudPush(): void {
+  if (sync.state() !== 'dirty') return;
+  window.clearTimeout(pushTimer);
+  pushTimer = window.setTimeout(() => void sync.push(), 4000);
 }
 const sfx = new Sfx();
 sfx.enabled = meta.sound;
+
+const sync = new CloudSync({
+  api: createApi(),
+  store,
+  getMeta: () => meta,
+  // Online-Stand übernehmen: lokal speichern, ohne ihn als „geändert“ zu markieren
+  applyMeta: (m) => {
+    meta = m;
+    saveMeta(meta, store, accountKey(accounts.active));
+    sfx.enabled = meta.sound;
+  },
+  accountId: () => accounts.active,
+});
 
 const canvas = el<HTMLCanvasElement>('game');
 const renderer = new Renderer(canvas);
@@ -93,6 +118,22 @@ const overlay = new Overlay(el('overlay'), () => meta, {
   forceUpdate: () => void forceUpdate(),
   sfx: (k) => sfx.ui(k),
   skinPreview: (id, size) => renderer.skinPreview(id, size),
+  cloud: {
+    info: () => ({ state: sync.state(), name: sync.link?.name ?? null, accountName: accounts.accounts.find((a) => a.id === sync.link?.accountId)?.name ?? null }),
+    signIn: (mode, name, password) => sync.signIn(mode, name, password),
+    pending: () => sync.pending,
+    adopt: () => {
+      const e = sync.adoptPending();
+      return e;
+    },
+    push: () => sync.push(),
+    resolve: (choice) => sync.resolve(choice),
+    signOut: () => sync.signOut(),
+    pull: () => sync.pull(),
+    send: (body) => sync.send(body),
+    inbox: () => sync.inbox(),
+    claim: (id) => sync.claim(id),
+  },
   gifts: {
     create: (spec) => {
       persist();
@@ -341,6 +382,14 @@ document.addEventListener('visibilitychange', () => {
 
 showMenu();
 requestAnimationFrame(frame);
+
+// Online-Konto: beim Start den Online-Stand prüfen (neue Geschenke, anderes Gerät); beim Verlassen der Seite sichern.
+void sync.pull().then((msg) => {
+  if (msg) hud.toast(msg, msg.includes('Konflikt') || msg.includes('anderen Gerät') ? 'bad' : 'good');
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && sync.state() === 'dirty') void sync.push();
+});
 
 // Geschenk-Link (…#gift=CODE): Annahme-Dialog zeigen und den Code aus der Adresse entfernen.
 // Gilt beim Start und auch, wenn der Link in einem schon offenen Tab geöffnet wird (nur der #-Teil ändert sich).

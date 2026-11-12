@@ -41,6 +41,7 @@ Benötigt Node.js ≥ 20.
 - **Werkstatt:** 21 Upgrades, 15 davon mit 600 bis 1 000 000 Stufen (Sammelkauf ×10/×100/×1k/Max), bezahlt mit Münzen. **Missionen:** 3 zufällige pro Runde. **Erfolge:** 9 Stück.
 - **Tagesschacht:** gleicher Seed für alle am selben Kalendertag. Die **Rekordlinie** zeigt deine bisher größte Tiefe.
 - **Konten:** Im Menü unter „Konto“ gibt es lokale Profile auf diesem Gerät (bis zu 12), jedes mit eigenem Spielstand: anlegen, wechseln, umbenennen, löschen. Das erste Konto („Spieler“) nutzt den Schlüssel `schacht-meta` weiter, vorhandene Spielstände laufen also unverändert. Es gibt **keine Anmeldung und keinen Server**: Ein Konto lebt nur in diesem Browser. Mit **Export** speicherst du ein Konto als Datei (`schacht-<Name>.json`), mit **Import** legst du daraus auf einem anderen Gerät ein neues Konto an.
+- **Online-Konto (optional):** Unter „Konto → Online-Konto“ kannst du dich mit Name und Passwort **anmelden oder neu registrieren**. Dann wird der Spielstand des aktiven Kontos online gesichert (automatisch kurz nach jeder Änderung, auch auf anderen Geräten ladbar) und du kannst **Münzen oder Skins direkt an andere Spieler schicken** (Menü → Geschenke → „An Spieler“). Der Empfänger nimmt sie im **Posteingang** an. Sind Gerät und Online-Stand verschieden, fragt das Spiel, welcher gilt – nichts wird stillschweigend überschrieben. Ohne Online-Konto läuft alles wie bisher offline. Der Server liegt in [`server/`](server/README.md) (Cloudflare Worker + D1).
 - **Skins:** 8 Aussehen der Spielfigur (Bergmann, Rotkittel, Moosgrün, Amethyst, Nachtschicht, Goldhelm, Bergbaugeist, Regenbogen). Die meisten kauft man mit Münzen, der Geist wird durch den Erfolg „Herz des Bergs“ freigeschaltet. Skins gehören zum Konto.
 - **Geschenke:** Im Menü unter „Geschenke“ verschenkst du **Münzen** oder einen **gekauften Skin** (Standard- und Erfolgs-Skins nicht). Du bekommst einen Code und einen Link, die du selbst verschickst (Chat, Mail, „Teilen“). Beim Erstellen wird das Geschenk sofort von deinem Konto abgebucht; unter „Zuletzt verschenkt“ kannst du den Link erneut kopieren. Der Empfänger öffnet den Link (oder fügt den Code unter „Einlösen“ ein) und nimmt an. Ein Code funktioniert pro Gerät nur einmal (auch über Konten hinweg); eigene Geschenke lassen sich nicht selbst einlösen; einen schon vorhandenen Skin lehnt das Spiel ab, ohne den Code zu verbrauchen. **Grenze ohne Server:** Ein Code ist nicht an eine Person gebunden, und die Prüfsumme erkennt nur Tippfehler, keine absichtlichen Fälschungen. Für echte Sicherheit (Tausch, Bestenlisten, Handel) bräuchte es einen Server.
 - Fortschritt liegt in `localStorage`: das Hauptkonto unter `schacht-meta`, weitere Konten unter `schacht-meta:<Kennung>`, die Kontenliste unter `schacht-accounts`, das Geschenk-Gerätebuch unter `schacht-gifts`.
@@ -68,6 +69,10 @@ src/
     accounts.ts        lokale Konten (Profile), Export/Import
     skins.ts           Skins kaufen und auswählen
     gifts.ts           Geschenke: Codes, Verschenken, Einlösen
+  net/                 Online-Konto
+    api.ts             Client für den Schacht-Server
+    sync.ts            Anmelden, Sichern/Laden, Konflikte, Geschenke an Spieler
+server/                Cloudflare Worker + D1 (Konten, Cloud-Spielstand, Geschenke), siehe server/README.md
     shop.ts            Upgrade-Preise, Kauf, Umrechnung in Spielwerte
     missions.ts        Missionen ziehen und verfolgen
     achievements.ts    Erfolge
