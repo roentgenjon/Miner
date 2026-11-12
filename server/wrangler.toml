@@ -1,0 +1,13 @@
+name = "schacht-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "schacht-db"
+database_id = "bde07ce2-c0c2-4ee6-8a58-d820b43108ac"
+
+[vars]
+# Von diesen Adressen aus darf das Spiel den Server aufrufen (CORS), kommagetrennt.
+ALLOWED_ORIGINS = "https://roentgenjon.github.io,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173"
