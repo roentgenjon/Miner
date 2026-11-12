@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STEP } from '../src/config';
+import { PICK, STEP } from '../src/config';
 import { step } from '../src/game/game';
 import { computeMods, emptyUpgrades } from '../src/meta/shop';
 import { blankGame } from './helpers';
@@ -34,5 +34,34 @@ describe('Spitzhacke: Grabtempo skaliert über alle Stufen', () => {
 
   it('Grundtempo ohne Upgrade bleibt unverändert', () => {
     expect(depthAfter3s(0)).toBe(13);
+  });
+});
+
+describe('Bohrer: Stufen über dem Tempolimit bringen weiter etwas', () => {
+  it('ab Tempo-Limit steigt die Bohrtiefe pro Aktion mit den Stufen', () => {
+    const drill = (pick: number): number => computeMods({ ...emptyUpgrades(), pick }).drill;
+    expect(drill(0)).toBe(1);
+    expect(drill(1_000_000)).toBe(1);
+    expect(drill(10_000_000)).toBeGreaterThan(drill(1_000_000));
+    expect(drill(1_000_000_000)).toBeGreaterThan(drill(10_000_000));
+    expect(drill(100_000_000_000)).toBeGreaterThan(drill(1_000_000_000));
+  });
+
+  it('mehr Bohrstufen = in gleicher Zeit tiefer (Hochstufen-Spieler ist nicht am Limit)', () => {
+    const d = (pick: number): number => depthAfter3s(pick);
+    expect(d(100_000_000)).toBeGreaterThan(d(10_000_000));
+    expect(d(10_000_000_000)).toBeGreaterThan(d(100_000_000));
+  });
+
+  it('bleibt rechenbar: ein Schritt bricht höchstens blocksPerStep Blöcke', () => {
+    const s = blankGame();
+    s.mods = computeMods({ ...emptyUpgrades(), pick: 100_000_000_000 });
+    s.player.maxEnergy = s.player.energy = 1e9;
+    s.input.held = 'down';
+    const before = s.stats.blocks;
+    const t0 = Date.now();
+    step(s, STEP);
+    expect(s.stats.blocks - before).toBeLessThanOrEqual(PICK.blocksPerStep + 10);
+    expect(Date.now() - t0).toBeLessThan(2000);
   });
 });

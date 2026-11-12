@@ -94,6 +94,7 @@ export function computeMods(u: Upgrades): Mods {
   const per = (id: UpgradeId): number => getDef(id).perLevel;
   return {
     digSpeed: 1 + per('pick') * Math.min(u.pick, PICK.softCap) + PICK.tailPerLevel * Math.max(0, u.pick - PICK.softCap),
+    drill: Math.max(1, Math.min(PICK.drillMax, Math.floor((1 + per('pick') * Math.min(u.pick, PICK.softCap) + PICK.tailPerLevel * Math.max(0, u.pick - PICK.softCap)) / PICK.speedCap))),
     maxEnergy: PLAYER.baseEnergy + per('lamp') * u.lamp,
     maxHp: PLAYER.baseHp + per('armor') * u.armor,
     startTnt: Math.floor(TNT.baseStart + TNT.perLevel * u.tnt),
@@ -138,7 +139,7 @@ export function describeLevel(id: UpgradeId, level: number): string {
   const m = computeMods(u);
   switch (id) {
     case 'pick':
-      return `Grabtempo ×${m.digSpeed >= 1000 ? Math.round(m.digSpeed).toLocaleString('de-DE') : n(m.digSpeed, 3)}`;
+      return `Grabtempo ×${m.digSpeed >= 1000 ? Math.round(m.digSpeed).toLocaleString('de-DE') : n(m.digSpeed, 3)}` + (m.drill > 1 ? `, Bohrer ${m.drill.toLocaleString('de-DE')} Blöcke` : '');
     case 'lamp':
       return `${n(m.maxEnergy, 1)} Energie`;
     case 'armor':

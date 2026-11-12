@@ -29,7 +29,8 @@ export interface Player {
   /** Restzeit, in der die Figur beim Klettern festhängt (keine Schwerkraft). */
   climb: number;
   /** Zuletzt abgebautes Feld (für das schnellere Nachrücken). */
-  lastDug: { x: number; y: number } | null;
+  /** Zuletzt gegrabene Strecke (von (x,y) bis (x2,y2)): Nachrücken/Fallen darin geht mit Spitzhackentempo. */
+  lastDug: { x: number; y: number; x2: number; y2: number } | null;
   /** Richtung des letzten Grabens und wie lange das noch als „gräbt gerade“ gilt (s). */
   digDir: Dir | null;
   digT: number;

@@ -1,4 +1,4 @@
-import { BLOCKS, ENERGY, PLAYER, RUN, TNT } from '../config';
+import { BLOCKS, ENERGY, PICK, PLAYER, RUN, TNT } from '../config';
 import { batAt, hitBat } from './bats';
 import { collectCoal, collectOre, openChest } from './loot';
 import { damagePlayer, emit, type GameState } from './state';
@@ -9,8 +9,20 @@ import { isOre } from '../config';
 
 /** Zeit zum Abbauen eines Blocks in Sekunden (inkl. Spitzhacken-Upgrade). */
 export function digTime(s: GameState, block: number): number {
-  return (BLOCKS[block]?.dig ?? 0.3) / s.mods.digSpeed;
+  return (BLOCKS[block]?.dig ?? 0.3) / effSpeed(s);
 }
+
+/** Wirksames Grabtempo (über PICK.speedCap hinaus wirkt der Bohrer statt kürzerer Zeiten). */
+function effSpeed(s: GameState): number {
+  return Math.min(s.mods.digSpeed, PICK.speedCap);
+}
+
+function inSeg(d: { x: number; y: number; x2: number; y2: number } | null, x: number, y: number): boolean {
+  return d !== null && x >= Math.min(d.x, d.x2) && x <= Math.max(d.x, d.x2) && y >= Math.min(d.y, d.y2) && y <= Math.max(d.y, d.y2);
+}
+
+/** Wie viele Blöcke der aktuelle Logikschritt noch abbauen darf. */
+let blockBudget = 0;
 
 function canFall(s: GameState): boolean {
   const p = s.player;
@@ -36,6 +48,7 @@ export function updatePlayer(s: GameState, dt: number): void {
     placeTnt(s);
   }
 
+  blockBudget = PICK.blocksPerStep;
   let carry = 0;
   const a = p.action;
   if (a) {
@@ -56,7 +69,7 @@ export function updatePlayer(s: GameState, dt: number): void {
     carry = next.left;
     finishAction(s);
     p.action = null;
-    if (s.status !== 'playing') return;
+    if (s.status !== 'playing' || blockBudget <= 0) return;
   }
 }
 
@@ -69,9 +82,9 @@ function beginAction(s: GameState, carry: number): boolean {
   if (p.climb <= 0 && canFall(s)) {
     // Ins gerade gegrabene Feld darunter rutscht man schneller (Spitzhacke), nicht aber in freie Schächte.
     const dug = p.lastDug;
-    p.lastDug = null;
-    const fast = dug !== null && dug.x === p.x && dug.y === p.y + 1;
-    const dur = PLAYER.fallTime / (fast ? s.mods.digSpeed : 1);
+    const fast = inSeg(dug, p.x, p.y + 1);
+    if (!fast) p.lastDug = null;
+    const dur = PLAYER.fallTime / (fast ? effSpeed(s) : 1);
     p.px = p.x;
     p.py = p.y;
     p.y++;
@@ -114,12 +127,11 @@ function startAct(s: GameState, dir: Dir, carry: number): void {
 
   // Nachrücken in ein gerade freigegrabenes Feld wird von der Spitzhacke beschleunigt,
   // sonst würde die feste Laufzeit das Graben ab etwa Stufe 25 ausbremsen.
-  const dug = p.lastDug;
-  p.lastDug = null;
-  const afterDig = dug !== null && dug.x === tx && dug.y === ty;
+  const afterDig = inSeg(p.lastDug, tx, ty);
+  if (!afterDig) p.lastDug = null;
 
   if (cell === Block.Air) {
-    const moveDur = PLAYER.moveTime / s.mods.moveSpeed / (afterDig ? s.mods.digSpeed : 1);
+    const moveDur = PLAYER.moveTime / s.mods.moveSpeed / (afterDig ? effSpeed(s) : 1);
     p.px = p.x;
     p.py = p.y;
     p.x = tx;
@@ -148,24 +160,43 @@ function finishAction(s: GameState): void {
   const p = s.player;
   const a = p.action;
   if (!a || a.kind !== 'dig') return;
-  const b = getCell(s.world, a.tx, a.ty);
-  if (b === Block.Air || !BLOCKS[b]?.breakable) return;
+  if (!breakBlock(s, a.tx, a.ty, true)) return;
+  let lx = a.tx;
+  let ly = a.ty;
+  // Bohrer: bei sehr hohem Tempo gleich mehrere Blöcke in dieser Richtung abbauen.
+  const [dx, dy] = DIRS[a.dir];
+  for (let k = 1; k < s.mods.drill && s.status === 'playing' && blockBudget > 0; k++) {
+    const x = a.tx + dx * k;
+    const y = a.ty + dy * k;
+    const c = getCell(s.world, x, y);
+    if (c !== Block.Air && !BLOCKS[c]?.breakable) break;
+    if (c !== Block.Air) breakBlock(s, x, y, false);
+    lx = x;
+    ly = y;
+  }
+  p.lastDug = { x: a.tx, y: a.ty, x2: lx, y2: ly };
+}
 
-  setCell(s.world, a.tx, a.ty, Block.Air);
-  p.lastDug = { x: a.tx, y: a.ty };
+/** Baut einen Block ab und löst seine Wirkung aus. Liefert false, wenn dort nichts abbaubar ist. */
+function breakBlock(s: GameState, x: number, y: number, announce: boolean): boolean {
+  const b = getCell(s.world, x, y);
+  if (b === Block.Air || !BLOCKS[b]?.breakable) return false;
+  blockBudget--;
+  setCell(s.world, x, y, Block.Air);
   s.stats.blocks++;
-  p.energy = Math.max(0, p.energy - ENERGY.digCost * s.mods.digCostMult);
-  emit(s, { type: 'dig', x: a.tx, y: a.ty, block: b });
+  // Mitgebohrte Blöcke kosten keine Lampenenergie.
+  if (announce) s.player.energy = Math.max(0, s.player.energy - ENERGY.digCost * s.mods.digCostMult);
+  if (announce) emit(s, { type: 'dig', x, y, block: b });
 
   switch (b) {
     case Block.Crate:
-      lightCrate(s, a.tx, a.ty, TNT.crateFuse);
+      lightCrate(s, x, y, TNT.crateFuse);
       break;
     case Block.Chest:
-      openChest(s, a.tx, a.ty);
+      openChest(s, x, y);
       break;
     case Block.Coal:
-      collectCoal(s, a.tx, a.ty);
+      collectCoal(s, x, y);
       break;
     case Block.Heart:
       s.wallet += RUN.heartBonus;
@@ -174,10 +205,11 @@ function finishAction(s: GameState): void {
       break;
     default:
       if (isOre(b)) {
-        collectOre(s, b, a.tx, a.ty);
-        mineNeighborVein(s, a.tx, a.ty);
+        collectOre(s, b, x, y);
+        mineNeighborVein(s, x, y);
       }
   }
+  return true;
 }
 
 /** Aderngespür: Mit einer Chance wird ein benachbartes Erz gleich mit abgebaut und eingesammelt. */

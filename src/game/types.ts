@@ -97,6 +97,8 @@ export type Upgrades = Record<UpgradeId, number>;
 /** Aus Upgrades abgeleitete Spielwerte für eine Runde. */
 export interface Mods {
   digSpeed: number;
+  /** Blöcke pro Abbau-Aktion in einer Linie (Bohrer, ab sehr hohem Grabtempo). */
+  drill: number;
   maxEnergy: number;
   maxHp: number;
   startTnt: number;

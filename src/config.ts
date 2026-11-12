@@ -386,7 +386,16 @@ export interface UpgradeDef {
 }
 
 /** Spitzhacke: bis `softCap` +0,6/Stufe (→ ×6001), danach +0,01/Stufe weiter (→ ×15 901 bei Stufe 1 000 000). */
-export const PICK = { softCap: 10_000, tailPerLevel: 0.01 };
+export const PICK = {
+  softCap: 10_000,
+  tailPerLevel: 0.01,
+  /** Schneller als dieses Grabtempo wird die Zeit pro Block nicht mehr kürzer (Rechengrenze je Logikschritt). */
+  speedCap: 20_000,
+  /** Darüber hinaus bohrt jede Aktion so viele Blöcke in einer Linie, wie das Tempo ein Vielfaches des Limits ist. */
+  drillMax: 100_000,
+  /** Höchstzahl Blöcke, die ein Logikschritt abbauen darf (hält das Spiel flüssig). */
+  blocksPerStep: 30_000,
+};
 
 /** Die ersten `EXP_LEVELS` Stufen wachsen exponentiell im Preis, danach linear bis zum Endpreis. */
 const EXP_LEVELS = 100;
