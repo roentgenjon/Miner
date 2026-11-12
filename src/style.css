@@ -282,7 +282,6 @@ button {
 .panel {
   width: min(100%, 440px);
   margin: auto;
-  max-height: 100%;
   background: var(--panel);
   border: 3px solid #000;
   box-shadow: 0 0 0 3px #5a4a3a, 0 12px 40px rgba(0, 0, 0, 0.6);
@@ -291,6 +290,10 @@ button {
   flex-direction: column;
   gap: 10px;
   text-align: center;
+}
+.panel > * {
+  /* Bei wenig Platz scrollt das ganze Fenster, statt Listen auf wenige Pixel zusammenzuquetschen */
+  flex-shrink: 0;
 }
 .panel h1.title {
   margin: 0;

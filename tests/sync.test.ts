@@ -84,7 +84,7 @@ describe('Cloud-Sync: Anmelden', () => {
     await connect(a, 'Anna');
     const b = device();
     const bad = await b.sync.signIn('login', 'Anna', 'falsches-passwort');
-    expect(bad).toEqual({ ok: false, message: 'Name oder Passwort stimmt nicht.' });
+    expect(bad).toEqual({ ok: false, message: 'Name oder Passwort stimmt nicht. Noch kein Online-Konto? Dann „Neu registrieren“ drücken.' });
     expect(b.sync.state()).toBe('off');
     expect(b.store.data.has(CLOUD_KEY)).toBe(false);
     const dup = await b.sync.signIn('register', 'anna', 'geheim1234');

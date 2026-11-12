@@ -20,6 +20,24 @@ export function h<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
+/** Eingabefeld für Namen/Codes: keine automatische Großschreibung oder Korrektur (iPad/iPhone). */
+export function plainInput(el: HTMLInputElement, capitalize: 'off' | 'words' = 'off'): void {
+  el.autocapitalize = capitalize;
+  el.setAttribute('autocorrect', 'off');
+  el.spellcheck = false;
+  el.enterKeyHint = 'go';
+}
+
+/** Ruft `action` auf, wenn in `el` die Eingabetaste gedrückt wird. */
+export function onEnter(el: HTMLElement, action: () => void): void {
+  el.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') {
+      e.preventDefault();
+      action();
+    }
+  });
+}
+
 export function fmt(n: number): string {
   return Math.round(n).toLocaleString('de-DE');
 }

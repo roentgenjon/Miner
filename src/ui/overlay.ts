@@ -10,7 +10,7 @@ import { buySkin, isSkinUnlocked, selectSkin } from '../meta/skins';
 import { buyUpgradeMany, costOfNext, describeLevel, upgradeCost } from '../meta/shop';
 import type { GiftBody, InboxGift } from '../net/api';
 import type { SignInOutcome, SyncState } from '../net/sync';
-import { copyText, fmt, h } from './dom';
+import { copyText, fmt, h, onEnter, plainInput } from './dom';
 
 export interface OverlayActions {
   startRun(daily: boolean): void;
@@ -244,6 +244,7 @@ export class Overlay {
     recipient.placeholder = 'Name des Spielers';
     recipient.setAttribute('aria-label', 'Name des Empfängers');
     recipient.autocomplete = 'off';
+    plainInput(recipient);
 
     const labelOf = (): string => (kind === 'coins' ? `${fmt(Number(amount.value) || 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === skinSel.value)?.name ?? ''}“`);
 
@@ -279,6 +280,8 @@ export class Overlay {
     redeemInput.placeholder = 'Code oder Link einfügen';
     redeemInput.setAttribute('aria-label', 'Geschenk-Code');
     redeemInput.autocomplete = 'off';
+    plainInput(redeemInput);
+    onEnter(recipient, () => (kind === 'coins' ? amount : note).focus());
 
     const copy = (text: string, what: string): void => {
       void copyText(text).then((ok) => go(ok ? `${what} kopiert.` : 'Kopieren nicht möglich – bitte den Code von Hand markieren.'));
@@ -347,11 +350,17 @@ export class Overlay {
       h('h3', {}, 'Verschenken'),
       h('div', { class: 'btn-row' }, this.btn('Münzen', () => go(null, created, 'coins'), kind === 'coins' ? 'small primary' : 'small'), this.btn('Skin', () => go(null, created, 'skin'), kind === 'skin' ? 'small primary' : 'small')),
       h('div', { class: 'btn-row' }, this.btn('An Spieler (online)', () => go(null, created, kind, 'online'), via === 'online' ? 'small primary' : 'small'), this.btn('Per Code / Link', () => go(null, created, kind, 'code'), via === 'code' ? 'small primary' : 'small')),
-      via === 'online' && !online ? h('p', { class: 'hint' }, 'Dafür brauchst du ein verbundenes Online-Konto (Menü → Konto → Online-Konto). Beide Spieler brauchen eines.') : null,
-      via === 'online' && online ? recipient : null,
+      via === 'online' && !online ? h('p', { class: 'hint' }, 'Dafür brauchst du ein verbundenes Online-Konto – und der Empfänger auch. Gib schon mal den Namen ein; zum Abschicken verbindest du dein Konto kurz.') : null,
+      via === 'online' ? recipient : null,
       kind === 'coins' ? amount : giftable.length > 0 ? skinSel : h('p', { class: 'hint' }, 'Du hast keinen gekauften Skin, den du verschenken könntest.'),
       note,
-      kind === 'coins' || giftable.length > 0 ? (via === 'online' ? (online ? sendOnline : null) : create) : null,
+      kind === 'coins' || giftable.length > 0
+        ? via === 'online'
+          ? online
+            ? sendOnline
+            : this.btn('Online-Konto verbinden …', () => this.showAccounts(), 'primary')
+          : create
+        : null,
       via === 'code' ? h('p', { class: 'hint' }, 'Ein Code lässt sich pro Gerät nur einmal einlösen, ist aber nicht an eine Person gebunden – verschick ihn nur an Leute, denen du vertraust.') : null,
       h('h3', {}, 'Code einlösen'),
       h('div', { class: 'new-account' }, redeemInput, this.btn('Einlösen', () => {
@@ -430,6 +439,7 @@ export class Overlay {
     input.placeholder = 'Name des neuen Kontos';
     input.setAttribute('aria-label', 'Name des neuen Kontos');
     input.autocomplete = 'off';
+    plainInput(input, 'words');
     const file = h('input', {});
     file.type = 'file';
     file.accept = 'application/json,.json';
@@ -439,6 +449,8 @@ export class Overlay {
       if (!f) return;
       void f.text().then((text) => this.showAccounts(this.act.accounts.importText(text) ?? 'Konto importiert.'));
     });
+    const createLocal = (): void => this.showAccounts(this.act.accounts.create(input.value) ?? 'Konto angelegt.');
+    onEnter(input, createLocal);
     const rows = idx.accounts.map((a) => {
       const m = this.act.accounts.peek(a.id);
       const active = a.id === idx.active;
@@ -472,7 +484,7 @@ export class Overlay {
       msg ? h('p', { class: 'notice' }, msg) : null,
       this.onlineBox(),
       h('div', { class: 'account-list' }, ...rows),
-      h('div', { class: 'new-account' }, input, this.btn('Anlegen', () => this.showAccounts(this.act.accounts.create(input.value) ?? 'Konto angelegt.'), 'small primary')),
+      h('div', { class: 'new-account' }, input, this.btn('Anlegen', createLocal, 'small primary')),
       this.btn('Konto importieren (Datei)', () => file.click(), 'small'),
       file,
       this.btn('Zurück', () => this.showMenu()),
@@ -497,12 +509,16 @@ export class Overlay {
       name.placeholder = 'Online-Name';
       name.autocomplete = 'username';
       name.setAttribute('aria-label', 'Online-Name');
+      plainInput(name);
       const pw = h('input', { class: 'text-input' });
       pw.type = 'password';
       pw.maxLength = 128;
       pw.placeholder = 'Passwort (mind. 8 Zeichen)';
       pw.autocomplete = 'current-password';
       pw.setAttribute('aria-label', 'Passwort');
+      plainInput(pw);
+      onEnter(name, () => pw.focus());
+      onEnter(pw, () => submit('login'));
       const submit = (mode: 'login' | 'register'): void => {
         const btns = box.querySelectorAll('button');
         btns.forEach((b) => (b.disabled = true));

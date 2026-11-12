@@ -111,7 +111,12 @@ export class CloudSync {
 
   async signIn(mode: 'login' | 'register', name: string, password: string): Promise<SignInOutcome> {
     const r = mode === 'login' ? await this.d.api.login(name, password) : await this.d.api.register(name, password);
-    if (!r.ok) return { ok: false, message: describeApiError(r.status, r.error, r.data) };
+    if (!r.ok) {
+      let message = describeApiError(r.status, r.error, r.data);
+      // Falscher Name und falsches Passwort sehen aus Sicherheitsgründen gleich aus – darum der Hinweis auf das Registrieren.
+      if (mode === 'login' && r.error === 'invalid_credentials') message += ' Noch kein Online-Konto? Dann „Neu registrieren“ drücken.';
+      return { ok: false, message };
+    }
     const link: CloudLink = { name: r.data.name, token: r.data.token, accountId: this.d.accountId(), version: 0, dirty: false, conflict: false, expired: false };
     const s = await this.d.api.getSave(link.token);
     if (!s.ok) return { ok: false, message: describeApiError(s.status, s.error, s.data) };
