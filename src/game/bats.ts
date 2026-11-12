@@ -1,4 +1,5 @@
 import { BAT, CHUNK_ROWS } from '../config';
+import { awardBounty } from './loot';
 import { damagePlayer, emit, type Bat, type GameState } from './state';
 import { Block } from './types';
 import { chunkBatSpawns, chunkCount, getCell } from './world';
@@ -76,7 +77,8 @@ export function updateBats(s: GameState, dt: number): void {
     if (b.cd <= 0 && Math.abs(b.x - p.x) + Math.abs(b.y - p.y) <= 1) {
       b.cd = BAT.attackCooldown;
       emit(s, { type: 'batHit', x: b.x, y: b.y });
-      damagePlayer(s, BAT.damage, 'bat');
+      // Wendigkeit: Chance, dem Biss auszuweichen (nur würfeln, wenn das Upgrade da ist)
+      if (!(s.mods.batDodge > 0 && s.rng.next() < s.mods.batDodge)) damagePlayer(s, BAT.damage, 'bat');
     }
   }
 }
@@ -88,6 +90,7 @@ export function hitBat(s: GameState, b: Bat): void {
   s.bats = s.bats.filter((o) => o !== b);
   if (b.home) s.deadBats.add(b.home);
   s.stats.bats++;
+  awardBounty(s, b.y);
   emit(s, { type: 'batDie', x: b.x, y: b.y });
   if (s.rng.next() < BAT.coalDrop) {
     s.player.energy = Math.min(s.player.maxEnergy, s.player.energy + 6);

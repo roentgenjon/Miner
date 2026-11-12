@@ -1,4 +1,4 @@
-import { COMBO, PICK, PLAYER, TNT, UPGRADES, type UpgradeDef } from '../config';
+import { COMBO, PICK, PLAYER, TNT, UPGRADES, UPGRADE_PRICE_MULT, type UpgradeDef } from '../config';
 import type { Mods, UpgradeId, Upgrades } from '../game/types';
 import type { Meta } from './save';
 
@@ -23,7 +23,7 @@ export function upgradeCost(id: UpgradeId, level: number): number {
   const step = raw < 100 ? 1 : raw < 1000 ? 5 : 10;
   const base = Math.round(raw / step) * step;
   const tail = d.tailFrom !== undefined && level >= d.tailFrom ? Math.floor((level - (d.tailFrom - 1)) * (d.tailStep ?? 0)) : 0;
-  return base + tail;
+  return Math.max(1, Math.round((base + tail) * UPGRADE_PRICE_MULT));
 }
 
 export type BuyResult = { ok: true; cost: number } | { ok: false; reason: 'max' | 'money' };
@@ -105,6 +105,14 @@ export function computeMods(u: Upgrades): Mods {
     startDepth: per('lift') * u.lift,
     digCostMult: Math.max(0.1, 1 - per('gentle') * u.gentle),
     hazardReduction: Math.min(0.9, per('ward') * u.ward),
+    regenSeconds: u.regen > 0 ? Math.max(3, 90 - per('regen') * u.regen) : 0,
+    veinChance: Math.min(0.9, per('vein') * u.vein),
+    critChance: Math.min(0.9, per('crit') * u.crit),
+    tntFuse: Math.max(0.4, TNT.fuse - per('fuse') * u.fuse),
+    invulnBonus: per('shield') * u.shield,
+    bounty: per('bounty') * u.bounty,
+    tntRegenSeconds: u.tntregen > 0 ? Math.max(4, 60 - per('tntregen') * u.tntregen) : 0,
+    batDodge: Math.min(0.9, per('dodge') * u.dodge),
   };
 }
 
@@ -160,5 +168,21 @@ export function describeLevel(id: UpgradeId, level: number): string {
       return `−${n((1 - m.digCostMult) * 100, 1)} % Grabenergie`;
     case 'ward':
       return `−${n(m.hazardReduction * 100, 1)} % Fledermäuse`;
+    case 'regen':
+      return m.regenSeconds > 0 ? `1 Leben alle ${n(m.regenSeconds, 1)} s` : 'keine Selbstheilung';
+    case 'vein':
+      return `${n(m.veinChance * 100, 1)} % Nachbar-Erz mit`;
+    case 'crit':
+      return `${n(m.critChance * 100, 1)} % Doppelfund`;
+    case 'fuse':
+      return `Lunte ${n(m.tntFuse, 2)} s`;
+    case 'shield':
+      return `+${n(m.invulnBonus, 2)} s unverwundbar`;
+    case 'bounty':
+      return `● ${n(m.bounty, 0)} pro Fledermaus`;
+    case 'tntregen':
+      return m.tntRegenSeconds > 0 ? `1 Dynamit alle ${n(m.tntRegenSeconds, 1)} s` : 'kein Nachschub';
+    case 'dodge':
+      return `${n(m.batDodge * 100, 1)} % Ausweichen`;
   }
 }

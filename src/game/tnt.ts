@@ -1,5 +1,5 @@
 import { AUTO_TNT, TNT } from '../config';
-import { collectCoal, collectOre, openChest } from './loot';
+import { awardBounty, collectCoal, collectOre, openChest } from './loot';
 import { damagePlayer, emit, type GameState } from './state';
 import { Block, DIRS } from './types';
 import { getCell, setCell } from './world';
@@ -11,7 +11,7 @@ export function placeTnt(s: GameState): boolean {
   if (s.status !== 'playing' || p.tnt <= 0) return false;
   if (s.tnts.some((t) => t.x === p.x && t.y === p.y)) return false;
   p.tnt--;
-  s.tnts.push({ id: s.nextId++, x: p.x, y: p.y, fuse: TNT.fuse, kind: 'tnt' });
+  s.tnts.push({ id: s.nextId++, x: p.x, y: p.y, fuse: s.mods.tntFuse, kind: 'tnt' });
   emit(s, { type: 'tntPlace', x: p.x, y: p.y });
   return true;
 }
@@ -110,6 +110,7 @@ export function explode(s: GameState, cx: number, cy: number, radius: number, sa
     if (Math.hypot(b.x - cx, b.y - cy) > radius) return true;
     if (b.home) s.deadBats.add(b.home);
     s.stats.bats++;
+    awardBounty(s, b.y);
     emit(s, { type: 'batDie', x: b.x, y: b.y });
     return false;
   });

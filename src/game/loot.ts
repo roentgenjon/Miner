@@ -24,7 +24,9 @@ export function collectOre(s: GameState, block: BlockId, x: number, y: number): 
   s.combo.timer = s.mods.comboWindow;
   s.stats.comboMax = Math.max(s.stats.comboMax, s.combo.count);
   const mult = comboMult(s.combo.count, s.mods.comboMax);
-  const value = Math.round(base * ORE_VALUE_MULT * s.mods.oreMult * mult * zoneValueScale(y));
+  // Doppelfund: nur würfeln, wenn das Upgrade vorhanden ist (sonst bleibt der Zufallsstrom unverändert)
+  const crit = s.mods.critChance > 0 && s.rng.next() < s.mods.critChance ? 2 : 1;
+  const value = Math.round(base * ORE_VALUE_MULT * s.mods.oreMult * mult * zoneValueScale(y) * crit);
   addMoney(s, value);
   s.stats.ores++;
   emit(s, { type: 'ore', x, y, block, value, mult });
@@ -79,4 +81,10 @@ export function addBonus(s: GameState, amount: number): void {
 
 export function isBreakable(block: BlockId): boolean {
   return block !== Block.Air && (BLOCKS[block]?.breakable ?? false);
+}
+
+/** Kopfgeld für eine erledigte Fledermaus (Upgrade „Kopfgeld“). */
+export function awardBounty(s: GameState, y: number): void {
+  if (s.mods.bounty <= 0) return;
+  addMoney(s, Math.round(s.mods.bounty * zoneValueScale(y)));
 }

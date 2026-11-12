@@ -22,6 +22,7 @@ export function step(s: GameState, dt: number): void {
   if (s.status === 'playing') updateBats(s, dt);
   if (s.status === 'playing') updateEnergy(s, dt);
 
+  if (s.status === 'playing') updateRegen(s, dt);
   updateCombo(s, dt);
   trackProgress(s);
 }
@@ -38,6 +39,31 @@ function updateEnergy(s: GameState, dt: number): void {
     }
   } else {
     p.darkT = 0;
+  }
+}
+
+/** Selbstheilung (Leben) und Dynamit-Nachschub: je ein Punkt in festen Abständen, solange etwas fehlt. */
+function updateRegen(s: GameState, dt: number): void {
+  const p = s.player;
+  const m = s.mods;
+  if (m.regenSeconds > 0 && p.hp < p.maxHp) {
+    s.regenT += dt;
+    if (s.regenT >= m.regenSeconds) {
+      s.regenT = 0;
+      p.hp += 1;
+      emit(s, { type: 'heal', amount: 1 });
+    }
+  } else {
+    s.regenT = 0;
+  }
+  if (m.tntRegenSeconds > 0 && p.tnt < m.startTnt) {
+    s.tntT += dt;
+    if (s.tntT >= m.tntRegenSeconds) {
+      s.tntT = 0;
+      p.tnt += 1;
+    }
+  } else {
+    s.tntT = 0;
   }
 }
 

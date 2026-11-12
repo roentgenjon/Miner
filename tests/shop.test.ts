@@ -9,9 +9,11 @@ describe('Werkstatt', () => {
     expect(new Set(UPGRADES.map((u) => u.id)).size).toBe(UPGRADES.length);
   });
 
-  it('Preise steigen mit der Stufe', () => {
+  it('Preise steigen mit der Stufe (insgesamt)', () => {
     for (const u of UPGRADES) {
-      expect(upgradeCost(u.id, 1)).toBeGreaterThan(upgradeCost(u.id, 0));
+      const later = Math.min(u.maxLevel - 1, 25);
+      expect(upgradeCost(u.id, later), u.id).toBeGreaterThan(upgradeCost(u.id, 0));
+      expect(upgradeCost(u.id, 1), u.id).toBeGreaterThanOrEqual(upgradeCost(u.id, 0));
     }
   });
 

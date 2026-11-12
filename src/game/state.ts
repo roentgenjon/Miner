@@ -106,6 +106,9 @@ export interface GameState {
   input: Input;
   /** Bis zu diesem Zeitpunkt (Spielzeit) gibt es keinen Fallschaden (nach eigenen Auto-Sprengungen). */
   fallProtectUntil: number;
+  /** Zähler für Selbstheilung und Dynamit-Nachschub (s). */
+  regenT: number;
+  tntT: number;
   /** Zeit seit der letzten automatischen Ladung. */
   autoTntT: number;
   /** Verbleibende Wiederbelebungen. */
@@ -182,6 +185,8 @@ export function createGame(opts: CreateGameOptions): GameState {
     status: 'playing',
     events: [],
     input: { held: null, queued: null, queuedAge: 0, tnt: false, autoTnt: false },
+    regenT: 0,
+    tntT: 0,
     fallProtectUntil: 0,
     autoTntT: 0,
     revives: opts.mods.revives,
@@ -210,7 +215,7 @@ export function damagePlayer(s: GameState, amount: number, source: string, force
   const p = s.player;
   if (!force && p.invuln > 0) return;
   p.hp = Math.max(0, p.hp - amount);
-  p.invuln = PLAYER.invuln;
+  p.invuln = PLAYER.invuln + s.mods.invulnBonus;
   s.stats.damage += amount;
   emit(s, { type: 'hurt', amount, source });
   if (p.hp <= 0) {

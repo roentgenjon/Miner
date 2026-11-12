@@ -367,6 +367,9 @@ export const RUN = {
 };
 
 /* ---------- Werkstatt ---------- */
+/** Faktor auf alle Upgrade-Preise (0,1 = ein Zehntel). Regler für „Upgrades günstiger“. */
+export const UPGRADE_PRICE_MULT = 0.1;
+
 export interface UpgradeDef {
   id: UpgradeId;
   name: string;
@@ -433,6 +436,14 @@ export const UPGRADES: readonly UpgradeDef[] = [
   longUpgrade('lift', 'Fahrstuhl', 'Start in größerer Tiefe (+2000 m pro Stufe)', 4000, 100, 2000, 500_000),
   longUpgrade('gentle', 'Schonende Hacke', 'Graben kostet weniger Lampenenergie', 700, 50, 0.0012, 100_000),
   longUpgrade('ward', 'Bannzeichen', 'Weniger Fledermäuse', 900, 80, 0.001, 300_000),
+  longUpgrade('regen', 'Selbstheilung', 'Leben wachsen von selbst nach', 120, 150, 0.7, 150_000),
+  longUpgrade('vein', 'Aderngespür', 'Beim Erzabbau wird ein Nachbar-Erz gleich mitgenommen', 450, 90, 0.002, 250_000),
+  longUpgrade('crit', 'Glückstreffer', 'Chance auf Doppelfund (Erzwert ×2)', 500, 90, 0.0018, 300_000),
+  longUpgrade('fuse', 'Kurze Lunte', 'Dynamit zündet schneller', 120, 60, 0.013, 100_000),
+  longUpgrade('shield', 'Schreckstarre', 'Länger unverwundbar nach einem Treffer', 120, 80, 0.0166, 120_000),
+  longUpgrade('bounty', 'Kopfgeld', 'Münzen für jede erledigte Fledermaus', 150, 70, 4, 120_000),
+  longUpgrade('tntregen', 'Dynamit-Nachschub', 'Dynamit wächst langsam nach (bis zum Startvorrat)', 120, 100, 0.45, 150_000),
+  longUpgrade('dodge', 'Wendigkeit', 'Chance, Fledermausbissen auszuweichen', 450, 80, 0.002, 200_000),
 ];
 
 /* ---------- Missionen ---------- */

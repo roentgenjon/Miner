@@ -82,7 +82,15 @@ export type UpgradeId =
   | 'revive'
   | 'lift'
   | 'gentle'
-  | 'ward';
+  | 'ward'
+  | 'regen'
+  | 'vein'
+  | 'crit'
+  | 'fuse'
+  | 'shield'
+  | 'bounty'
+  | 'tntregen'
+  | 'dodge';
 
 export type Upgrades = Record<UpgradeId, number>;
 
@@ -118,6 +126,22 @@ export interface Mods {
   digCostMult: number;
   /** Anteil der Fledermäuse, der beim Rundenstart entfernt wird (0..0,9). */
   hazardReduction: number;
+  /** Sekunden bis zu 1 Leben Selbstheilung (0 = aus). */
+  regenSeconds: number;
+  /** Chance, beim Abbauen eines Erzes ein benachbartes Erz gleich mitzunehmen. */
+  veinChance: number;
+  /** Chance auf einen Doppelfund (Erzwert ×2). */
+  critChance: number;
+  /** Zündzeit von Dynamit (s). */
+  tntFuse: number;
+  /** Zusätzliche Unverwundbarkeit nach einem Treffer (s). */
+  invulnBonus: number;
+  /** Münzen pro erledigter Fledermaus (vor Zonenwert). */
+  bounty: number;
+  /** Sekunden bis zu 1 nachwachsendem Dynamit (0 = aus). */
+  tntRegenSeconds: number;
+  /** Chance, einem Fledermausbiss auszuweichen. */
+  batDodge: number;
 }
 
 export interface RunStats {

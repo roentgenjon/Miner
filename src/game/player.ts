@@ -173,6 +173,25 @@ function finishAction(s: GameState): void {
       emit(s, { type: 'win' });
       break;
     default:
-      if (isOre(b)) collectOre(s, b, a.tx, a.ty);
+      if (isOre(b)) {
+        collectOre(s, b, a.tx, a.ty);
+        mineNeighborVein(s, a.tx, a.ty);
+      }
+  }
+}
+
+/** Aderngespür: Mit einer Chance wird ein benachbartes Erz gleich mit abgebaut und eingesammelt. */
+function mineNeighborVein(s: GameState, x: number, y: number): void {
+  if (s.mods.veinChance <= 0 || s.rng.next() >= s.mods.veinChance) return;
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, 1], [0, -1]] as const) {
+    const nx = x + dx;
+    const ny = y + dy;
+    const nb = getCell(s.world, nx, ny);
+    if (!isOre(nb)) continue;
+    setCell(s.world, nx, ny, Block.Air);
+    s.stats.blocks++;
+    emit(s, { type: 'dig', x: nx, y: ny, block: nb });
+    collectOre(s, nb, nx, ny);
+    return;
   }
 }
