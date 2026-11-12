@@ -151,3 +151,26 @@ describe('Sammelkauf', () => {
     expect(r.stoppedBy).toBe('max');
   });
 });
+
+describe('Sammelkauf bei sehr vielen Stufen', () => {
+  it('Max kauft sofort Milliarden Stufen und gibt nie mehr aus als vorhanden', () => {
+    const m = defaultMeta();
+    m.money = 1e20;
+    const t0 = Date.now();
+    const r = buyUpgradeMany(m, 'pick', Infinity);
+    expect(Date.now() - t0).toBeLessThan(500);
+    expect(r.stoppedBy).toBe('money');
+    expect(r.bought).toBeGreaterThan(1_000_000_000);
+    expect(m.money).toBeGreaterThanOrEqual(0);
+    expect(m.money + r.spent).toBe(1e20);
+    // zweiter Klick kauft nichts mehr dazu (Rest reicht nicht für eine Stufe)
+    expect(buyUpgradeMany(m, 'pick', Infinity).bought).toBeLessThanOrEqual(1);
+  });
+
+  it('Summenformel weicht von der Einzelrechnung kaum ab', () => {
+    let exact = 0;
+    for (let i = 0; i < 50_000; i++) exact += upgradeCost('lamp', 1000 + i);
+    const { cost } = costOfNext('lamp', 1000, 50_000);
+    expect(Math.abs(cost - exact) / exact).toBeLessThan(0.001);
+  });
+});

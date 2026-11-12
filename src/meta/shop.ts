@@ -51,42 +51,69 @@ export interface BulkResult {
   stoppedBy: 'max' | 'money' | null;
 }
 
-const BULK_LIMIT = 1_000_000;
+/** Bis zu dieser Anzahl wird jede Stufe einzeln gerechnet (exakt), darüber geschlossen (Summenformel). */
+const EXACT_SUM = 5000;
+
+/** Gesamtpreis von `n` Stufen ab `level`. Auf dem linearen Preisabschnitt nach Summenformel, damit auch Milliarden Stufen sofort gehen. */
+function sumCost(d: UpgradeDef, level: number, n: number): number {
+  if (n <= EXACT_SUM) {
+    let c = 0;
+    for (let i = 0; i < n; i++) c += upgradeCost(d.id, level + i);
+    return c;
+  }
+  const from = d.tailFrom ?? Infinity;
+  let c = 0;
+  let l = level;
+  let left = n;
+  // Exponentieller Anfang einzeln
+  while (left > 0 && l < from) {
+    c += upgradeCost(d.id, l);
+    l++;
+    left--;
+  }
+  if (left > 0) {
+    // Linearer Teil: Preis(l) ≈ (Basis + (l - (from-1)) · Schritt) · Preisfaktor
+    const raw = d.baseCost * Math.pow(d.growth, from - 1);
+    const step = raw < 100 ? 1 : raw < 1000 ? 5 : 10;
+    const base = Math.round(raw / step) * step;
+    const j0 = l - (from - 1);
+    const j1 = j0 + left - 1;
+    c += UPGRADE_PRICE_MULT * (left * base + (d.tailStep ?? 0) * ((j0 + j1) * left) / 2);
+  }
+  return Math.round(c);
+}
 
 /** Kauft bis zu `count` Stufen am Stück (`Infinity` = so viele wie möglich). */
 export function buyUpgradeMany(meta: Meta, id: UpgradeId, count: number): BulkResult {
   const d = getDef(id);
-  let bought = 0;
-  let spent = 0;
-  let level = meta.upgrades[id];
-  let stoppedBy: BulkResult['stoppedBy'] = null;
-  // Sicherung: bei bis zu 10^11 Stufen nie unbegrenzt in einem Klick rechnen.
-  while (bought < Math.min(count, BULK_LIMIT)) {
-    if (level >= d.maxLevel) {
-      stoppedBy = 'max';
-      break;
+  const level = meta.upgrades[id];
+  const room = d.maxLevel - level;
+  let want = Math.min(count, room);
+  if (want <= 0) return { bought: 0, spent: 0, stoppedBy: 'max' };
+  let stoppedBy: BulkResult['stoppedBy'] = want < count ? 'max' : null;
+  if (sumCost(d, level, want) > meta.money) {
+    // größte bezahlbare Anzahl suchen
+    let lo = 0;
+    let hi = want;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi + 1) / 2);
+      if (sumCost(d, level, mid) <= meta.money) lo = mid;
+      else hi = mid - 1;
     }
-    const cost = upgradeCost(id, level);
-    if (meta.money - spent < cost) {
-      stoppedBy = 'money';
-      break;
-    }
-    spent += cost;
-    level++;
-    bought++;
+    want = lo;
+    stoppedBy = 'money';
   }
+  const spent = want > 0 ? sumCost(d, level, want) : 0;
   meta.money -= spent;
-  meta.upgrades[id] = level;
-  return { bought, spent, stoppedBy };
+  meta.upgrades[id] = level + want;
+  return { bought: want, spent, stoppedBy };
 }
 
 /** Gesamtpreis der nächsten `count` Stufen (begrenzt durch die Maximalstufe). */
 export function costOfNext(id: UpgradeId, level: number, count: number): { levels: number; cost: number } {
   const d = getDef(id);
   const levels = Math.max(0, Math.min(count, d.maxLevel - level));
-  let cost = 0;
-  for (let i = 0; i < levels; i++) cost += upgradeCost(id, level + i);
-  return { levels, cost };
+  return { levels, cost: sumCost(d, level, levels) };
 }
 
 /** Rechnet Upgrade-Stufen in konkrete Spielwerte um. */
