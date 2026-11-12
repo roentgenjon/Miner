@@ -465,7 +465,9 @@ export interface SkinDef {
   /** Farben, die in der Spielfigur ersetzt werden (Buchstaben siehe render/sprites.ts: PLAYER). */
   palette: Record<string, string>;
   /** Sondereffekt: Geist (durchscheinend), Regenbogen (wechselnde Farben). */
-  effect?: 'ghost' | 'rainbow';
+  effect?: 'ghost' | 'rainbow' | 'shimmer';
+  /** Zweite Farbgebung für „shimmer“: wechselt mehrmals pro Sekunde mit `palette`. */
+  palette2?: Record<string, string>;
 }
 
 export const DEFAULT_SKIN = 'miner';
@@ -479,6 +481,26 @@ export const SKINS: readonly SkinDef[] = [
   { id: 'gold', name: 'Goldhelm', desc: 'Glänzender Helm und Gürtel.', cost: 5000, palette: { y: '#ffe066', Y: '#d9a521', w: '#ffffff', g: '#ffd23a' } },
   { id: 'geist', name: 'Bergbaugeist', desc: 'Durchscheinend. Freigeschaltet durch „Herz des Bergs“.', cost: 0, achievement: 'herz', palette: { b: '#cfe8ff', B: '#9cc4ee', y: '#e8f4ff', Y: '#b7d6f5', p: '#9cc4ee', o: '#7aa6d8', s: '#f0f7ff' }, effect: 'ghost' },
   { id: 'regenbogen', name: 'Regenbogen', desc: 'Farben wechseln ständig.', cost: 100_000, palette: {}, effect: 'rainbow' },
+  // --- Weitere Skins zum Kaufen ---
+  { id: 'orange', name: 'Warnweste', desc: 'Leuchtorange – von weitem zu sehen.', cost: 300, palette: { b: '#ff8a1f', B: '#c25e0a', y: '#ffe14a', Y: '#d9a521' } },
+  { id: 'blau', name: 'Tiefsee', desc: 'Kühles Blau.', cost: 600, palette: { b: '#1f6fd1', B: '#154a8f', y: '#4fc3ff', Y: '#2b8ac4' } },
+  { id: 'rosa', name: 'Zuckerwatte', desc: 'Rosa Overall, heller Helm.', cost: 600, palette: { b: '#ff8fc8', B: '#d65c9a', y: '#ffd1ec', Y: '#e9a3cd' } },
+  { id: 'schwarz', name: 'Kohlekumpel', desc: 'Pechschwarz, nur die Lampe leuchtet.', cost: 1000, palette: { b: '#2b2b30', B: '#1a1a1e', y: '#3a3a42', Y: '#25252b', p: '#1a1a1e', w: '#ffcf5a' } },
+  { id: 'weiss', name: 'Schneehase', desc: 'Ganz in Weiß.', cost: 1000, palette: { b: '#f2f2f2', B: '#c9c9d4', y: '#ffffff', Y: '#d8d8e6', p: '#8a8a99' } },
+  { id: 'silber', name: 'Eisenhelm', desc: 'Stählerner Helm und Gürtel.', cost: 3000, palette: { y: '#cfd6de', Y: '#8f99a6', g: '#cfd6de', b: '#4a5568', B: '#2d3748' } },
+  { id: 'rubin', name: 'Rubinrot', desc: 'Funkelnd rot wie ein Rubin.', cost: 8000, palette: { b: '#e0334a', B: '#9c1d33', y: '#ff6b81', Y: '#c22a45', w: '#ffd0d8' } },
+  { id: 'smaragd', name: 'Smaragdgrün', desc: 'Tiefgrün mit hellem Helm.', cost: 8000, palette: { b: '#1fae6a', B: '#14794a', y: '#58e6a0', Y: '#2fb878' } },
+  { id: 'diamant', name: 'Diamantpanzer', desc: 'Eisblau und strahlend hell.', cost: 25_000, palette: { b: '#6fe7ff', B: '#2c9bb5', y: '#d4f8ff', Y: '#8fdcf0', w: '#ffffff' } },
+  { id: 'neon', name: 'Neon', desc: 'Grell und ständig im Wechsel.', cost: 15_000, palette: { b: '#39ff14', B: '#1fa80a', y: '#00ffd5', Y: '#00b89a' }, palette2: { b: '#ff2bd6', B: '#a8168c', y: '#fffb00', Y: '#b8b500' }, effect: 'shimmer' },
+  // --- Skins, die Erfolge freischalten ---
+  { id: 'steinmetz', name: 'Steinmetz', desc: 'Schiefergrau. Freigeschaltet durch „Schieferbrecher“.', cost: 0, achievement: 'schiefer', palette: { b: '#5d6577', B: '#383d4a', y: '#8b93a8', Y: '#5d6577', p: '#383d4a' } },
+  { id: 'glut', name: 'Glutträger', desc: 'Glühend. Freigeschaltet durch „Magmaläufer“.', cost: 0, achievement: 'magma', palette: { b: '#c2410c', B: '#7c2d12', y: '#fb923c', Y: '#c2410c', w: '#fde047' }, palette2: { b: '#ea580c', y: '#fde047' }, effect: 'shimmer' },
+  { id: 'kristallprinz', name: 'Kristallprinz', desc: 'Funkelnd. Freigeschaltet durch „Kristallseher“.', cost: 0, achievement: 'kristall', palette: { b: '#7c3aed', B: '#4c1d95', y: '#c4b5fd', Y: '#8b5cf6', w: '#e9d5ff' }, palette2: { b: '#22d3ee', B: '#0e7490', y: '#a5f3fc', Y: '#22d3ee' }, effect: 'shimmer' },
+  { id: 'kombokoenig', name: 'Kombo-König', desc: 'Farbenfroh. Freigeschaltet durch „Kombo-König“.', cost: 0, achievement: 'kombo', palette: {}, effect: 'rainbow' },
+  { id: 'fledermausjaeger', name: 'Fledermausjäger', desc: 'Dunkel mit roten Augen. Freigeschaltet durch „Fledermausjäger“.', cost: 0, achievement: 'fledermaus', palette: { b: '#3f2a5c', B: '#2a1a40', y: '#6a4a8c', Y: '#3f2a5c', w: '#ff4a4a' } },
+  { id: 'schatzsucher', name: 'Schatzsucher', desc: 'Mit Goldbesatz. Freigeschaltet durch „Schatzsucher“.', cost: 0, achievement: 'truhen', palette: { b: '#9a6535', B: '#5a3518', y: '#f5c542', Y: '#b8860b', g: '#f5c542' }, palette2: { y: '#fff3a8', g: '#fff3a8' }, effect: 'shimmer' },
+  { id: 'sprenger', name: 'Sprengmeister', desc: 'Feuerrot und gelb. Freigeschaltet durch „Sprengmeister“.', cost: 0, achievement: 'sprengmeister', palette: { b: '#c8372d', B: '#8f241d', y: '#ffd23a', Y: '#c08a10', w: '#ffb030' }, palette2: { y: '#ff7a1a', w: '#ffffff' }, effect: 'shimmer' },
+  { id: 'goldrausch', name: 'Goldrausch', desc: 'Von Kopf bis Fuß golden. Freigeschaltet durch „Goldrausch“.', cost: 0, achievement: 'goldrausch', palette: { b: '#d9a521', B: '#8a6510', y: '#ffe066', Y: '#d9a521', p: '#8a6510', g: '#ffffff' }, palette2: { b: '#ffe066', y: '#ffffff' }, effect: 'shimmer' },
 ];
 
 /* ---------- Konten (lokal auf dem Gerät) ---------- */

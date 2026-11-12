@@ -244,7 +244,7 @@ export function createTextures(): Textures {
     const hit = playerCache.get(key);
     if (hit) return hit;
     const base = ALL_SPRITES.PLAYER as Sprite;
-    const palette: Record<string, string> = { ...base.palette, ...skin.palette };
+    const palette: Record<string, string> = { ...base.palette, ...skin.palette, ...(skin.effect === 'shimmer' && step === 1 ? skin.palette2 : {}) };
     if (skin.effect === 'rainbow') {
       for (const letter of ['b', 'B', 'y', 'Y']) {
         const c = base.palette[letter];
@@ -258,7 +258,8 @@ export function createTextures(): Textures {
   };
   const playerFor = (skinId: string, facing: 'left' | 'right', time: number): Tex => {
     const skin = SKINS.find((s) => s.id === skinId) ?? (SKINS[0] as SkinDef);
-    const step = skin.effect === 'rainbow' ? Math.floor(time * 6) % 12 : 0;
+    // Regenbogen: 12 Farbstufen; Schimmern: wechselt etwa 2,5-mal pro Sekunde zwischen zwei Farbgebungen
+    const step = skin.effect === 'rainbow' ? Math.floor(time * 6) % 12 : skin.effect === 'shimmer' ? Math.floor(time * 2.5) % 2 : 0;
     const set = playerSet(skin, step);
     return facing === 'left' ? set.left : set.right;
   };

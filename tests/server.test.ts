@@ -259,6 +259,12 @@ describe('Server: Geschenke an andere Spieler', () => {
     expect((await api('GET', '/api/inbox', undefined, berta)).json.gifts).toHaveLength(1); // bleibt liegen
   });
 
+  it('neue Kaufskins sind verschenkbar, Erfolgs-Skins nicht', async () => {
+    await withSave(anna, { money: 1000, skins: ['diamant', 'steinmetz'] });
+    expect((await api('POST', '/api/send', { to: 'Berta', kind: 'skin', skin: 'diamant' }, anna)).status).toBe(200);
+    expect((await api('POST', '/api/send', { to: 'Berta', kind: 'skin', skin: 'steinmetz' }, anna)).json.error).toBe('invalid_gift');
+  });
+
   it('weist ungültige Geschenke ab, ohne etwas zu ändern', async () => {
     const before = (await api('GET', '/api/save', undefined, anna)).json;
     const cases: [unknown, number, string][] = [
