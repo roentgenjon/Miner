@@ -20,6 +20,9 @@ export const HEIGHT = HEART_DEPTH + 2;
 export const START_X = 3;
 /** Zeilen pro Welt-Abschnitt (die Welt wird abschnittsweise bei Bedarf erzeugt). */
 export const CHUNK_ROWS = 256;
+/** Abschnitte, die oberhalb/unterhalb des Spielers im Speicher bleiben (weiter entfernte werden freigegeben). */
+export const CHUNK_KEEP_BEHIND = 16;
+export const CHUNK_KEEP_AHEAD = 160;
 
 /* ---------- Zonen ---------- */
 export interface RollEntry {
@@ -392,7 +395,7 @@ export const PICK = {
   /** Schneller als dieses Grabtempo wird die Zeit pro Block nicht mehr kürzer (Rechengrenze je Logikschritt). */
   speedCap: 20_000,
   /** Darüber hinaus bohrt jede Aktion so viele Blöcke in einer Linie, wie das Tempo ein Vielfaches des Limits ist. */
-  drillMax: 100_000,
+  drillMax: 20_000,
   /** Höchstzahl Blöcke, die ein Logikschritt abbauen darf (hält das Spiel flüssig). */
   blocksPerStep: 30_000,
 };

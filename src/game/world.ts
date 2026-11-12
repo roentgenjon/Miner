@@ -23,6 +23,7 @@ export function generateWorld(seed: string, options: WorldOptions = {}): World {
     width: WIDTH,
     height: HEIGHT,
     chunks: new Array<Chunk | undefined>(Math.ceil(HEIGHT / CHUNK_ROWS)),
+    live: new Set<number>(),
     options,
     shaftDepth: 0,
   };
@@ -39,7 +40,21 @@ export function chunkAt(w: World, ci: number): Chunk {
   if (hit) return hit;
   const c = buildChunk(w, ci);
   w.chunks[ci] = c;
+  w.live.add(ci);
   return c;
+}
+
+/**
+ * Gibt Abschnitte frei, die weit vom Spieler entfernt sind (sie werden bei Bedarf wieder neu erzeugt;
+ * dort Gegrabenes geht dabei verloren). Hält den Speicher auch in 10 Millionen Metern Tiefe klein.
+ */
+export function trimChunks(w: World, centerCi: number, behind: number, ahead: number): void {
+  for (const ci of w.live) {
+    if (ci < centerCi - behind || ci > centerCi + ahead) {
+      w.chunks[ci] = undefined;
+      w.live.delete(ci);
+    }
+  }
 }
 
 function buildChunk(w: World, ci: number): Chunk {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { PICK, STEP } from '../src/config';
+import { CHUNK_KEEP_AHEAD, CHUNK_KEEP_BEHIND, PICK, STEP } from '../src/config';
+import { createGame } from '../src/game/state';
 import { step } from '../src/game/game';
 import { computeMods, emptyUpgrades } from '../src/meta/shop';
 import { blankGame } from './helpers';
@@ -63,5 +64,23 @@ describe('Bohrer: Stufen über dem Tempolimit bringen weiter etwas', () => {
     step(s, STEP);
     expect(s.stats.blocks - before).toBeLessThanOrEqual(PICK.blocksPerStep + 10);
     expect(Date.now() - t0).toBeLessThan(2000);
+  });
+});
+
+describe('Speicher bei extremem Tempo', () => {
+  it('hält nur Abschnitte in Spielernähe im Speicher, auch nach sehr vielen gegrabenen Blöcken', () => {
+    const s = createGame({ seed: 'speicher', mods: computeMods({ ...emptyUpgrades(), pick: 100_000_000_000 }) });
+    s.player.maxEnergy = s.player.energy = 1e12;
+    s.player.hp = 1e9;
+    s.fallProtectUntil = 1e9;
+    s.bats = [];
+    s.rocks = [];
+    s.input.held = 'down';
+    for (let i = 0; i < 600 && s.status === 'playing'; i++) step(s, STEP);
+    expect(s.player.y).toBeGreaterThan(100_000);
+    // nach einem weiteren Trim-Takt sind es nur noch wenige Abschnitte
+    for (let i = 0; i < 61; i++) step(s, STEP);
+    expect(s.world.live.size).toBeLessThan(CHUNK_KEEP_BEHIND + CHUNK_KEEP_AHEAD + 400);
+    expect(s.world.chunks.filter(Boolean).length).toBe(s.world.live.size);
   });
 });

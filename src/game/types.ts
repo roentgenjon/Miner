@@ -57,6 +57,8 @@ export interface World {
   height: number;
   /** Bereits erzeugte Abschnitte (Index = Zeile / CHUNK_ROWS). */
   chunks: (Chunk | undefined)[];
+  /** Nummern der gerade im Speicher gehaltenen Abschnitte (für das Aufräumen weit entfernter). */
+  live: Set<number>;
   options: WorldOptions;
   /** Fahrstuhl: In der Startspalte gilt alles bis zu dieser Zeile als freier Schacht. */
   shaftDepth: number;

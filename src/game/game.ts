@@ -1,10 +1,11 @@
-import { ENERGY, ZONE_TOAST_EVERY, zoneAt } from '../config';
+import { CHUNK_KEEP_AHEAD, CHUNK_KEEP_BEHIND, CHUNK_ROWS, ENERGY, ZONE_TOAST_EVERY, zoneAt } from '../config';
 import { updateBats } from './bats';
 import { updatePhysics } from './physics';
 import { updatePlayer } from './player';
 import { addBonus } from './loot';
 import { damagePlayer, emit, type GameState } from './state';
 import { updateAutoTnt, updateTnt } from './tnt';
+import { trimChunks } from './world';
 import { updateMissions } from '../meta/missions';
 
 export { createGame, drainEvents } from './state';
@@ -25,6 +26,7 @@ export function step(s: GameState, dt: number): void {
   if (s.status === 'playing') updateRegen(s, dt);
   updateCombo(s, dt);
   trackProgress(s);
+  if (s.tick % 60 === 0) trimChunks(s.world, Math.floor(s.player.y / CHUNK_ROWS), CHUNK_KEEP_BEHIND, CHUNK_KEEP_AHEAD);
 }
 
 function updateEnergy(s: GameState, dt: number): void {
