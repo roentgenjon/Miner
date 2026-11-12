@@ -1,5 +1,5 @@
-/** Kürzel für große Zahlen: k, m, b, t, qa, qi, sx, sp, oc, no, dc, ud, dd, td, qad, qid, sxd, spd, ocd (10^3 … 10^57). */
-export const SUFFIXES = ['k', 'm', 'b', 't', 'qa', 'qi', 'sx', 'sp', 'oc', 'no', 'dc', 'ud', 'dd', 'td', 'qad', 'qid', 'sxd', 'spd', 'ocd'] as const;
+/** Kürzel für große Zahlen: K, M, B, T, QA, QI, SX, SP, OC, NO, DC, UD, DD, TD, QAD, QID, SXD, SPD, OCD (10^3 … 10^57). */
+export const SUFFIXES = ['K', 'M', 'B', 'T', 'QA', 'QI', 'SX', 'SP', 'OC', 'NO', 'DC', 'UD', 'DD', 'TD', 'QAD', 'QID', 'SXD', 'SPD', 'OCD'] as const;
 
 /** Münzen kurz: 999 → „999“, 1500 → „1,5 k“, 2,35e12 → „2,35 t“. Bis „ocd“, darüber wächst die Zahl davor weiter. */
 export function fmtCoins(n: number): string {
