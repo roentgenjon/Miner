@@ -119,7 +119,8 @@ const overlay = new Overlay(el('overlay'), () => meta, {
   sfx: (k) => sfx.ui(k),
   skinPreview: (id, size) => renderer.skinPreview(id, size),
   cloud: {
-    info: () => ({ state: sync.state(), name: sync.link?.name ?? null, accountName: accounts.accounts.find((a) => a.id === sync.link?.accountId)?.name ?? null }),
+    info: () => ({ state: sync.state(), name: sync.link?.name ?? null }),
+    linked: () => sync.linkedNames(),
     signIn: (mode, name, password) => sync.signIn(mode, name, password),
     pending: () => sync.pending,
     adopt: () => {
@@ -192,6 +193,7 @@ const overlay = new Overlay(el('overlay'), () => meta, {
     },
     remove: (id) => {
       if (!deleteAccount(accounts, id, store)) return false;
+      sync.forget(id); // Verbindung zum Online-Konto lokal lösen (das Online-Konto selbst bleibt bestehen)
       saveAccounts(accounts, store);
       meta = loadMeta(store, accountKey(accounts.active));
       sfx.enabled = meta.sound;

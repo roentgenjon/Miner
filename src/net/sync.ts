@@ -26,28 +26,47 @@ export interface CloudLink {
   expired: boolean;
 }
 
-export function loadLink(store: KeyValueStore | null): CloudLink | null {
+function parseLink(p: Partial<CloudLink> | null | undefined): CloudLink | null {
+  if (!p || typeof p.token !== 'string' || !/^[0-9a-f]{64}$/.test(p.token) || typeof p.name !== 'string' || typeof p.accountId !== 'string') return null;
+  return {
+    name: p.name,
+    token: p.token,
+    accountId: p.accountId,
+    version: typeof p.version === 'number' && p.version >= 0 ? p.version : 0,
+    dirty: p.dirty === true,
+    conflict: p.conflict === true,
+    expired: p.expired === true,
+  };
+}
+
+/**
+ * Verbindungen je lokalem Konto (Konto-Kennung -> Online-Konto).
+ * Ältere Spielstände hatten nur eine einzelne Verbindung; sie wird beim Laden übernommen.
+ */
+export function loadLinks(store: KeyValueStore | null): Record<string, CloudLink> {
   try {
-    const p = JSON.parse(store?.getItem(CLOUD_KEY) ?? 'null') as Partial<CloudLink> | null;
-    if (!p || typeof p.token !== 'string' || !/^[0-9a-f]{64}$/.test(p.token) || typeof p.name !== 'string' || typeof p.accountId !== 'string') return null;
-    return {
-      name: p.name,
-      token: p.token,
-      accountId: p.accountId,
-      version: typeof p.version === 'number' && p.version >= 0 ? p.version : 0,
-      dirty: p.dirty === true,
-      conflict: p.conflict === true,
-      expired: p.expired === true,
-    };
+    const p = JSON.parse(store?.getItem(CLOUD_KEY) ?? 'null') as { links?: Record<string, Partial<CloudLink>> } & Partial<CloudLink> | null;
+    if (!p || typeof p !== 'object') return {};
+    const out: Record<string, CloudLink> = {};
+    if (p.links && typeof p.links === 'object') {
+      for (const [id, raw] of Object.entries(p.links)) {
+        const l = parseLink({ ...raw, accountId: id });
+        if (l) out[id] = l;
+      }
+      return out;
+    }
+    const legacy = parseLink(p); // altes Format: eine einzelne Verbindung
+    if (legacy) out[legacy.accountId] = legacy;
+    return out;
   } catch {
-    return null;
+    return {};
   }
 }
 
-export function saveLink(link: CloudLink | null, store: KeyValueStore | null): void {
+export function saveLinks(links: Record<string, CloudLink>, store: KeyValueStore | null): void {
   try {
     if (!store) return;
-    if (link) store.setItem(CLOUD_KEY, JSON.stringify(link));
+    if (Object.keys(links).length > 0) store.setItem(CLOUD_KEY, JSON.stringify({ version: 2, links }));
     else (store as { removeItem?: (k: string) => void }).removeItem?.(CLOUD_KEY);
   } catch {
     /* Speicher nicht verfügbar */
@@ -59,7 +78,7 @@ export function hasProgress(m: Meta): boolean {
   return m.money > 0 || m.runs > 0 || m.bestDepth > 0 || m.skins.length > 0 || Object.values(m.upgrades).some((v) => v > 0);
 }
 
-export type SyncState = 'off' | 'other-account' | 'synced' | 'dirty' | 'conflict' | 'expired';
+export type SyncState = 'off' | 'synced' | 'dirty' | 'conflict' | 'expired';
 
 export interface SyncDeps {
   api: Api;
@@ -76,27 +95,60 @@ export type SignInOutcome =
   | { ok: true; plan: 'upload' | 'adopt' | 'ask'; cloudMeta: Meta | null; cloudVersion: number };
 
 export class CloudSync {
-  link: CloudLink | null;
-  /** Online-Stand, der bei einem Konflikt oder einer Auswahl vorliegt. */
-  pending: { meta: Meta; version: number } | null = null;
+  private links: Record<string, CloudLink>;
+  private pendingState: { meta: Meta; version: number; accountId: string } | null = null;
 
   constructor(private readonly d: SyncDeps) {
-    this.link = loadLink(d.store);
+    this.links = loadLinks(d.store);
+  }
+
+  /** Verbindung des gerade aktiven lokalen Kontos. */
+  get link(): CloudLink | null {
+    return this.links[this.d.accountId()] ?? null;
+  }
+
+  set link(value: CloudLink | null) {
+    const id = this.d.accountId();
+    if (value) this.links[id] = value;
+    else delete this.links[id];
+  }
+
+  /** Online-Stand, der bei einer Auswahl oder einem Konflikt vorliegt (gehört zum aktiven Konto). */
+  get pending(): { meta: Meta; version: number } | null {
+    const p = this.pendingState;
+    return p && p.accountId === this.d.accountId() ? { meta: p.meta, version: p.version } : null;
+  }
+
+  set pending(value: { meta: Meta; version: number } | null) {
+    this.pendingState = value ? { ...value, accountId: this.d.accountId() } : null;
   }
 
   private persist(): void {
-    saveLink(this.link, this.d.store);
+    saveLinks(this.links, this.d.store);
   }
 
-  /** Ist ein Online-Konto mit dem aktuell aktiven lokalen Konto verbunden? */
+  /** Ist für das aktive lokale Konto ein Online-Konto verbunden? */
   get active(): boolean {
-    return this.link !== null && this.link.accountId === this.d.accountId();
+    return this.link !== null;
+  }
+
+  /** Konto-Kennung -> Name des verbundenen Online-Kontos (für Anzeigen in der Kontenliste). */
+  linkedNames(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const [id, l] of Object.entries(this.links)) out[id] = l.name;
+    return out;
+  }
+
+  /** Verbindung eines lokalen Kontos entfernen (z. B. beim Löschen des Kontos); das Online-Konto selbst bleibt bestehen. */
+  forget(accountId: string): void {
+    delete this.links[accountId];
+    if (this.pendingState?.accountId === accountId) this.pendingState = null;
+    this.persist();
   }
 
   state(): SyncState {
     const l = this.link;
     if (!l) return 'off';
-    if (l.accountId !== this.d.accountId()) return 'other-account';
     if (l.expired) return 'expired';
     if (l.conflict) return 'conflict';
     return l.dirty ? 'dirty' : 'synced';
@@ -110,6 +162,13 @@ export class CloudSync {
   }
 
   async signIn(mode: 'login' | 'register', name: string, password: string): Promise<SignInOutcome> {
+    // Ein Online-Konto gehört zu genau einem lokalen Konto auf diesem Gerät.
+    const wanted = name.trim().toLocaleLowerCase('de-DE');
+    for (const [id, l] of Object.entries(this.links)) {
+      if (id !== this.d.accountId() && l.name.toLocaleLowerCase('de-DE') === wanted) {
+        return { ok: false, message: `Das Online-Konto „${l.name}“ ist schon mit einem anderen Konto auf diesem Gerät verbunden.` };
+      }
+    }
     const r = mode === 'login' ? await this.d.api.login(name, password) : await this.d.api.register(name, password);
     if (!r.ok) {
       let message = describeApiError(r.status, r.error, r.data);

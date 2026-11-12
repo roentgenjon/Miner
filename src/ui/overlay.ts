@@ -24,7 +24,9 @@ export interface OverlayActions {
   /** Vorschaubild der Spielfigur in einem Skin. */
   skinPreview(skinId: string, size: number): HTMLCanvasElement;
   cloud: {
-    info(): { state: SyncState; name: string | null; accountName: string | null };
+    info(): { state: SyncState; name: string | null };
+    /** Konto-Kennung -> Name des verbundenen Online-Kontos. */
+    linked(): Record<string, string>;
     signIn(mode: 'login' | 'register', name: string, password: string): Promise<SignInOutcome>;
     /** Online-Stand, der bei einer Auswahl oder einem Konflikt vorliegt. */
     pending(): { meta: Meta; version: number } | null;
@@ -431,7 +433,7 @@ export class Overlay {
     this.show(h('h2', {}, 'Skins'), h('p', { class: 'wallet' }, 'Guthaben: ', money), list, this.btn('Zurück', () => this.showMenu()));
   }
 
-  showAccounts(msg: string | null = null): void {
+  showAccounts(msg: string | null = null, focusOnline = false): void {
     const idx = this.act.accounts.list();
     const input = h('input', { class: 'text-input' });
     input.type = 'text';
@@ -451,16 +453,25 @@ export class Overlay {
     });
     const createLocal = (): void => this.showAccounts(this.act.accounts.create(input.value) ?? 'Konto angelegt.');
     onEnter(input, createLocal);
+    const linked = this.act.cloud.linked();
     const rows = idx.accounts.map((a) => {
       const m = this.act.accounts.peek(a.id);
       const active = a.id === idx.active;
+      const onlineName = linked[a.id];
       return h(
         'div',
         { class: `account ${active ? 'active' : ''}` },
-        h('div', { class: 'info' }, h('b', {}, `${a.name}${active ? '  (aktiv)' : ''}`), h('span', {}, `● ${fmt(m.money)} · Rekord ${fmt(m.bestDepth)} m · ${m.runs} Runden`)),
+        h('div', { class: 'info' }, h('b', {}, `${a.name}${active ? '  (aktiv)' : ''}`), h('span', {}, `● ${fmt(m.money)} · Rekord ${fmt(m.bestDepth)} m · ${m.runs} Runden`), h('span', {}, onlineName ? `☁ online als ${onlineName}` : 'nur auf diesem Gerät')),
         h(
           'div',
           { class: 'acc-actions' },
+          onlineName
+            ? null
+            : this.btn('Online machen', () => {
+                // Das alte Konto aktivieren und unten die Anmeldung zeigen: dort wird sein Spielstand hochgeladen.
+                if (!active) this.act.accounts.switchTo(a.id);
+                this.showAccounts(`Konto „${a.name}“ ist jetzt aktiv. Melde dich unten an oder registriere dich, um es online zu sichern.`, true);
+              }, 'small primary'),
           active ? null : this.btn('Wechseln', () => { this.act.accounts.switchTo(a.id); this.showAccounts(`Konto „${a.name}“ aktiv.`); }, 'small primary'),
           this.btn('Name', () => {
             const n = window.prompt('Neuer Name', a.name);
@@ -489,6 +500,7 @@ export class Overlay {
       file,
       this.btn('Zurück', () => this.showMenu()),
     );
+      if (focusOnline) this.root.querySelector('.online-box')?.scrollIntoView({ block: 'center' });
   }
 
   /** Bereich „Online-Konto“ im Konten-Bildschirm. */
@@ -496,7 +508,6 @@ export class Overlay {
     const info = this.act.cloud.info();
     const status: Record<SyncState, string> = {
       off: '',
-      'other-account': '',
       synced: '✓ Online gesichert',
       dirty: '⏳ Änderungen werden gleich gesichert …',
       conflict: '⚠ Konflikt: Online- und Gerätestand sind verschieden',
@@ -533,6 +544,7 @@ export class Overlay {
         'div',
         { class: 'online-box' },
         h('h3', {}, 'Online-Konto'),
+        h('p', { class: 'hint' }, `Das Konto „${this.act.accounts.list().accounts.find((a) => a.id === this.act.accounts.list().active)?.name ?? ''}“ wird online gesichert.`),
         info.state === 'expired' ? h('p', { class: 'notice' }, status.expired) : null,
         h('div', { class: 'new-account' }, name),
         h('div', { class: 'new-account' }, pw),
@@ -540,10 +552,6 @@ export class Overlay {
         h('p', { class: 'hint' }, 'Das Passwort kann nicht zurückgesetzt werden – merk es dir gut. Der Name ist für andere sichtbar (Geschenke).'),
       );
       return box;
-    }
-    if (info.state === 'other-account') {
-      return h('div', { class: 'online-box' }, h('h3', {}, 'Online-Konto'), h('p', { class: 'hint' }, `„${info.name ?? ''}“ ist mit dem Konto „${info.accountName ?? '?'}“ verbunden. Wechsle dorthin, um zu synchronisieren.`),
-        this.btn('Online-Konto trennen', () => void this.act.cloud.signOut().then(() => this.showAccounts('Online-Konto getrennt.')), 'small'));
     }
     return h(
       'div',

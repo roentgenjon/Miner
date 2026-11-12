@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { handle } from '../server/src/index';
 import { createApi, describeApiError } from '../src/net/api';
-import { CLOUD_KEY, CloudSync, hasProgress, loadLink } from '../src/net/sync';
+import { CLOUD_KEY, CloudSync, hasProgress, loadLinks } from '../src/net/sync';
 import { defaultMeta, type KeyValueStore, type Meta } from '../src/meta/save';
 import { createTestDb } from './d1-sqlite';
 
@@ -99,13 +99,13 @@ describe('Cloud-Sync: Anmelden', () => {
   it('merkt sich die Anmeldung über einen Neustart (gespeichert, geprüft beim Laden)', async () => {
     const a = device();
     await connect(a, 'Anna');
-    const again = loadLink(a.store);
+    const again = loadLinks(a.store).main;
     expect(again?.name).toBe('Anna');
     expect(again?.token).toMatch(/^[0-9a-f]{64}$/);
-    a.store.data.set(CLOUD_KEY, JSON.stringify({ name: 'x', token: 'zu-kurz', accountId: 'main' }));
-    expect(loadLink(a.store)).toBeNull();
+    a.store.data.set(CLOUD_KEY, JSON.stringify({ version: 2, links: { main: { name: 'x', token: 'zu-kurz' } } }));
+    expect(loadLinks(a.store)).toEqual({});
     a.store.data.set(CLOUD_KEY, '{kaputt');
-    expect(loadLink(a.store)).toBeNull();
+    expect(loadLinks(a.store)).toEqual({});
   });
 });
 
@@ -219,15 +219,112 @@ describe('Cloud-Sync: Speichern, Laden, Konflikte', () => {
     expect((await api.me(token)).ok).toBe(false);
   });
 
-  it('synchronisiert nur das verbundene lokale Konto', async () => {
+  it('ein anderes lokales Konto ohne Verbindung ist „offline“ und wird nicht synchronisiert', async () => {
     const { a } = await pair();
     a.state.account = 'a-zweites-konto';
-    expect(a.sync.state()).toBe('other-account');
+    expect(a.sync.state()).toBe('off');
     a.sync.markDirty();
-    expect(a.sync.link?.dirty).toBe(false);
+    expect(a.sync.link).toBeNull();
     expect(await a.sync.push()).toBe('Kein Online-Konto verbunden.');
     expect(await a.sync.pull()).toBeNull();
     expect(await a.sync.send({ to: 'Berta', kind: 'coins', amount: 1 })).toEqual({ error: 'Verbinde zuerst ein Online-Konto.' });
+    a.state.account = 'main'; // zurück: die Verbindung ist noch da
+    expect(a.sync.state()).toBe('synced');
+  });
+});
+
+describe('Cloud-Sync: altes lokales Konto online machen', () => {
+  it('jedes lokale Konto kann ein eigenes Online-Konto bekommen; Stände bleiben getrennt', async () => {
+    const d = device('main');
+    d.state.meta.money = 111;
+    await connect(d, 'Anna');
+    await d.sync.push();
+
+    // zweites, altes lokales Konto mit eigenem Stand: aktivieren und online machen
+    d.state.account = 'altes-konto';
+    d.state.meta = { ...defaultMeta(), money: 999_999, runs: 60, bestDepth: 8_124_634 };
+    const r = await connect(d, 'Berta');
+    expect(r.ok && r.plan).toBe('upload'); // neues Online-Konto -> der alte Gerätestand wird hochgeladen
+    expect(await d.sync.push()).toBeNull();
+    expect(d.sync.linkedNames()).toEqual({ main: 'Anna', 'altes-konto': 'Berta' });
+
+    // Online-Stände liegen getrennt beim richtigen Konto
+    const api = createApi('https://api.test', async (u, i) => handle(new Request(u, i), env, clock));
+    const annaToken = d.sync.link?.token; // gehört gerade zu „altes-konto“ = Berta
+    const bertaSave = (await api.getSave(annaToken ?? '')) as { ok: true; data: { save: { money: number } } };
+    expect(bertaSave.data.save.money).toBe(999_999);
+    d.state.account = 'main';
+    expect(d.sync.state()).toBe('synced');
+    expect(d.sync.link?.name).toBe('Anna');
+    const annaSave = (await api.getSave(d.sync.link?.token ?? '')) as { ok: true; data: { save: { money: number } } };
+    expect(annaSave.data.save.money).toBe(111);
+  });
+
+  it('ein Online-Konto lässt sich nicht mit zwei lokalen Konten verbinden', async () => {
+    const d = device('main');
+    await connect(d, 'Anna');
+    d.state.account = 'zweites';
+    const r = await d.sync.signIn('login', 'anna', 'geheim1234');
+    expect(r.ok).toBe(false);
+    expect(r.ok === false && r.message).toContain('schon mit einem anderen Konto');
+    expect(d.sync.state()).toBe('off');
+  });
+
+  it('Altes lokales Konto mit Fortschritt, bestehendes Online-Konto: der Nutzer muss wählen', async () => {
+    const a = device('main');
+    a.state.meta.money = 500;
+    await connect(a, 'Anna');
+    await a.sync.push();
+    const b = device('altes-konto');
+    b.state.meta = { ...defaultMeta(), money: 9, runs: 2 };
+    const r = await b.sync.signIn('login', 'Anna', 'geheim1234');
+    expect(r.ok && r.plan).toBe('ask');
+    expect(b.state.meta.money).toBe(9); // nichts überschrieben
+  });
+
+  it('Stand wartet pro Konto: ein Wechsel verwechselt die Auswahl nicht', async () => {
+    const a = device('main');
+    a.state.meta.money = 500;
+    await connect(a, 'Anna');
+    await a.sync.push();
+    const b = device('altes-konto');
+    b.state.meta = { ...defaultMeta(), money: 9, runs: 2 };
+    await b.sync.signIn('login', 'Anna', 'geheim1234');
+    expect(b.sync.pending?.meta.money).toBe(500);
+    b.state.account = 'anderes-konto';
+    expect(b.sync.pending).toBeNull(); // gehört zu „altes-konto“
+    b.state.account = 'altes-konto';
+    expect(b.sync.pending?.meta.money).toBe(500);
+  });
+
+  it('Verbindung lösen beim Löschen eines Kontos: lokal weg, Online-Konto bleibt bestehen', async () => {
+    const d = device('main');
+    d.state.meta.money = 42;
+    await connect(d, 'Anna');
+    await d.sync.push();
+    d.sync.forget('main');
+    expect(d.sync.state()).toBe('off');
+    expect(d.sync.linkedNames()).toEqual({});
+    expect(d.store.data.has(CLOUD_KEY)).toBe(false);
+    // das Online-Konto lebt weiter und lässt sich erneut verbinden
+    const again = await d.sync.signIn('login', 'Anna', 'geheim1234');
+    expect(again.ok).toBe(true);
+  });
+
+  it('übernimmt eine alte Einzelverbindung (Format vor den Mehrfach-Konten)', async () => {
+    const d = device('main');
+    await connect(d, 'Anna');
+    const link = d.sync.link;
+    expect(link).not.toBeNull();
+    // altes Format: Verbindung direkt als Objekt gespeichert
+    d.store.data.set(CLOUD_KEY, JSON.stringify(link));
+    const migrated = loadLinks(d.store);
+    expect(Object.keys(migrated)).toEqual(['main']);
+    expect(migrated.main?.name).toBe('Anna');
+    const d2 = device('main');
+    d2.store.data.set(CLOUD_KEY, JSON.stringify(link));
+    const sync2 = new CloudSync({ api: createApi('https://api.test', async (u, i) => handle(new Request(u, i), env, clock)), store: d2.store, getMeta: () => d2.state.meta, applyMeta: () => undefined, accountId: () => 'main' });
+    expect(sync2.state()).toBe('synced');
   });
 });
 
