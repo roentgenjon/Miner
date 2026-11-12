@@ -22,7 +22,8 @@ export function generateWorld(seed: string, options: WorldOptions = {}): World {
     seed,
     width: WIDTH,
     height: HEIGHT,
-    chunks: new Array<Chunk | undefined>(Math.ceil(HEIGHT / CHUNK_ROWS)),
+    // dünn besetztes Feld: nur erzeugte Abschnitte belegen Speicher (bei 1 Mrd. Zeilen wären es sonst Millionen Plätze)
+    chunks: [],
     live: new Set<number>(),
     options,
     shaftDepth: 0,
@@ -31,7 +32,7 @@ export function generateWorld(seed: string, options: WorldOptions = {}): World {
 
 /** Gesamtzahl der Abschnitte. */
 export function chunkCount(w: World): number {
-  return w.chunks.length;
+  return Math.ceil(w.height / CHUNK_ROWS);
 }
 
 /** Liefert den Abschnitt mit Nummer `ci` und erzeugt ihn bei Bedarf. */
@@ -170,7 +171,7 @@ export function chunkBatSpawns(w: World, ci: number): readonly Point[] {
 export function batSpawnsIn(w: World, y0: number, y1: number): Point[] {
   const out: Point[] = [];
   const first = Math.max(0, Math.floor(y0 / CHUNK_ROWS));
-  const last = Math.min(w.chunks.length - 1, Math.floor(y1 / CHUNK_ROWS));
+  const last = Math.min(chunkCount(w) - 1, Math.floor(y1 / CHUNK_ROWS));
   for (let ci = first; ci <= last; ci++) for (const p of chunkBatSpawns(w, ci)) if (p.y >= y0 && p.y <= y1) out.push(p);
   return out;
 }

@@ -1,6 +1,6 @@
 # Schacht
 
-Pixel-Grabespiel im Browser: Grabe dich durch einen 7 Spalten breiten Schacht bis zum **Herz des Bergs** in 10 000 000 m Tiefe.
+Pixel-Grabespiel im Browser: Grabe dich durch einen 7 Spalten breiten Schacht bis zum **Herz des Bergs** in 1 000 000 000 m Tiefe.
 Vite + TypeScript (strict), Rendering per Canvas 2D, als PWA offline spielbar und auf dem Handy installierbar.
 
 > **Hinweis:** Diese Version wurde nach der Feature-Beschreibung neu geschrieben, die ursprüngliche `schacht.html`
@@ -33,7 +33,7 @@ Benötigt Node.js ≥ 20.
 
 - **Klettern:** Nach oben gräbt oder läuft die Figur und hält sich dabei kurz fest. Lässt du los, fällt sie nach einem Moment wieder (Fallschaden ab 4 Feldern).
 - **Lampe** ist deine Energie – sie verbraucht sich unter Tage, **Kohle** füllt sie auf. Ist sie leer, wird es dunkel und gefährlich.
-- **Zonen:** 1 000 000 Zonen à 10 m, reihum Erde, Tiefschiefer, Magmazone und Kristallhöhle ("Erde I", "Tiefschiefer I", … "Kristallhöhle 250000"). Jeder Durchlauf hat einen eigenen Farbton; mit der Tiefe werden Zonen dunkler, verbrauchen mehr Lampenenergie, haben mehr Gefahren und wertvollere Erze (am Schachtende Lampenverbrauch ×2,5, Gefahren ×2,2, Erzwert ×10,9). Zonen werden bei Bedarf berechnet, nicht gespeichert; eine Meldung und eine beschriftete Linie gibt es alle 1 000 Zonen (10 000 m). Das Herz (10 000 000 m = Sieg) liegt am Ende. Tiefe und Zonenzahl stehen als `HEART_DEPTH` und `ZONE_COUNT` in `src/config.ts`.
+- **Zonen:** 100 000 000 Zonen à 10 m, reihum Erde, Tiefschiefer, Magmazone und Kristallhöhle ("Erde I", "Tiefschiefer I", … "Kristallhöhle 25000000"). Jeder Durchlauf hat einen eigenen Farbton; mit der Tiefe werden Zonen dunkler, verbrauchen mehr Lampenenergie, haben mehr Gefahren und wertvollere Erze (am Schachtende Lampenverbrauch ×2,5, Gefahren ×2,2, Erzwert ×10,9). Zonen werden bei Bedarf berechnet, nicht gespeichert; eine Meldung und eine beschriftete Linie gibt es alle 1 000 Zonen (10 000 m). Das Herz (1 000 000 000 m = Sieg) liegt am Ende. Tiefe und Zonenzahl stehen als `HEART_DEPTH` und `ZONE_COUNT` in `src/config.ts`.
 - **Erze** bringen Münzen (Grundwerte ×10, Regler `ORE_VALUE_MULT` in `src/config.ts`), aufeinanderfolgende Erze erhöhen den **Kombo-Multiplikator**.
 - **Truhen** enthalten Münzen, Kohle, Dynamit oder ein Leben. **Sprengkisten** explodieren, sobald man sie abbaut – und lösen Kettenreaktionen aus.
 - Gefahren: fallendes **Geröll**, **Fledermäuse** (Hineinlaufen = Schlag).

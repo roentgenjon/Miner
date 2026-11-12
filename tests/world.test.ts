@@ -48,7 +48,7 @@ describe('Weltgenerierung', () => {
   it('hat die richtige Struktur: 7 Spalten, Luft oben, Herz am Schachtende, Grundgestein unten', () => {
     const w = generateWorld('struktur');
     expect(w.width).toBe(WIDTH);
-    expect(HEART_DEPTH).toBe(10_000_000);
+    expect(HEART_DEPTH).toBe(1_000_000_000);
     expect(getCell(w, 3, 0)).toBe(Block.Air);
     expect(getCell(w, 3, HEART_DEPTH)).toBe(Block.Heart);
     for (let x = 0; x < WIDTH; x++) {
@@ -67,8 +67,8 @@ describe('Weltgenerierung', () => {
     expect(w.chunks.filter(Boolean)).toHaveLength(2);
   });
 
-  it('hat 1 000 000 gleich lange Zonen (je 10 m) mit eindeutigen Namen', () => {
-    expect(ZONE_COUNT).toBe(1_000_000);
+  it('hat 100 000 000 gleich lange Zonen (je 10 m) mit eindeutigen Namen', () => {
+    expect(ZONE_COUNT).toBe(100_000_000);
     expect(ZONE_LENGTH).toBe(10);
     expect(ZONE_COUNT * ZONE_LENGTH).toBe(HEART_DEPTH);
     const names = new Set<string>();
@@ -80,7 +80,7 @@ describe('Weltgenerierung', () => {
     }
     expect(names.size).toBe(5000);
     expect([0, 1, 2, 3].map((i) => zoneByIndex(i).name)).toEqual(['Erde I', 'Tiefschiefer I', 'Magmazone I', 'Kristallhöhle I']);
-    expect(zoneByIndex(ZONE_COUNT - 1).name).toBe('Kristallhöhle 250000');
+    expect(zoneByIndex(ZONE_COUNT - 1).name).toBe('Kristallhöhle 25000000');
     expect(zoneByIndex(4 * 39).name).toBe('Erde XL'); // 40. Durchlauf
   });
 

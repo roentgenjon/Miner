@@ -11,9 +11,9 @@ export const MAX_FRAME = 0.25;
 
 /* ---------- Schacht ---------- */
 export const WIDTH = 7;
-export const HEART_DEPTH = 10_000_000;
+export const HEART_DEPTH = 1_000_000_000;
 /** Anzahl der Zonen; sie sind gleich lang (hier 10 m). Sie werden bei Bedarf berechnet, nicht gespeichert. */
-export const ZONE_COUNT = 1_000_000;
+export const ZONE_COUNT = 100_000_000;
 export const ZONE_LENGTH = HEART_DEPTH / ZONE_COUNT;
 /** Zeilen: 0 = Oberfläche, HEART_DEPTH = Herz, danach Grundgestein. */
 export const HEIGHT = HEART_DEPTH + 2;
