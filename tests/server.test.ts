@@ -183,7 +183,7 @@ describe('Server: Cloud-Spielstand', () => {
     const bad = [
       { version: 2 },
       { version: 1, money: -5 },
-      { version: 1, money: 1e16 },
+      { version: 1, money: 1e61 },
       { version: 1, money: 'viel' },
       { version: 1, skins: 'rot' },
       { version: 1, skins: Array(60).fill('x') },
@@ -272,7 +272,7 @@ describe('Server: Geschenke an andere Spieler', () => {
       [{ to: 'Berta', kind: 'coins', amount: -5 }, 400, 'invalid_gift'],
       [{ to: 'Berta', kind: 'coins', amount: 1.5 }, 400, 'invalid_gift'],
       [{ to: 'Berta', kind: 'coins', amount: '100' }, 400, 'invalid_gift'],
-      [{ to: 'Berta', kind: 'coins', amount: 1e30 }, 400, 'invalid_gift'],
+      [{ to: 'Berta', kind: 'coins', amount: 1e58 }, 400, 'invalid_gift'],
       [{ to: 'Berta', kind: 'coins', amount: 1001 }, 400, 'not_enough_money'],
       [{ to: 'Berta', kind: 'skin', skin: 'violett' }, 400, 'skin_not_owned'],
       [{ to: 'Berta', kind: 'skin', skin: 'miner' }, 400, 'invalid_gift'],

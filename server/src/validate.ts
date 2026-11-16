@@ -21,7 +21,7 @@ export function validPassword(raw: unknown): raw is string {
 export const GIFT_SKINS: readonly string[] = SKINS.filter((s) => s.cost > 0 && !s.achievement).map((s) => s.id);
 
 export const MAX_SAVE_BYTES = 100_000;
-export const MAX_MONEY = 1e15;
+export const MAX_MONEY = 1e60;
 
 /**
  * Prüft einen Spielstand vor dem Speichern. Der Server kann Spielregeln nicht nachrechnen

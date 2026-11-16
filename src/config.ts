@@ -538,7 +538,7 @@ export const ACCOUNTS = {
 /* ---------- Geschenke ---------- */
 export const GIFTS = {
   /** Größte erlaubte Münzmenge in einem Geschenk. */
-  maxCoins: 1_000_000_000_000,
+  maxCoins: 1e57,
   /** So viele zuletzt verschenkte Geschenke bleiben im Konto sichtbar (zum erneuten Kopieren). */
   keepSent: 20,
   /** Länge der Nachricht. */

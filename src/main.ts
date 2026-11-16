@@ -140,7 +140,7 @@ const overlay = new Overlay(el('overlay'), () => meta, {
       persist();
       const ledger = loadLedger(store);
       const r = createGift(meta, activeAccount(accounts).name, spec, ledger);
-      if (!r.ok) return { error: r.reason === 'money' ? 'So viele Münzen hast du nicht.' : r.reason === 'skin' ? 'Diesen Skin kannst du nicht verschenken.' : 'Bitte eine ganze Menge ab 1 eingeben.' };
+      if (!r.ok) return { error: r.reason === 'money' ? 'So viele Münzen hast du nicht.' : r.reason === 'skin' ? 'Diesen Skin kannst du nicht verschenken.' : 'Bitte eine Menge ab 1 eingeben (z. B. 5000, 2,5K, 1M, 3QA).' };
       persist();
       saveLedger(ledger, store);
       return { code: r.code, link: giftLink(r.code, giftBase()), label: r.label };

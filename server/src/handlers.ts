@@ -225,7 +225,7 @@ export async function claimGift(env: Env, auth: Auth, body: unknown, now: number
   const save = parseStoredSave(mine?.save ?? null);
   if (g.kind === 'coins') {
     const money = typeof save.money === 'number' ? save.money : 0;
-    save.money = Math.min(1e15, money + (g.amount ?? 0));
+    save.money = Math.min(1e60, money + (g.amount ?? 0));
   } else {
     const skins = Array.isArray(save.skins) ? (save.skins as string[]) : [];
     if (!g.skin || !GIFT_SKINS.includes(g.skin)) throw new HttpError(400, 'invalid_gift');

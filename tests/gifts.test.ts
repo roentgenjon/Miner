@@ -63,7 +63,7 @@ describe('Geschenke: Kodierung', () => {
     expect(bad({ ...gift, amount: 0 })).toBe(false);
     expect(bad({ ...gift, amount: -5 })).toBe(false);
     expect(bad({ ...gift, amount: 2.5 })).toBe(false);
-    expect(bad({ ...gift, amount: GIFTS.maxCoins + 1 })).toBe(false);
+    expect(bad({ ...gift, amount: GIFTS.maxCoins * 2 })).toBe(false);
     expect(bad({ ...gift, amount: '500' })).toBe(false);
     expect(bad({ ...gift, kind: 'dynamit' })).toBe(false);
     expect(bad({ ...gift, id: '../../x' })).toBe(false);
@@ -101,7 +101,7 @@ describe('Geschenke: verschenken', () => {
   });
 
   it('lehnt ungültige Mengen ab, ohne etwas abzubuchen', () => {
-    for (const amount of [0, -1, 1.5, NaN, Infinity, GIFTS.maxCoins + 1]) {
+    for (const amount of [0, -1, 1.5, NaN, Infinity, GIFTS.maxCoins * 2]) {
       const m = rich();
       expect(createGift(m, 'A', { kind: 'coins', amount }, ledger()).ok).toBe(false);
       expect(m.money).toBe(1000);

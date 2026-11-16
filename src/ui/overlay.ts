@@ -11,7 +11,7 @@ import { buyUpgradeMany, costOfNext, describeLevel, upgradeCost } from '../meta/
 import type { GiftBody, InboxGift } from '../net/api';
 import type { SignInOutcome, SyncState } from '../net/sync';
 import { copyText, fmt, h, onEnter, plainInput } from './dom';
-import { fmtCoins } from '../format';
+import { fmtCoins, parseCoins } from '../format';
 
 export interface OverlayActions {
   startRun(daily: boolean): void;
@@ -223,11 +223,10 @@ export class Overlay {
     const go = (message: string | null, c: typeof created = created, k: typeof kind = kind, v: typeof via = via): void => this.showGifts(message, c, k, v);
 
     const amount = h('input', { class: 'text-input' });
-    amount.type = 'number';
-    amount.min = '1';
-    amount.step = '1';
-    amount.inputMode = 'numeric';
-    amount.placeholder = `Münzen (du hast ${fmtCoins(m.money)})`;
+    amount.type = 'text';
+    amount.autocomplete = 'off';
+    amount.placeholder = `Menge, z. B. 5000, 2,5K, 1M, 3QA (du hast ${fmtCoins(m.money)})`;
+    plainInput(amount);
     amount.setAttribute('aria-label', 'Anzahl Münzen');
     const skinSel = h('select', { class: 'text-input' });
     for (const s of giftable) {
@@ -249,11 +248,11 @@ export class Overlay {
     recipient.autocomplete = 'off';
     plainInput(recipient);
 
-    const labelOf = (): string => (kind === 'coins' ? `${fmtCoins(Number(amount.value) || 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === skinSel.value)?.name ?? ''}“`);
+    const labelOf = (): string => (kind === 'coins' ? `${fmtCoins(parseCoins(amount.value) || 0)} Münzen` : `Skin „${SKINS.find((s) => s.id === skinSel.value)?.name ?? ''}“`);
 
     const create = this.btn('Geschenk erstellen', () => {
       const spec: GiftSpec =
-        kind === 'coins' ? { kind: 'coins', amount: Number(amount.value), note: note.value } : { kind: 'skin', skin: skinSel.value, note: note.value };
+        kind === 'coins' ? { kind: 'coins', amount: parseCoins(amount.value), note: note.value } : { kind: 'skin', skin: skinSel.value, note: note.value };
       if (!window.confirm(`${labelOf()} werden von deinem Konto abgebucht und in einen Code verpackt. Fortfahren?`)) return;
       const r = this.act.gifts.create(spec);
       if ('error' in r) {
@@ -270,7 +269,7 @@ export class Overlay {
       if (!to) return go('Bitte den Namen des Spielers eingeben.');
       if (!window.confirm(`${labelOf()} an „${to}“ schicken? Es wird sofort von deinem Konto abgebucht.`)) return;
       const body: GiftBody =
-        kind === 'coins' ? { to, kind: 'coins', amount: Number(amount.value), note: note.value } : { to, kind: 'skin', skin: skinSel.value, note: note.value };
+        kind === 'coins' ? { to, kind: 'coins', amount: parseCoins(amount.value), note: note.value } : { to, kind: 'skin', skin: skinSel.value, note: note.value };
       sendOnline.disabled = true;
       void this.act.cloud.send(body).then((r) => {
         this.act.sfx('error' in r ? 'deny' : 'buy');
