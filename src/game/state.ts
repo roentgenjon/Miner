@@ -112,6 +112,9 @@ export interface GameState {
   tntT: number;
   /** Zeit seit der letzten automatischen Ladung. */
   autoTntT: number;
+  /** Globale Faktoren vom Server (Erzwert / Grabtempo): Grundwert × laufende Events. */
+  globalOre: number;
+  globalSpeed: number;
   /** Verbleibende Wiederbelebungen. */
   revives: number;
   /** Rekordtiefe zu Rundenbeginn. */
@@ -190,6 +193,8 @@ export function createGame(opts: CreateGameOptions): GameState {
     tntT: 0,
     fallProtectUntil: 0,
     autoTntT: 0,
+    globalOre: 1,
+    globalSpeed: 1,
     revives: opts.mods.revives,
     record: opts.record ?? 0,
     skin: opts.skin ?? DEFAULT_SKIN,

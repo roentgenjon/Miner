@@ -48,3 +48,12 @@ Die Adresse der Spielseite muss in `ALLOWED_ORIGINS` stehen.
 ```bash
 npm test      # tests/server.test.ts: Server gegen SQLite im Speicher (gleiche SQL-Anweisungen wie D1)
 ```
+
+## Admin-Bereich
+
+Der Online-Konto-Name `Entity_2806` (Variable `ADMIN_NAME`, ohne Groß-/Kleinschreibung) ist Administrator. Der Server prüft das bei **jedem** Admin-Aufruf (`/api/admin/*`, sonst 403); im Spiel erscheint dann im Hauptmenü der Knopf „Admin“.
+
+- `GET /api/global` (öffentlich): Erz-/Tempo-Multiplikator, laufende Events, neueste Nachricht (Pop-up bei allen Spielern).
+- `GET /api/admin/overview`, `POST /api/admin/global`, `/event`, `/event/stop`, `/broadcast`, `/message/delete`, `/user` (Münzen geben/setzen, Skin, Passwort zurücksetzen, abmelden, löschen).
+- Tabelle `settings` (siehe `schema.sql`): `npx wrangler d1 execute schacht-db --remote --file=server/schema.sql`.
+- Wichtig: Den Namen `Entity_2806` selbst **zuerst** registrieren, bevor ihn jemand anderes belegt.

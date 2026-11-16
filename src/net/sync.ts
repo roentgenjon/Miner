@@ -127,6 +127,12 @@ export class CloudSync {
     saveLinks(this.links, this.d.store);
   }
 
+  /** Sitzungs-Schlüssel des verbundenen Online-Kontos (null, wenn nicht verbunden oder abgelaufen). */
+  token(): string | null {
+    const l = this.link;
+    return l && !l.expired ? l.token : null;
+  }
+
   /** Ist für das aktive lokale Konto ein Online-Konto verbunden? */
   get active(): boolean {
     return this.link !== null;

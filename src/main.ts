@@ -27,6 +27,9 @@ import { createGift, decodeGift, giftLink, extractCode, loadLedger, redeemGift, 
 import { selectedSkin } from './meta/skins';
 import { createApi } from './net/api';
 import { CloudSync } from './net/sync';
+import { GlobalFeed } from './net/global';
+import { fmtCoins } from './format';
+import { h } from './ui/dom';
 import { computeMods, emptyUpgrades } from './meta/shop';
 import { Renderer } from './render/renderer';
 import { Hud } from './ui/hud';
@@ -70,8 +73,9 @@ function scheduleCloudPush(): void {
 const sfx = new Sfx();
 sfx.enabled = meta.sound;
 
+const api = createApi();
 const sync = new CloudSync({
-  api: createApi(),
+  api,
   store,
   getMeta: () => meta,
   // Online-Stand übernehmen: lokal speichern, ohne ihn als „geändert“ zu markieren
@@ -82,6 +86,73 @@ const sync = new CloudSync({
   },
   accountId: () => accounts.active,
 });
+
+/* ---------- Globale Einstellungen (Erz-Multiplikator, Events, Nachrichten) ---------- */
+const feed = new GlobalFeed(api, store);
+/** Ist das verbundene Online-Konto der Administrator? (vom Server bestätigt) */
+let adminOk = false;
+let adminChecked: string | null = null;
+
+async function refreshAdmin(): Promise<void> {
+  const t = sync.token();
+  const was = adminOk;
+  if (!t) {
+    adminOk = false;
+    adminChecked = null;
+  } else if (adminChecked !== t) {
+    adminChecked = t;
+    const r = await api.me(t);
+    adminOk = r.ok && (r.data as { admin?: boolean }).admin === true;
+  }
+  if (adminOk !== was) overlay.refreshMenu();
+}
+
+/** Pop-up mit einer Nachricht des Administrators. */
+function showBroadcast(id: number, text: string): void {
+  if (document.getElementById('broadcast')) return;
+  if (mode === 'playing') togglePause();
+  const close = (): void => {
+    feed.markSeen(id);
+    document.getElementById('broadcast')?.remove();
+  };
+  const box = h(
+    'div',
+    { class: 'popup', id: 'broadcast' },
+    h('div', { class: 'popup-card' }, h('h2', {}, '📢 Nachricht'), h('p', { class: 'popup-text' }, text), h('button', { class: 'btn primary', onclick: close }, 'OK')),
+  );
+  document.body.append(box);
+}
+
+function checkBroadcast(): void {
+  const m = feed.unseenMessage();
+  if (m) showBroadcast(m.id, m.text);
+}
+
+let lastGlobalApply = 0;
+/** Faktoren in den Spielzustand übernehmen und laufende Events anzeigen (etwa 2× pro Sekunde). */
+function applyGlobal(now: number): void {
+  if (now - lastGlobalApply < 500) return;
+  lastGlobalApply = now;
+  const m = feed.mult();
+  state.globalOre = m.ore;
+  state.globalSpeed = m.speed;
+  const chips: string[] = [];
+  if (m.ore !== 1) chips.push(`Erz ×${fmtCoins(m.ore)}`);
+  if (m.speed !== 1) chips.push(`Tempo ×${fmtCoins(m.speed)}`);
+  const t = feed.serverNow();
+  for (const e of m.events) {
+    const s = Math.max(0, Math.round((e.endsAt - t) / 1000));
+    chips.push(`${e.name} ×${fmtCoins(e.mult)} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
+  }
+  hud.setEvents(chips);
+}
+
+function refreshGlobal(): void {
+  void feed.refresh().then(() => {
+    lastGlobalApply = 0;
+    checkBroadcast();
+  });
+}
 
 const canvas = el<HTMLCanvasElement>('game');
 const renderer = new Renderer(canvas);
@@ -121,7 +192,11 @@ const overlay = new Overlay(el('overlay'), () => meta, {
   cloud: {
     info: () => ({ state: sync.state(), name: sync.link?.name ?? null }),
     linked: () => sync.linkedNames(),
-    signIn: (mode, name, password) => sync.signIn(mode, name, password),
+    signIn: async (mode, name, password) => {
+      const r = await sync.signIn(mode, name, password);
+      await refreshAdmin();
+      return r;
+    },
     pending: () => sync.pending,
     adopt: () => {
       const e = sync.adoptPending();
@@ -129,11 +204,22 @@ const overlay = new Overlay(el('overlay'), () => meta, {
     },
     push: () => sync.push(),
     resolve: (choice) => sync.resolve(choice),
-    signOut: () => sync.signOut(),
+    signOut: async () => {
+      await sync.signOut();
+      await refreshAdmin();
+    },
     pull: () => sync.pull(),
     send: (body) => sync.send(body),
     inbox: () => sync.inbox(),
     claim: (id) => sync.claim(id),
+  },
+  admin: {
+    available: () => adminOk,
+    call: async (method, path, body) => {
+      const t = sync.token();
+      if (!t) return { ok: false, status: 401, error: 'unauthorized' };
+      return api.admin(t, method, path, body) as never;
+    },
   },
   gifts: {
     create: (spec) => {
@@ -276,6 +362,7 @@ function toggleAuto(): void {
 
 function startRun(daily: boolean): void {
   sfx.unlock();
+  lastGlobalApply = 0;
   state = createGame({
     seed: daily ? dailySeed() : randomSeed(),
     daily,
@@ -310,6 +397,7 @@ function togglePause(): void {
 }
 
 function showMenu(): void {
+  void refreshAdmin();
   mode = 'menu';
   controls.enabled = false;
   hud.show(false);
@@ -370,6 +458,7 @@ function frame(now: number): void {
     endTimer -= dt;
     if (endTimer <= 0) finishRun();
   }
+  applyGlobal(now);
   renderer.draw(state, alpha, dt);
   if (mode === 'playing' || mode === 'ending' || mode === 'paused') hud.update(state);
   requestAnimationFrame(frame);
@@ -387,11 +476,15 @@ requestAnimationFrame(frame);
 
 // Online-Konto: beim Start den Online-Stand prüfen (neue Geschenke, anderes Gerät); beim Verlassen der Seite sichern.
 void sync.pull().then((msg) => {
+  void refreshAdmin();
   if (msg) hud.toast(msg, msg.includes('Konflikt') || msg.includes('anderen Gerät') ? 'bad' : 'good');
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && sync.state() === 'dirty') void sync.push();
+  if (!document.hidden) refreshGlobal();
 });
+refreshGlobal();
+window.setInterval(refreshGlobal, 30_000);
 
 // Geschenk-Link (…#gift=CODE): Annahme-Dialog zeigen und den Code aus der Adresse entfernen.
 // Gilt beim Start und auch, wenn der Link in einem schon offenen Tab geöffnet wird (nur der #-Teil ändert sich).

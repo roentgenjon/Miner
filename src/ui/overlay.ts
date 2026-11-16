@@ -12,6 +12,8 @@ import type { GiftBody, InboxGift } from '../net/api';
 import type { SignInOutcome, SyncState } from '../net/sync';
 import { copyText, fmt, h, onEnter, plainInput } from './dom';
 import { fmtCoins, parseCoins } from '../format';
+import { AdminPanel } from './admin';
+import type { ApiResult } from '../net/api';
 
 export interface OverlayActions {
   startRun(daily: boolean): void;
@@ -39,6 +41,11 @@ export interface OverlayActions {
     send(body: GiftBody): Promise<{ error: string } | { message: string }>;
     inbox(): Promise<{ error: string } | { gifts: InboxGift[] }>;
     claim(id: string): Promise<{ error: string } | { message: string }>;
+  };
+  /** Admin-Bereich (nur für den Administrator sichtbar). */
+  admin: {
+    available(): boolean;
+    call<T = Record<string, any>>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<ApiResult<T>>;
   };
   gifts: {
     create(spec: GiftSpec): { error: string } | { code: string; link: string; label: string };
@@ -76,7 +83,15 @@ export class Overlay {
     this.root.replaceChildren();
   }
 
+  private onMainMenu = false;
+
+  /** Hauptmenü neu zeichnen, falls es gerade angezeigt wird (z. B. wenn der Admin-Knopf dazukommt). */
+  refreshMenu(): void {
+    if (this.onMainMenu && !this.root.hidden) this.showMenu();
+  }
+
   private show(...content: (Node | null)[]): void {
+    this.onMainMenu = false;
     this.root.hidden = false;
     this.root.replaceChildren(h('div', { class: 'panel' }, ...content));
     this.root.scrollTop = 0;
@@ -104,7 +119,26 @@ export class Overlay {
     return b;
   }
 
+  private admin: AdminPanel | null = null;
+
+  showAdmin(): void {
+    this.admin ??= new AdminPanel({
+      show: (...c) => this.show(...c),
+      btn: (l, f, c) => this.btn(l, f, c),
+      back: () => this.showMenu(),
+      call: (m, p, b) => this.act.admin.call(m, p, b),
+      meta: () => this.meta(),
+      save: () => this.act.save(),
+    });
+    this.admin.open();
+  }
+
   showMenu(): void {
+    this.showMenuInner();
+    this.onMainMenu = true;
+  }
+
+  private showMenuInner(): void {
     const m = this.meta();
     const today = dailyKey();
     const dailyBest = m.daily.date === today ? m.daily.best : 0;
@@ -128,6 +162,7 @@ export class Overlay {
         const c = this.act.cloud.info();
         return c.state === 'synced' || c.state === 'dirty' ? h('p', { class: 'hint' }, `Online als ${c.name ?? ''}${c.state === 'synced' ? ' ✓' : ' …'}`) : null;
       })(),
+      this.act.admin.available() ? this.btn('Admin', () => this.showAdmin(), 'small primary') : null,
       this.btn('Update erzwingen', () => this.act.forceUpdate(), 'small'),
       h('p', { class: 'hint keys' }, '← → ↓ ↑ / A D S W graben & klettern · Leertaste: Dynamit · P / Esc: Pause · Wischen oder Tippen am Handy'),
       h('p', { class: 'hint keys' }, `Version ${__BUILD__}`),

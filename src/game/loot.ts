@@ -26,7 +26,7 @@ export function collectOre(s: GameState, block: BlockId, x: number, y: number): 
   const mult = comboMult(s.combo.count, s.mods.comboMax);
   // Doppelfund: nur würfeln, wenn das Upgrade vorhanden ist (sonst bleibt der Zufallsstrom unverändert)
   const crit = s.mods.critChance > 0 && s.rng.next() < s.mods.critChance ? 2 : 1;
-  const value = Math.round(base * ORE_VALUE_MULT * s.mods.oreMult * mult * zoneValueScale(y) * crit);
+  const value = Math.round(base * ORE_VALUE_MULT * s.mods.oreMult * s.globalOre * mult * zoneValueScale(y) * crit);
   addMoney(s, value);
   s.stats.ores++;
   emit(s, { type: 'ore', x, y, block, value, mult });

@@ -36,3 +36,9 @@ CREATE TABLE IF NOT EXISTS gifts (
 );
 CREATE INDEX IF NOT EXISTS idx_gifts_to ON gifts(to_user, claimed);
 CREATE INDEX IF NOT EXISTS idx_gifts_from ON gifts(from_user, created);
+
+-- Globale Einstellungen (Erz-Multiplikator, Events, Nachrichten): ein JSON-Wert je Schlüssel.
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);

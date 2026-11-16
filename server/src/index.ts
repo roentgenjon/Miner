@@ -1,4 +1,15 @@
 import type { Env } from './db';
+import {
+  adminBroadcast,
+  adminDeleteMessage,
+  adminOverview,
+  adminSetGlobal,
+  adminStartEvent,
+  adminStopEvent,
+  adminUserAction,
+  publicGlobal,
+  requireAdmin,
+} from './admin';
 import { HttpError, authenticate, claimGift, getSave, inbox, login, logout, me, putSave, register, sendGift } from './handlers';
 
 const DEFAULT_ORIGINS = ['https://roentgenjon.github.io', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:4173', 'http://127.0.0.1:4173'];
@@ -46,6 +57,9 @@ export async function handle(request: Request, env: Env, now: number = Date.now(
     if (path === '/api/register' && method === 'POST') return json(await register(env, await readJson(request), now), 201, request, env);
     if (path === '/api/login' && method === 'POST') return json(await login(env, await readJson(request), now), 200, request, env);
 
+    // Öffentlich: globale Multiplikatoren, Events und die neueste Nachricht (für alle Spieler, auch ohne Konto)
+    if (path === '/api/global' && method === 'GET') return json(await publicGlobal(env, now), 200, request, env);
+
     const auth = await authenticate(request, env, now);
     if (path === '/api/logout' && method === 'POST') {
       await logout(env, request);
@@ -57,6 +71,19 @@ export async function handle(request: Request, env: Env, now: number = Date.now(
     if (path === '/api/send' && method === 'POST') return json(await sendGift(env, auth, await readJson(request), now), 200, request, env);
     if (path === '/api/inbox' && method === 'GET') return json(await inbox(env, auth), 200, request, env);
     if (path === '/api/inbox/claim' && method === 'POST') return json(await claimGift(env, auth, await readJson(request), now), 200, request, env);
+    if (path.startsWith('/api/admin/')) {
+      requireAdmin(env, auth);
+      if (path === '/api/admin/overview' && method === 'GET') return json(await adminOverview(env, now), 200, request, env);
+      if (method === 'POST') {
+        const body = await readJson(request);
+        if (path === '/api/admin/global') return json(await adminSetGlobal(env, body), 200, request, env);
+        if (path === '/api/admin/event') return json(await adminStartEvent(env, body, now), 200, request, env);
+        if (path === '/api/admin/event/stop') return json(await adminStopEvent(env, body, now), 200, request, env);
+        if (path === '/api/admin/broadcast') return json(await adminBroadcast(env, auth, body, now), 200, request, env);
+        if (path === '/api/admin/message/delete') return json(await adminDeleteMessage(env, body), 200, request, env);
+        if (path === '/api/admin/user') return json(await adminUserAction(env, auth, body, now), 200, request, env);
+      }
+    }
     throw new HttpError(404, 'not_found');
   } catch (e) {
     if (e instanceof HttpError) return json({ error: e.code, ...e.extra }, e.status, request, env);

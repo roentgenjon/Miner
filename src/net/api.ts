@@ -26,6 +26,10 @@ export interface SaveReply {
 export type GiftBody = { to: string; kind: 'coins'; amount: number; note?: string } | { to: string; kind: 'skin'; skin: string; note?: string };
 
 export interface Api {
+  /** Globale Multiplikatoren/Events/Nachricht (ohne Anmeldung). */
+  global(): Promise<ApiResult<{ now: number; oreMult: number; speedMult: number; events: { id: string; name: string; kind: 'ore' | 'speed'; mult: number; endsAt: number }[]; message: { id: number; text: string; created: number } | null }>>;
+  /** Admin-Aufruf (nur für den Administrator erlaubt). */
+  admin<T = Record<string, unknown>>(token: string, method: 'GET' | 'POST', path: string, body?: unknown): Promise<ApiResult<T>>;
   register(name: string, password: string): Promise<ApiResult<{ token: string; name: string }>>;
   login(name: string, password: string): Promise<ApiResult<{ token: string; name: string }>>;
   logout(token: string): Promise<ApiResult<{ ok: true }>>;
@@ -61,6 +65,8 @@ export function createApi(base: string = API_URL, fetchFn: FetchLike = (u, i) =>
     }
   }
   return {
+    global: () => call('GET', '/api/global'),
+    admin: (token, method, path, body) => call(method, `/api/admin/${path}`, body, token),
     register: (name, password) => call('POST', '/api/register', { name, password }),
     login: (name, password) => call('POST', '/api/login', { name, password }),
     logout: (token) => call('POST', '/api/logout', undefined, token),
@@ -112,6 +118,26 @@ export function describeApiError(status: number, error: string, data?: Record<st
       return 'Dieses Geschenk gibt es nicht mehr.';
     case 'invalid_gift':
       return 'Das Geschenk ist ungültig.';
+    case 'forbidden':
+      return 'Das darf nur der Administrator.';
+    case 'invalid_mult':
+      return 'Der Multiplikator muss eine Zahl von 0 bis 1e12 sein.';
+    case 'invalid_event':
+      return 'Das Event ist ungültig (Name, Art und Faktor angeben).';
+    case 'invalid_minutes':
+      return 'Die Dauer muss zwischen 1 Minute und 14 Tagen liegen.';
+    case 'too_many_events':
+      return 'Es laufen schon zu viele Events (höchstens 20).';
+    case 'invalid_message':
+      return 'Die Nachricht ist leer oder ungültig.';
+    case 'message_too_long':
+      return 'Die Nachricht ist zu lang (höchstens 300 Zeichen).';
+    case 'invalid_amount':
+      return 'Die Menge ist ungültig.';
+    case 'invalid_skin':
+      return 'Diesen Skin gibt es nicht.';
+    case 'invalid_action':
+      return 'Diese Aktion gibt es nicht.';
     default:
       return status >= 500 ? 'Der Server hat gerade ein Problem. Bitte später noch einmal versuchen.' : `Fehler: ${error}`;
   }

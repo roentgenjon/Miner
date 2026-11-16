@@ -9,6 +9,12 @@ export const MAX_FAILS = 5;
 export const LOCK_MS = 60_000;
 export const MAX_UNCLAIMED = 100;
 export const MAX_SENDS_PER_HOUR = 30;
+export const DEFAULT_ADMIN = 'Entity_2806';
+
+/** Ist dieser Online-Name der Administrator? (Vergleich ohne Groß-/Kleinschreibung) */
+export function isAdmin(env: Env, name: string): boolean {
+  return nameKey(name) === nameKey(env.ADMIN_NAME ?? DEFAULT_ADMIN);
+}
 
 export class HttpError extends Error {
   constructor(
@@ -121,7 +127,7 @@ export async function me(env: Env, auth: Auth): Promise<Record<string, unknown>>
     .bind(auth.userId)
     .first<{ has_save: number; save_version: number }>();
   const inbox = await env.DB.prepare('SELECT COUNT(*) AS n FROM gifts WHERE to_user = ? AND claimed IS NULL').bind(auth.userId).first<{ n: number }>();
-  return { name: auth.name, hasSave: !!u?.has_save, version: u?.save_version ?? 0, inbox: inbox?.n ?? 0 };
+  return { name: auth.name, hasSave: !!u?.has_save, version: u?.save_version ?? 0, inbox: inbox?.n ?? 0, admin: isAdmin(env, auth.name) };
 }
 
 /* ---------- Spielstand ---------- */
@@ -153,7 +159,7 @@ export async function putSave(env: Env, auth: Auth, body: unknown, now: number):
 
 /* ---------- Geschenke ---------- */
 
-function parseStoredSave(json: string | null): Record<string, unknown> {
+export function parseStoredSave(json: string | null): Record<string, unknown> {
   if (!json) return { version: 1, money: 0, skins: [] };
   try {
     const p = JSON.parse(json) as unknown;

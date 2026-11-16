@@ -21,4 +21,6 @@ export interface Env {
   DB: D1Database;
   /** Kommagetrennte Liste erlaubter Herkunfts-Adressen (CORS). */
   ALLOWED_ORIGINS?: string;
+  /** Online-Name des Administrators (Standard: Entity_2806). */
+  ADMIN_NAME?: string;
 }

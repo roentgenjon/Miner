@@ -14,6 +14,7 @@ export class Hud {
   private readonly tnt: HTMLElement;
   private readonly combo: HTMLElement;
   private readonly missions: HTMLElement;
+  private readonly events: HTMLElement;
   private readonly toasts: HTMLElement;
   private cache = new Map<string, string>();
 
@@ -27,11 +28,13 @@ export class Hud {
     this.tnt = h('span', { class: 'tnt' });
     this.combo = h('div', { class: 'combo' });
     this.missions = h('ul', { class: 'missions' });
+    this.events = h('div', { class: 'events' });
     const pause = h('button', { class: 'pause-btn', title: 'Pause (P)', onclick: onPause }, 'II');
     pause.setAttribute('aria-label', 'Pause');
     root.append(
       h('div', { class: 'hud-row' }, this.hearts, h('div', { class: 'energy' }, this.energyFill), pause),
       h('div', { class: 'hud-row stats' }, this.depth, this.money, this.tnt),
+      this.events,
       this.combo,
       this.missions,
     );
@@ -90,6 +93,11 @@ export class Hud {
         ),
       );
     });
+  }
+
+  /** Laufende Events und globale Multiplikatoren als kleine Marken anzeigen. */
+  setEvents(items: string[]): void {
+    this.set('events', items.join('|'), () => this.events.replaceChildren(...items.map((t) => h('span', { class: 'event-chip' }, t))));
   }
 
   toast(text: string, kind: 'info' | 'good' | 'bad' | 'zone' = 'info'): void {
