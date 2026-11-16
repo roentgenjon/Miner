@@ -549,10 +549,12 @@ export class Overlay {
     busy.hidden = true;
     const buttons: HTMLButtonElement[] = [];
     const go = (mode: 'login' | 'register'): void => {
-      if (!name.value.trim() || !pw.value) return this.showGoOnline('Bitte Online-Name und Passwort eingeben.', name.value);
+      // Felder leer (oder lässt sich das Handy-Tastaturfeld nicht bedienen): per Dialog nachfragen
+      const cred = askCredentials(name.value, pw.value);
+      if (!cred) return this.showGoOnline('Abgebrochen. Zum Online-Machen brauchst du einen Online-Namen und ein Passwort.', name.value);
       busy.hidden = false;
       buttons.forEach((b) => (b.disabled = true));
-      void this.connect(mode, name.value, pw.value).then((r) => {
+      void this.connect(mode, cred.name, cred.password).then((r) => {
         if (r.kind === 'error') return this.showGoOnline(r.message, name.value);
         if (r.kind === 'choice') return this.showCloudChoice();
         this.showOnlineDone(r.message);
@@ -577,6 +579,7 @@ export class Overlay {
       h('p', { class: 'hint' }, 'Das Passwort kann nicht zurückgesetzt werden – merk es dir gut. Der Name ist für andere sichtbar (Geschenke).'),
       this.btn('Zurück', () => this.showAccounts()),
     );
+    if (!msg) name.focus();
   }
 
   /** Bestätigung nach erfolgreichem Verbinden. */
@@ -618,11 +621,12 @@ export class Overlay {
       onEnter(name, () => pw.focus());
       onEnter(pw, () => submit('login'));
       const submit = (mode: 'login' | 'register'): void => {
-        if (!name.value.trim() || !pw.value) return this.showAccounts('Bitte Online-Name und Passwort eingeben.');
+        const cred = askCredentials(name.value, pw.value);
+        if (!cred) return this.showAccounts('Abgebrochen. Zum Online-Machen brauchst du einen Online-Namen und ein Passwort.');
         const btns = box.querySelectorAll('button');
         btns.forEach((b) => (b.disabled = true));
         busy.hidden = false;
-        void this.connect(mode, name.value, pw.value).then((r) => {
+        void this.connect(mode, cred.name, cred.password).then((r) => {
           if (r.kind === 'error') return this.showAccounts(r.message);
           if (r.kind === 'choice') return this.showCloudChoice();
           this.showOnlineDone(r.message);
@@ -731,4 +735,24 @@ export class Overlay {
       h('div', { class: 'btn-row' }, this.btn('Werkstatt', () => this.showShop()), this.btn('Menü', () => this.showMenu())),
     );
   }
+}
+
+/**
+ * Online-Name und Passwort holen: aus den Feldern, und was fehlt, per Dialog erfragen
+ * (funktioniert auch dort, wo sich Eingabefelder auf dem Handy nicht bedienen lassen). `null` = abgebrochen.
+ */
+function askCredentials(name: string, password: string): { name: string; password: string } | null {
+  let n = name.trim();
+  let p = password;
+  if (!n) {
+    const a = window.prompt('Online-Name (3–16 Zeichen, Buchstaben/Ziffern):');
+    if (a === null) return null;
+    n = a.trim();
+  }
+  if (!p) {
+    const b = window.prompt(`Passwort für „${n}“ (mindestens 8 Zeichen):`);
+    if (b === null) return null;
+    p = b;
+  }
+  return n && p ? { name: n, password: p } : null;
 }
