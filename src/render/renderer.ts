@@ -214,10 +214,12 @@ export class Renderer {
     const sx = this.shake > 0 ? (Math.random() - 0.5) * this.shake * T * 0.25 : 0;
     const sy = this.shake > 0 ? (Math.random() - 0.5) * this.shake * T * 0.25 : 0;
 
-    const offY = -Math.round(this.camY * T) + Math.round(sy);
+    // Tiefen bis 10^15: erst relativ zur Kamera rechnen, sonst gehen bei y·T Nachkommastellen verloren (Zeilen verrutschen).
+    const baseY = Math.floor(this.camY);
+    const offY = -Math.round((this.camY - baseY) * T) + Math.round(sy);
     const offX = this.offX + Math.round(sx);
     const toX = (x: number): number => offX + Math.round(x * T);
-    const toY = (y: number): number => offY + Math.round(y * T);
+    const toY = (y: number): number => offY + Math.round((y - baseY) * T);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#0b0908';
@@ -412,7 +414,7 @@ export class Renderer {
     ctx.font = `bold ${Math.round(T * 0.22)}px ui-monospace, Menlo, Consolas, monospace`;
     ctx.textAlign = 'left';
     // Nur Zonengrenzen im Bild zeichnen (es gibt bis zu 1 Mio. Zonen).
-    const topDepth = Math.max(0, Math.floor(-toY(0) / T));
+    const topDepth = Math.max(0, Math.floor(this.camY));
     const bottomDepth = topDepth + Math.ceil(this.H / T) + 2;
     for (let zi = Math.max(1, zoneAt(topDepth).index); zi < ZONE_COUNT && zi * ZONE_LENGTH <= bottomDepth; zi++) {
       if (zi % ZONE_TOAST_EVERY !== 0) continue; // nur Meilensteine beschriften

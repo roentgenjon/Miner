@@ -22,8 +22,8 @@ export function generateWorld(seed: string, options: WorldOptions = {}): World {
     seed,
     width: WIDTH,
     height: HEIGHT,
-    // dünn besetztes Feld: nur erzeugte Abschnitte belegen Speicher (bei 1 Mrd. Zeilen wären es sonst Millionen Plätze)
-    chunks: [],
+    // nur erzeugte Abschnitte belegen Speicher (Nummern können weit über 2^32 liegen, daher eine Map)
+    chunks: new Map<number, Chunk>(),
     live: new Set<number>(),
     options,
     shaftDepth: 0,
@@ -37,10 +37,10 @@ export function chunkCount(w: World): number {
 
 /** Liefert den Abschnitt mit Nummer `ci` und erzeugt ihn bei Bedarf. */
 export function chunkAt(w: World, ci: number): Chunk {
-  const hit = w.chunks[ci];
+  const hit = w.chunks.get(ci);
   if (hit) return hit;
   const c = buildChunk(w, ci);
-  w.chunks[ci] = c;
+  w.chunks.set(ci, c);
   w.live.add(ci);
   return c;
 }
@@ -52,7 +52,7 @@ export function chunkAt(w: World, ci: number): Chunk {
 export function trimChunks(w: World, centerCi: number, behind: number, ahead: number): void {
   for (const ci of w.live) {
     if (ci < centerCi - behind || ci > centerCi + ahead) {
-      w.chunks[ci] = undefined;
+      w.chunks.delete(ci);
       w.live.delete(ci);
     }
   }
@@ -147,14 +147,14 @@ export function getCell(w: World, x: number, y: number): BlockId {
   if (y < 0) return Block.Air;
   if (x === START_X && y <= w.shaftDepth) return Block.Air;
   const ci = Math.floor(y / CHUNK_ROWS);
-  const chunk = w.chunks[ci] ?? chunkAt(w, ci);
+  const chunk = w.chunks.get(ci) ?? chunkAt(w, ci);
   return chunk.cells[(y - ci * CHUNK_ROWS) * w.width + x] ?? Block.Bedrock;
 }
 
 export function setCell(w: World, x: number, y: number, b: BlockId): void {
   if (!inBounds(w, x, y)) return;
   const ci = Math.floor(y / CHUNK_ROWS);
-  const chunk = w.chunks[ci] ?? chunkAt(w, ci);
+  const chunk = w.chunks.get(ci) ?? chunkAt(w, ci);
   chunk.cells[(y - ci * CHUNK_ROWS) * w.width + x] = b;
 }
 

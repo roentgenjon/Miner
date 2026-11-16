@@ -81,6 +81,6 @@ describe('Speicher bei extremem Tempo', () => {
     // nach einem weiteren Trim-Takt sind es nur noch wenige Abschnitte
     for (let i = 0; i < 61; i++) step(s, STEP);
     expect(s.world.live.size).toBeLessThan(CHUNK_KEEP_BEHIND + CHUNK_KEEP_AHEAD + 400);
-    expect(s.world.chunks.filter(Boolean).length).toBe(s.world.live.size);
+    expect(s.world.chunks.size).toBe(s.world.live.size);
   });
 });

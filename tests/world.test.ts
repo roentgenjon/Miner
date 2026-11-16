@@ -48,7 +48,7 @@ describe('Weltgenerierung', () => {
   it('hat die richtige Struktur: 7 Spalten, Luft oben, Herz am Schachtende, Grundgestein unten', () => {
     const w = generateWorld('struktur');
     expect(w.width).toBe(WIDTH);
-    expect(HEART_DEPTH).toBe(1_000_000_000);
+    expect(HEART_DEPTH).toBe(1_000_000_000_000_000);
     expect(getCell(w, 3, 0)).toBe(Block.Air);
     expect(getCell(w, 3, HEART_DEPTH)).toBe(Block.Heart);
     for (let x = 0; x < WIDTH; x++) {
@@ -61,14 +61,14 @@ describe('Weltgenerierung', () => {
 
   it('wird nur bei Bedarf erzeugt (Speicher bleibt klein)', () => {
     const w = generateWorld('lazy');
-    expect(w.chunks.filter(Boolean)).toHaveLength(0);
+    expect([...w.chunks.values()]).toHaveLength(0);
     getCell(w, 3, 5);
     getCell(w, 3, 5_000_000);
-    expect(w.chunks.filter(Boolean)).toHaveLength(2);
+    expect([...w.chunks.values()]).toHaveLength(2);
   });
 
-  it('hat 100 000 000 gleich lange Zonen (je 10 m) mit eindeutigen Namen', () => {
-    expect(ZONE_COUNT).toBe(100_000_000);
+  it('hat 100 000 000 000 000 gleich lange Zonen (je 10 m) mit eindeutigen Namen', () => {
+    expect(ZONE_COUNT).toBe(100_000_000_000_000);
     expect(ZONE_LENGTH).toBe(10);
     expect(ZONE_COUNT * ZONE_LENGTH).toBe(HEART_DEPTH);
     const names = new Set<string>();
@@ -80,7 +80,7 @@ describe('Weltgenerierung', () => {
     }
     expect(names.size).toBe(5000);
     expect([0, 1, 2, 3].map((i) => zoneByIndex(i).name)).toEqual(['Erde I', 'Tiefschiefer I', 'Magmazone I', 'Kristallhöhle I']);
-    expect(zoneByIndex(ZONE_COUNT - 1).name).toBe('Kristallhöhle 25000000');
+    expect(zoneByIndex(ZONE_COUNT - 1).name).toBe('Kristallhöhle 25000000000000');
     expect(zoneByIndex(4 * 39).name).toBe('Erde XL'); // 40. Durchlauf
   });
 
@@ -96,7 +96,7 @@ describe('Weltgenerierung', () => {
 
   it('wird mit der Tiefe schwieriger und wertvoller (Skala unabhängig von der Zonenzahl)', () => {
     let prev = zoneByIndex(0);
-    for (let i = 100_000; i < ZONE_COUNT; i += 100_000) {
+    for (let i = ZONE_COUNT / 1000; i < ZONE_COUNT; i += ZONE_COUNT / 1000) {
       const z = zoneByIndex(i);
       const same = zoneByIndex(i - (i % 4)); // gleiche Familie wie prev vergleichen: Index modulo 4 = 0
       expect(same.family).toBe(0);
@@ -114,7 +114,7 @@ describe('Weltgenerierung', () => {
 
   it('nutzt je Zone das passende Grundgestein (Stichproben)', () => {
     const w = generateWorld('zonen');
-    for (let i = 0; i < ZONE_COUNT; i += 12_345) {
+    for (let i = 0; i < ZONE_COUNT; i += Math.floor(ZONE_COUNT / 811)) {
       const z = zoneByIndex(i);
       let base = 0;
       let total = 0;

@@ -56,7 +56,7 @@ export interface World {
   width: number;
   height: number;
   /** Bereits erzeugte Abschnitte (Index = Zeile / CHUNK_ROWS). */
-  chunks: (Chunk | undefined)[];
+  chunks: Map<number, Chunk>;
   /** Nummern der gerade im Speicher gehaltenen Abschnitte (für das Aufräumen weit entfernter). */
   live: Set<number>;
   options: WorldOptions;
