@@ -13,7 +13,7 @@ export function digTime(s: GameState, block: number): number {
 }
 
 /** Wirksames Grabtempo (über PICK.speedCap hinaus wirkt der Bohrer statt kürzerer Zeiten). */
-function effSpeed(s: GameState): number {
+export function effSpeed(s: GameState): number {
   return Math.max(0.01, Math.min(s.mods.digSpeed * s.globalSpeed, PICK.speedCap));
 }
 

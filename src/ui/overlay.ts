@@ -16,7 +16,8 @@ import { AdminPanel } from './admin';
 import type { ApiResult } from '../net/api';
 
 export interface OverlayActions {
-  startRun(daily: boolean): void;
+  /** `classic` = alte 2D-Ansicht; ohne Angabe: wie zuletzt. */
+  startRun(daily: boolean, classic?: boolean): void;
   resume(): void;
   quitRun(): void;
   toggleSound(): void;
@@ -152,8 +153,9 @@ export class Overlay {
         h('div', {}, h('b', {}, `${fmt(m.bestDepth)} m`), h('span', {}, 'Rekord')),
         h('div', {}, h('b', {}, `${Object.keys(m.achievements).length}/${ACHIEVEMENTS.length}`), h('span', {}, 'Erfolge')),
       ),
-      this.btn('Neuer Schacht', () => this.act.startRun(false), 'primary'),
-      this.btn(`Tagesschacht · ${new Date().toLocaleDateString('de-DE')}`, () => this.act.startRun(true)),
+      this.btn('Neuer Schacht (3D)', () => this.act.startRun(false, false), 'primary'),
+      this.btn(`Tagesschacht · ${new Date().toLocaleDateString('de-DE')}`, () => this.act.startRun(true, false)),
+      this.btn('Klassisch (2D)', () => this.act.startRun(false, true), 'small'),
       h('p', { class: 'hint' }, dailyBest > 0 ? `Heute bisher: ${dailyBest} m` : 'Gleicher Schacht für alle – pro Tag neu.'),
       h('div', { class: 'btn-row' }, this.btn('Werkstatt', () => this.showShop()), this.btn('Erfolge', () => this.showTrophies())),
       h('div', { class: 'btn-row' }, this.btn('Skins', () => this.showSkins()), this.btn('Geschenke', () => this.showGifts())),

@@ -1,9 +1,10 @@
 import { DEFAULT_SKIN, HEART_DEPTH, PLAYER, START_X, ZONE_TOAST_EVERY, zoneAt } from '../config';
 import { createMissions, type MissionState } from '../meta/missions';
 import { createRng, type Rng } from './rng';
-import { type Dir, type GameEvent, type Mods, type RunStats, type World, type ZoneId } from './types';
+import { type Dir, type Dir3, type GameEvent, type Mods, type RunStats, type World, type ZoneId } from './types';
 import { syncBats } from './bats';
 import { generateWorld } from './world';
+import type { World3 } from '../game3d/world3';
 
 export type PlayerAction =
   | { kind: 'dig'; tx: number; ty: number; dir: Dir; dur: number; left: number }
@@ -57,9 +58,31 @@ export interface Tnt {
   x: number;
   y: number;
   fuse: number;
+  /** Nur in der 3D-Welt: Tiefe (z). */
+  z?: number;
   kind: 'tnt' | 'crate';
   /** Automatisch gelegte Ladung: verletzt den Spieler nicht. */
   safe?: boolean;
+}
+
+export type PlayerAction3 =
+  | { kind: 'dig'; tx: number; ty: number; tz: number; dir: Dir3; dur: number; left: number }
+  | { kind: 'move' | 'fall'; dur: number; left: number };
+
+/** Zusatzzustand der 3D-Welt (nur in 3D-Runden vorhanden). */
+export interface Dim3 {
+  world: World3;
+  /** Position in der Tiefe (z) und die vorherige (für die Bewegungsanimation). */
+  z: number;
+  pz: number;
+  /** Tiefste Ebene, die abgebaut werden darf. Tiefere werden erst frei, wenn die Ebene darüber abgeräumt ist. */
+  unlocked: number;
+  /** Abgebauter Anteil der freigegebenen Ebene (0..1). */
+  progress: number;
+  action: PlayerAction3 | null;
+  facing: Dir3;
+  /** Zuletzt gegrabenes Feld (für das schnellere Nachrücken). */
+  lastDug: { x: number; y: number; z: number } | null;
 }
 
 export interface Rock {
@@ -75,6 +98,9 @@ export interface Input {
   tnt: boolean;
   /** Auto-Dynamit eingeschaltet. */
   autoTnt: boolean;
+  /** 3D: gehaltene bzw. vorgemerkte Richtung. */
+  held3: Dir3 | null;
+  queued3: Dir3 | null;
 }
 
 export type GameStatus = 'playing' | 'won' | 'dead' | 'ended';
@@ -105,6 +131,8 @@ export interface GameState {
   status: GameStatus;
   events: GameEvent[];
   input: Input;
+  /** Nur in 3D-Runden: die 3D-Welt samt Zusatzzustand. */
+  d3: Dim3 | null;
   /** Bis zu diesem Zeitpunkt (Spielzeit) gibt es keinen Fallschaden (nach eigenen Auto-Sprengungen). */
   fallProtectUntil: number;
   /** Zähler für Selbstheilung und Dynamit-Nachschub (s). */
@@ -188,7 +216,8 @@ export function createGame(opts: CreateGameOptions): GameState {
     wallet: 0,
     status: 'playing',
     events: [],
-    input: { held: null, queued: null, queuedAge: 0, tnt: false, autoTnt: false },
+    input: { held: null, queued: null, queuedAge: 0, tnt: false, autoTnt: false, held3: null, queued3: null },
+    d3: null,
     regenT: 0,
     tntT: 0,
     fallProtectUntil: 0,

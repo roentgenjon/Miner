@@ -132,6 +132,6 @@ export default defineConfig({
   // Mit VITE_BASE=/mein-repo/ lässt sich ein absoluter Pfad erzwingen.
   base: process.env.VITE_BASE ?? './',
   plugins: [serviceWorker()],
-  build: { target: 'es2022', sourcemap: false },
+  build: { target: 'es2022', sourcemap: false, chunkSizeWarningLimit: 1000 },
   test: { environment: 'node', include: ['tests/**/*.test.ts'], testTimeout: 60_000 },
 });

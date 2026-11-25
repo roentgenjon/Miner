@@ -139,3 +139,13 @@ Die Cache-Header für `sw.js` und `assets/` stehen in [`public/_headers`](public
 
 Safe-Areas (`viewport-fit=cover`, `env(safe-area-inset-*)`), Zoom und Scrollen sind beim Spielen deaktiviert
 (`touch-action: none`, `user-scalable=no`). Die Bildschirm-Buttons werden nur auf Touch-Geräten bzw. kleinen Fenstern gezeigt.
+
+## 3D-Modus (Standard)
+
+„Neuer Schacht (3D)“ startet eine echte 3D-Welt (Three.js): Jede Ebene ist eine Fläche aus 7 × 7 Blöcken, nach unten wächst die Tiefe. Die klassische 2D-Ansicht gibt es weiter als „Klassisch (2D)“.
+
+- **Schicht nach Schicht:** Gegraben werden darf nur bis zur freigegebenen Ebene. Ist die Hälfte einer Ebene abgeräumt (`LAYER3.clearFraction` in `src/config.ts`), wird die nächste frei und es gibt einen Bonus. Dynamit wirkt ebenfalls nicht in gesperrten Ebenen.
+- **Steuerung:** Pfeile/WASD bewegen und graben relativ zur Kamera, **F**/Shift nach unten graben, **R** nach oben klettern, **Q/E** Kamera drehen, Leertaste Dynamit, T Auto-Dynamit. Am Handy: Pfeiltasten, ⤓/⤒ (runter/hoch), ⟲/⟳ (Kamera drehen).
+- Die Spitzhacken-Stufen wirken als Bohrer: Ab sehr hohem Tempo räumt eine Aktion mehrere Felder der Ebene ab.
+- Fledermäuse und Geröll gibt es nur in der 2D-Ansicht.
+- Code: `src/game3d/` (Welt und Logik, ohne Darstellung, getestet in `tests/game3d.test.ts`), `src/render3d/` (Three.js).

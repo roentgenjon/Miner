@@ -2,6 +2,8 @@ import './style.css';
 import { Sfx } from './audio/sfx';
 import { zoneAt } from './config';
 import { createGame, drainEvents, endRun, step } from './game/game';
+import { createGame3 } from './game3d/game3';
+import { Renderer3D } from './render3d/renderer3d';
 import { dailySeed, randomSeed } from './game/rng';
 import type { GameState } from './game/state';
 import type { GameEvent } from './game/types';
@@ -166,10 +168,29 @@ let endTimer = 0;
 /** Geschenk-Code aus einem geöffneten Link, der noch angezeigt werden soll. */
 let pendingGift: string | null = null;
 
+const canvas3d = el<HTMLCanvasElement>('game3d');
+/** 3D-Darstellung (nur wenn WebGL verfügbar ist; sonst bleibt es bei der klassischen 2D-Ansicht). */
+let r3: Renderer3D | null = null;
+let lastClassic = false;
+function ensure3d(): Renderer3D | null {
+  if (r3) return r3;
+  try {
+    r3 = new Renderer3D(canvas3d);
+  } catch {
+    r3 = null;
+  }
+  return r3;
+}
+
 const controls = new Controls(canvas, pad, {
   onPause: () => togglePause(),
   onToggleAuto: () => toggleAuto(),
-  playerScreen: () => renderer.playerScreen,
+  playerScreen: () => {
+    if (!state.d3 || !r3) return renderer.playerScreen;
+    // CSS-Pixel → Gerätepixel der (darunterliegenden) 2D-Fläche
+    const k = canvas.width / Math.max(1, canvas.clientWidth);
+    return { x: r3.playerScreen.x * k, y: r3.playerScreen.y * k };
+  },
   onGesture: () => sfx.unlock(),
 });
 
@@ -360,16 +381,28 @@ function toggleAuto(): void {
   hud.toast(on ? 'Auto-Dynamit AN – legt beim Graben 3 Felder voraus' : 'Auto-Dynamit AUS', on ? 'good' : 'info');
 }
 
-function startRun(daily: boolean): void {
+function startRun(daily: boolean, classic: boolean = lastClassic): void {
   sfx.unlock();
   lastGlobalApply = 0;
-  state = createGame({
+  const opts = {
     seed: daily ? dailySeed() : randomSeed(),
     daily,
     mods: computeMods(meta.upgrades),
     record: meta.bestDepth,
     skin: selectedSkin(meta).id,
-  });
+  };
+  const three = classic ? null : ensure3d();
+  lastClassic = three === null;
+  state = three ? createGame3(opts) : createGame(opts);
+  canvas3d.hidden = three === null;
+  pad.classList.toggle('is3d', three !== null);
+  if (three) {
+    three.clear();
+    three.resize();
+    controls.setThreeD({ yaw: () => three.yaw, rotate: (d) => three.rotate(d) });
+  } else {
+    controls.setThreeD(null);
+  }
   controls.setTarget(state.input);
   setAuto(meta.autoTnt);
   controls.enabled = true;
@@ -399,6 +432,7 @@ function togglePause(): void {
 function showMenu(): void {
   void refreshAdmin();
   mode = 'menu';
+  canvas3d.hidden = true;
   controls.enabled = false;
   hud.show(false);
   pad.hidden = true;
@@ -418,12 +452,18 @@ function finishRun(): void {
   overlay.showResult(state, result);
 }
 
+let lastBlockedHint = -1e9;
 function onEvents(events: GameEvent[]): void {
-  renderer.handleEvents(events);
+  if (state.d3 && r3) r3.handleEvents(events);
+  else renderer.handleEvents(events);
   for (const e of events) {
     sfx.play(e);
     if (e.type === 'zone') hud.toast(`${e.name} · ${zoneAt(state.player.y).from.toLocaleString("de-DE")} m`, "zone");
-    else if (e.type === 'mission') hud.toast(`Mission erfüllt: ${e.text} (+${e.reward})`, 'good');
+    else if (e.type === 'layer') hud.toast(`Ebene ${e.y} geschafft! +${fmtCoins(e.bonus)}`, 'good');
+    else if (e.type === 'blocked' && state.d3 && state.d3.progress < 1 && performance.now() - lastBlockedHint > 4000) {
+      lastBlockedHint = performance.now();
+      hud.toast('Räume erst die Ebene ab – dann geht es tiefer.', 'info');
+    } else if (e.type === 'mission') hud.toast(`Mission erfüllt: ${e.text} (+${e.reward})`, 'good');
     else if (e.type === 'revive') hud.toast('Zweites Leben! Weiter geht’s.', 'good');
     else if (e.type === 'hurt' && e.source === 'dark') hud.toast('Die Dunkelheit nagt an dir – such Kohle!', 'bad');
   }
@@ -459,12 +499,16 @@ function frame(now: number): void {
     if (endTimer <= 0) finishRun();
   }
   applyGlobal(now);
-  renderer.draw(state, alpha, dt);
+  if (state.d3 && r3 && !canvas3d.hidden) r3.draw(state, alpha, dt);
+  else renderer.draw(state, alpha, dt);
   if (mode === 'playing' || mode === 'ending' || mode === 'paused') hud.update(state);
   requestAnimationFrame(frame);
 }
 
-window.addEventListener('resize', () => renderer.resize());
+window.addEventListener('resize', () => {
+  renderer.resize();
+  r3?.resize();
+});
 window.addEventListener('orientationchange', () => renderer.resize());
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && mode === 'playing') togglePause();
@@ -516,6 +560,9 @@ if (import.meta.env.DEV) {
     },
     startRun,
     renderer,
+    get r3() {
+      return r3;
+    },
   };
 }
 

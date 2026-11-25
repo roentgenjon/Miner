@@ -57,15 +57,24 @@
   </head>
   <body>
     <canvas id="game" aria-label="Spielfeld"></canvas>
+    <canvas id="game3d" aria-label="Spielfeld in 3D" hidden></canvas>
 
     <div id="hud" hidden></div>
 
     <div id="pad" hidden>
-      <div class="dirs">
-        <button class="pad-btn" data-dir="left" aria-label="Links graben">◀</button>
-        <button class="pad-btn" data-dir="up" aria-label="Nach oben klettern">▲</button>
-        <button class="pad-btn" data-dir="down" aria-label="Nach unten graben">▼</button>
-        <button class="pad-btn" data-dir="right" aria-label="Rechts graben">▶</button>
+      <div class="left-col">
+        <div class="dirs dirs3 only3d">
+          <button class="pad-btn" data-rot="-1" aria-label="Kamera nach links drehen">⟲</button>
+          <button class="pad-btn" data-dir3="up" aria-label="Nach oben klettern">⤒</button>
+          <button class="pad-btn" data-dir3="dn" aria-label="Nach unten graben">⤓</button>
+          <button class="pad-btn" data-rot="1" aria-label="Kamera nach rechts drehen">⟳</button>
+        </div>
+        <div class="dirs">
+          <button class="pad-btn" data-dir="left" aria-label="Links graben">◀</button>
+          <button class="pad-btn" data-dir="up" aria-label="Nach oben klettern">▲</button>
+          <button class="pad-btn" data-dir="down" aria-label="Nach unten graben">▼</button>
+          <button class="pad-btn" data-dir="right" aria-label="Rechts graben">▶</button>
+        </div>
       </div>
       <div class="tnt-col">
         <button class="pad-btn auto-btn" data-action="auto" aria-label="Auto-Dynamit umschalten" aria-pressed="false">AUTO</button>

@@ -1,5 +1,6 @@
 import { ENERGY, HEART_DEPTH, SKINS, STEP, WIDTH, ZONE_COUNT, ZONE_LENGTH, ZONE_TOAST_EVERY, zoneAt, zoneByIndex } from '../config';
 import { fmtCoins } from '../format';
+import { makeEdges, softDisc, type EdgeTextures } from './realistic';
 import type { GameState } from '../game/state';
 import { Block, type GameEvent } from '../game/types';
 import { getCell } from '../game/world';
@@ -17,6 +18,8 @@ interface Particle {
   color: string;
   size: number;
   gravity: number;
+  /** Weicher Staub-/Rauchfleck statt Splitter. */
+  soft?: boolean;
 }
 
 interface Floater {
@@ -47,6 +50,9 @@ export class Renderer {
   private readonly dark: HTMLCanvasElement;
   private readonly dctx: CanvasRenderingContext2D;
   private tex: Textures;
+  private readonly edges: EdgeTextures = makeEdges();
+  private readonly discs = new Map<string, HTMLCanvasElement>();
+  private vignette: HTMLCanvasElement | null = null;
   private T = 48;
   private W = 0;
   private H = 0;
@@ -102,7 +108,10 @@ export class Renderer {
     for (const e of events) {
       switch (e.type) {
         case 'dig':
-          if (digs++ < 12) this.burst(e.x + 0.5, e.y + 0.5, BLOCK_COLORS[e.block] ?? '#7a5232', 7, 3);
+          if (digs++ < 12) {
+            this.burst(e.x + 0.5, e.y + 0.5, BLOCK_COLORS[e.block] ?? '#7a5232', 7, 3);
+            if (digs <= 4) this.puff(e.x + 0.5, e.y + 0.5, BLOCK_COLORS[e.block] ?? '#7a5232', 2, 0.7);
+          }
           break;
         case 'ore':
           if (ores++ >= 6) break;
@@ -121,6 +130,8 @@ export class Renderer {
           if (booms++ >= 4) break;
           this.shake = Math.max(this.shake, 0.5 + e.radius * 0.15);
           if (this.flashes.length < 30) this.flashes.push({ x: e.x + 0.5, y: e.y + 0.5, radius: e.radius + 1.5, life: 0.35 });
+          this.puff(e.x + 0.5, e.y + 0.5, '#3a3430', 7, 1.6 + e.radius * 0.2);
+          this.puff(e.x + 0.5, e.y + 0.5, '#8a7a68', 5, 1.2 + e.radius * 0.15);
           for (let i = 0; i < 26; i++) {
             this.burst(e.x + 0.5, e.y + 0.5, i % 3 === 0 ? '#ffd23a' : i % 3 === 1 ? '#ff7a1a' : '#555', 1, 6, e.radius);
           }
@@ -146,6 +157,35 @@ export class Renderer {
           break;
       }
     }
+  }
+
+  /** Weiche Staub-/Rauchwolken, die aufsteigen und sich ausdehnen. */
+  private puff(x: number, y: number, color: string, n: number, size: number): void {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const v = 0.3 + Math.random() * 0.9;
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 0.5,
+        y: y + (Math.random() - 0.5) * 0.5,
+        vx: Math.cos(a) * v,
+        vy: Math.sin(a) * v - 0.6,
+        life: 0.7 + Math.random() * 0.7,
+        max: 1.4,
+        color,
+        size: size * (0.7 + Math.random() * 0.6),
+        gravity: -0.4,
+        soft: true,
+      });
+    }
+  }
+
+  private disc(color: string): HTMLCanvasElement {
+    let d = this.discs.get(color);
+    if (!d) {
+      d = softDisc(color);
+      this.discs.set(color, d);
+    }
+    return d;
   }
 
   private burst(x: number, y: number, color: string, n: number, speed: number, spread = 0.3): void {
@@ -240,7 +280,10 @@ export class Renderer {
       ctx.fillRect(0, 0, this.W, Math.min(this.H, groundY));
     }
 
-    // Zellen
+    // Zellen (die hochauflösenden Texturen werden weich herunterskaliert)
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    const solidAt = (x: number, y: number): boolean => x < 0 || x >= WIDTH || (y >= 1 && getCell(s.world, x, y) !== Block.Air);
     for (let y = Math.max(1, y0); y <= y1; y++) {
       const zone = zoneAt(y);
       const zt = this.tex.forZone(zone.family, zone.ring);
@@ -269,6 +312,11 @@ export class Renderer {
           ctx.fillRect(px, py, T, T);
         } else if (cell === Block.Air) {
           ctx.drawImage(zt.back, px, py, T, T);
+          // Schatten an den Wänden des Hohlraums (Tiefenwirkung)
+          if (solidAt(x, y - 1)) ctx.drawImage(this.edges.shadow.up, px, py, T, T);
+          if (solidAt(x - 1, y)) ctx.drawImage(this.edges.shadow.left, px, py, T, T);
+          if (solidAt(x + 1, y)) ctx.drawImage(this.edges.shadow.right, px, py, T, T);
+          if (solidAt(x, y + 1)) ctx.drawImage(this.edges.shadow.down, px, py, T, T);
         } else if (cell === Block.Bedrock) {
           const t = this.tex.bedrock[Math.abs(h) % this.tex.bedrock.length];
           if (t) ctx.drawImage(t, px, py, T, T);
@@ -283,8 +331,28 @@ export class Renderer {
               ctx.globalAlpha = 1;
             }
           }
+          // Kanten zu Hohlräumen: oben/links heller (Licht), unten/rechts dunkler
+          const rim = Math.max(1, Math.round(T * 0.05));
+          if (y > 1 && !solidAt(x, y - 1)) {
+            ctx.fillStyle = 'rgba(255,235,200,0.22)';
+            ctx.fillRect(px, py, T, rim);
+          }
+          if (!solidAt(x - 1, y)) {
+            ctx.fillStyle = 'rgba(255,235,200,0.12)';
+            ctx.fillRect(px, py, rim, T);
+          }
+          if (!solidAt(x, y + 1)) {
+            ctx.fillStyle = 'rgba(0,0,0,0.38)';
+            ctx.fillRect(px, py + T - rim * 2, T, rim * 2);
+          }
+          if (!solidAt(x + 1, y)) {
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.fillRect(px + T - rim * 2, py, rim * 2, T);
+          }
           const ov = this.tex.overlay.get(cell);
           if (ov) {
+            // Sprites (16 px: Truhe, Kiste, Geröll, Herz) bleiben scharf, Erze (64 px) werden weich skaliert
+            ctx.imageSmoothingEnabled = ov.width > 16;
             if (cell === Block.Heart) {
               const pulse = 1 + Math.sin(this.time * 5) * 0.06;
               const sz = Math.round(T * pulse);
@@ -294,9 +362,15 @@ export class Renderer {
             }
           }
         }
-        if (y === 1 && (cell === Block.Dirt || !inShaft)) ctx.drawImage(this.tex.grass, px, py, T, T);
+        ctx.imageSmoothingEnabled = true;
+        if (y === 1 && (cell === Block.Dirt || !inShaft)) {
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(this.tex.grass, px, py, T, T);
+          ctx.imageSmoothingEnabled = true;
+        }
       }
     }
+    ctx.imageSmoothingEnabled = false;
 
     // Tiefenmarken (Zonen, Herz) und Rekordlinie
     this.drawMarks(s, toX, toY);
@@ -350,6 +424,10 @@ export class Renderer {
     const ppy = toY(vis.y);
     this.playerScreen = { x: ppx + T / 2, y: ppy + T / 2, t: T };
     if (visible) {
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(ppx + T / 2, ppy + T * 0.94, T * 0.3, T * 0.07, 0, 0, 6.3);
+      ctx.fill();
       const skinDef = SKINS.find((k) => k.id === s.skin);
       const sprite = this.tex.playerFor(s.skin, pl.facing === 'left' ? 'left' : 'right', this.time);
       if (skinDef?.effect === 'ghost') ctx.globalAlpha = 0.55;
@@ -361,15 +439,37 @@ export class Renderer {
 
     // Partikel
     this.updateParticles(dt);
+    ctx.imageSmoothingEnabled = true;
     for (const p of this.particles) {
-      ctx.globalAlpha = Math.max(0, Math.min(1, p.life / p.max));
-      ctx.fillStyle = p.color;
-      const sz = Math.max(2, Math.round(p.size * T));
-      ctx.fillRect(toX(p.x), toY(p.y), sz, sz);
+      const k = Math.max(0, Math.min(1, p.life / p.max));
+      if (p.soft) {
+        ctx.globalAlpha = k * 0.8;
+        const sz = Math.round(p.size * T * (1.6 - k * 0.6));
+        ctx.drawImage(this.disc(p.color), toX(p.x) - sz / 2, toY(p.y) - sz / 2, sz, sz);
+      } else {
+        ctx.globalAlpha = k;
+        ctx.fillStyle = p.color;
+        const sz = Math.max(2, Math.round(p.size * T));
+        ctx.fillRect(toX(p.x), toY(p.y), sz, sz);
+      }
     }
     ctx.globalAlpha = 1;
+    ctx.imageSmoothingEnabled = false;
+
+    // Feuerball bei Explosionen
+    for (const fl of this.flashes) {
+      const k = Math.max(0, fl.life / 0.35);
+      const rr = fl.radius * T * (1.5 - k * 0.6);
+      const fg = ctx.createRadialGradient(toX(fl.x), toY(fl.y), 0, toX(fl.x), toY(fl.y), rr);
+      fg.addColorStop(0, `rgba(255,245,200,${0.9 * k})`);
+      fg.addColorStop(0.35, `rgba(255,150,40,${0.6 * k})`);
+      fg.addColorStop(1, 'rgba(120,30,0,0)');
+      ctx.fillStyle = fg;
+      ctx.fillRect(toX(fl.x) - rr, toY(fl.y) - rr, rr * 2, rr * 2);
+    }
 
     this.drawDarkness(s, vis, toX, toY, y0, y1);
+    this.drawVignette();
 
     // Schwebende Texte (über der Dunkelheit)
     ctx.textAlign = 'center';
@@ -437,6 +537,25 @@ export class Renderer {
     }
   }
 
+  /** Leichte Randabdunkelung (wie bei einem Kameraobjektiv). */
+  private drawVignette(): void {
+    if (!this.vignette || this.vignette.width !== this.W || this.vignette.height !== this.H) {
+      const v = document.createElement('canvas');
+      v.width = this.W;
+      v.height = this.H;
+      const g = v.getContext('2d');
+      if (!g) return;
+      const rr = Math.hypot(this.W, this.H) * 0.5;
+      const grad = g.createRadialGradient(this.W / 2, this.H / 2, rr * 0.45, this.W / 2, this.H / 2, rr);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.45)');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, this.W, this.H);
+      this.vignette = v;
+    }
+    this.ctx.drawImage(this.vignette, 0, 0);
+  }
+
   private updateParticles(dt: number): void {
     for (const p of this.particles) {
       p.life -= dt;
@@ -491,6 +610,7 @@ export class Renderer {
     const f = p.maxEnergy > 0 ? p.energy / p.maxEnergy : 0;
     let r = ENERGY.lightMin + (ENERGY.lightMax - ENERGY.lightMin) * Math.sqrt(f) + s.mods.lightBonus * Math.sqrt(f);
     if (f < 0.2) r *= 0.9 + Math.sin(this.time * 17) * 0.06 + Math.sin(this.time * 5.3) * 0.04;
+    r *= 1 + Math.sin(this.time * 11) * 0.012 + Math.sin(this.time * 23.7) * 0.01; // leichtes Flackern der Lampe
     const face = p.facing === 'left' ? -0.18 : 0.18;
     light(toX(vis.x + 0.5 + face), toY(vis.y + 0.5), r);
 

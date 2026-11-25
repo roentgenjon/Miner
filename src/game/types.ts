@@ -23,6 +23,9 @@ export type BlockId = number;
 
 export type Dir = 'left' | 'right' | 'down' | 'up';
 
+/** Richtungen in der 3D-Welt: x−/x+ (links/rechts), z−/z+ (hinten/vorn), nach unten, nach oben. */
+export type Dir3 = 'xm' | 'xp' | 'zm' | 'zp' | 'dn' | 'up';
+
 export const DIRS: Record<Dir, readonly [number, number]> = {
   left: [-1, 0],
   right: [1, 0],
@@ -162,12 +165,13 @@ export interface RunStats {
 }
 
 export type GameEvent =
-  | { type: 'dig'; x: number; y: number; block: BlockId }
-  | { type: 'ore'; x: number; y: number; block: BlockId; value: number; mult: number }
-  | { type: 'coal'; x: number; y: number; energy: number }
-  | { type: 'chest'; x: number; y: number; text: string }
-  | { type: 'tntPlace'; x: number; y: number }
-  | { type: 'explosion'; x: number; y: number; radius: number }
+  | { type: 'dig'; x: number; y: number; z?: number; block: BlockId }
+  | { type: 'ore'; x: number; y: number; z?: number; block: BlockId; value: number; mult: number }
+  | { type: 'coal'; x: number; y: number; z?: number; energy: number }
+  | { type: 'chest'; x: number; y: number; z?: number; text: string }
+  | { type: 'tntPlace'; x: number; y: number; z?: number }
+  | { type: 'explosion'; x: number; y: number; z?: number; radius: number }
+  | { type: 'layer'; y: number; bonus: number }
   | { type: 'hurt'; amount: number; source: string }
   | { type: 'heal'; amount: number }
   | { type: 'revive' }

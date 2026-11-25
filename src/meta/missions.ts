@@ -32,6 +32,12 @@ export const MISSION_DEFS: readonly MissionDef[] = [
   { id: 'money', label: (n) => `Verdiene ${n} Münzen`, stat: 'money', targets: [1500, 4000, 9000], rewards: [50, 130, 300] },
 ];
 
+/** Missionen der 3D-Welt: keine Fledermäuse, Tiefe in Ebenen. */
+export const MISSION_DEFS_3D: readonly MissionDef[] = [
+  { id: 'depth', label: (n) => `Räume ${n} Ebenen ab`, stat: 'depth', targets: [4, 10, 25], rewards: [60, 140, 300] },
+  ...MISSION_DEFS.filter((m) => m.id !== 'bats' && m.id !== 'depth'),
+];
+
 function pickTier(rng: Rng): number {
   const r = rng.next();
   let acc = 0;
@@ -43,8 +49,8 @@ function pickTier(rng: Rng): number {
 }
 
 /** Zieht zufällige, verschiedene Missionen. */
-export function createMissions(rng: Rng, count = MISSION.count): MissionState[] {
-  const pool = [...MISSION_DEFS];
+export function createMissions(rng: Rng, count = MISSION.count, defs: readonly MissionDef[] = MISSION_DEFS): MissionState[] {
+  const pool = [...defs];
   const out: MissionState[] = [];
   for (let i = 0; i < count && pool.length > 0; i++) {
     const def = pool.splice(rng.int(0, pool.length - 1), 1)[0];

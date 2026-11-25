@@ -549,3 +549,14 @@ export const GIFTS = {
 
 /* ---------- Sonstiges ---------- */
 export const SAVE_KEY = 'schacht-meta';
+
+/* ---------- 3D-Welt ---------- */
+export const LAYER3 = {
+  /** Anteil einer Ebene, der abgebaut sein muss, damit die nächste Ebene freigegeben wird. */
+  clearFraction: 0.5,
+  /** Bonus beim Freischalten einer Ebene (wird mit dem Zonen-Wert skaliert). */
+  bonusBase: 40,
+  /** Abschnitte (je 16 Ebenen) im Speicher über/unter dem Spieler. */
+  keepBehind: 6,
+  keepAhead: 40,
+};

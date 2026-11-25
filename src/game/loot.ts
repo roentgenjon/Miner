@@ -17,7 +17,7 @@ export function addEnergy(s: GameState, amount: number): void {
 }
 
 /** Erz einsammeln: Kombo erhöhen und Münzen gutschreiben. */
-export function collectOre(s: GameState, block: BlockId, x: number, y: number): void {
+export function collectOre(s: GameState, block: BlockId, x: number, y: number, z?: number): void {
   const base = BLOCKS[block]?.value ?? 0;
   if (base <= 0) return;
   s.combo.count = s.combo.timer > 0 ? s.combo.count + 1 : 1;
@@ -29,17 +29,17 @@ export function collectOre(s: GameState, block: BlockId, x: number, y: number): 
   const value = Math.round(base * ORE_VALUE_MULT * s.mods.oreMult * s.globalOre * mult * zoneValueScale(y) * crit);
   addMoney(s, value);
   s.stats.ores++;
-  emit(s, { type: 'ore', x, y, block, value, mult });
+  emit(s, { type: 'ore', x, y, z, block, value, mult });
 }
 
-export function collectCoal(s: GameState, x: number, y: number): void {
+export function collectCoal(s: GameState, x: number, y: number, z?: number): void {
   const energy = Math.round(ENERGY.coalGain * s.mods.coalMult);
   addEnergy(s, energy);
   s.stats.coal++;
-  emit(s, { type: 'coal', x, y, energy });
+  emit(s, { type: 'coal', x, y, z, energy });
 }
 
-export function openChest(s: GameState, x: number, y: number): void {
+export function openChest(s: GameState, x: number, y: number, z?: number): void {
   const w = CHEST.weights;
   // Glückshände verschiebt Gewicht von Münzen weg zu den besseren Belohnungen.
   const lootBonus = s.mods.lootMult - 1;
@@ -72,7 +72,7 @@ export function openChest(s: GameState, x: number, y: number): void {
     addMoney(s, amount);
     text = `+${amount} Münzen`;
   }
-  emit(s, { type: 'chest', x, y, text });
+  emit(s, { type: 'chest', x, y, z, text });
 }
 
 export function addBonus(s: GameState, amount: number): void {

@@ -1,9 +1,10 @@
-import { createRng } from '../game/rng';
 import { SKINS, type SkinDef } from '../config';
 import { Block } from '../game/types';
 import { SPRITE_SIZE as S, type Sprite, ALL_SPRITES } from './sprites';
+import { realOre, realStone, toRgb, type OreKind, type StoneStyle } from './realistic';
 
 type Tex = HTMLCanvasElement;
+type Rgb3 = [number, number, number];
 
 function make(w = S, h = S): { c: Tex; g: CanvasRenderingContext2D } {
   const c = document.createElement('canvas');
@@ -34,53 +35,6 @@ function flipped(t: Tex): Tex {
   g.translate(S, 0);
   g.scale(-1, 1);
   g.drawImage(t, 0, 0);
-  return c;
-}
-
-/** Gesteinstextur: Grundfarbe + dunkle/helle Sprenkel. */
-function stone(seed: string, base: string, dark: string, light: string, density = 0.22): Tex {
-  const rng = createRng(seed);
-  const { c, g } = make();
-  g.fillStyle = base;
-  g.fillRect(0, 0, S, S);
-  for (let y = 0; y < S; y++) {
-    for (let x = 0; x < S; x++) {
-      const r = rng.next();
-      if (r < density * 0.55) {
-        g.fillStyle = dark;
-        g.fillRect(x, y, 1, 1);
-      } else if (r < density) {
-        g.fillStyle = light;
-        g.fillRect(x, y, 1, 1);
-      }
-    }
-  }
-  // Rand leicht abdunkeln für Kachel-Optik
-  g.fillStyle = 'rgba(0,0,0,0.18)';
-  g.fillRect(0, S - 1, S, 1);
-  g.fillRect(S - 1, 0, 1, S);
-  g.fillStyle = 'rgba(255,255,255,0.07)';
-  g.fillRect(0, 0, S, 1);
-  g.fillRect(0, 0, 1, S);
-  return c;
-}
-
-/** Erz-Overlay: kleine Klumpen mit Glanzpunkt. */
-function oreBlobs(seed: string, main: string, shade: string, shine: string, count = 5): Tex {
-  const rng = createRng(seed);
-  const { c, g } = make();
-  for (let i = 0; i < count; i++) {
-    const x = rng.int(1, S - 5);
-    const y = rng.int(1, S - 5);
-    const w = rng.int(2, 3);
-    const h = rng.int(2, 3);
-    g.fillStyle = shade;
-    g.fillRect(x, y + 1, w + 1, h);
-    g.fillStyle = main;
-    g.fillRect(x, y, w + 1, h);
-    g.fillStyle = shine;
-    g.fillRect(x, y, 1, 1);
-  }
   return c;
 }
 
@@ -199,32 +153,35 @@ const FAMILY_BACK: [string, string, string][] = [
 ];
 
 export function createTextures(): Textures {
-  // Texturen hängen nur von Gesteinsfamilie und Farbton ab (ring × 29° mod 360): höchstens 4 × 360 Sätze,
-  // egal wie viele Zonen es gibt.
+  // Texturen hängen nur von Gesteinsfamilie und Farbton ab (12 Farbtöne à 30°): höchstens 4 × 12 Sätze,
+  // egal wie viele Zonen es gibt (so entsteht auch bei extremem Tempo kaum Erzeugungsaufwand).
   const zoneCache = new Map<string, ZoneTextures>();
+  const STYLES: StoneStyle[] = ['dirt', 'slate', 'basalt', 'crystal'];
   const forZone = (family: number, ring: number): ZoneTextures => {
-    const shift = (ring * 29) % 360;
+    const shift = (ring % 12) * 30;
     const key = `${family}:${shift}`;
     const hit = zoneCache.get(key);
     if (hit) return hit;
-    const [b, d, l] = (FAMILY_COLORS[family] as [string, string, string]).map((c) => shiftHue(c, shift)) as [string, string, string];
-    const [bb, bd, bl] = (FAMILY_BACK[family] as [string, string, string]).map((c) => shiftHue(c, shift)) as [string, string, string];
+    const [b, d, l] = (FAMILY_COLORS[family] as [string, string, string]).map((c) => toRgb(shiftHue(c, shift))) as [Rgb3, Rgb3, Rgb3];
+    const [bb, bd, bl] = (FAMILY_BACK[family] as [string, string, string]).map((c) => toRgb(shiftHue(c, shift))) as [Rgb3, Rgb3, Rgb3];
+    const style = STYLES[family] ?? 'dirt';
     const zt: ZoneTextures = {
-      base: [0, 1, 2, 3].map((i) => stone(`z${key}-${i}`, b, d, l)),
-      back: stone(`z${key}-back`, bb, bd, bl, 0.16),
+      base: [0, 1, 2, 3].map((i) => realStone({ seed: `z${key}-${i}`, base: b, dark: d, light: l, style })),
+      back: realStone({ seed: `z${key}-back`, base: bb, dark: bd, light: bl, style, relief: 0.4 }),
     };
     zoneCache.set(key, zt);
     return zt;
   };
 
+  const ore = (kind: OreKind, main: string, shade: string, shine: string): Tex => realOre(kind, { main, shade, shine }, kind);
   const overlay = new Map<number, Tex>();
-  overlay.set(Block.Coal, oreBlobs('coal', '#1a1a20', '#0c0c10', '#4a4a58', 6));
-  overlay.set(Block.Copper, oreBlobs('copper', '#d9803a', '#8f4f1f', '#ffc58a'));
-  overlay.set(Block.Iron, oreBlobs('iron', '#cbb8a8', '#85766a', '#ffffff'));
-  overlay.set(Block.Gold, oreBlobs('gold', '#f5c542', '#b8860b', '#fff3a8'));
-  overlay.set(Block.Ruby, oreBlobs('ruby', '#e0334a', '#8f1a2c', '#ff9aa8'));
-  overlay.set(Block.Amethyst, oreBlobs('amethyst', '#b266ff', '#6a2fb0', '#e6c8ff'));
-  overlay.set(Block.Diamond, oreBlobs('diamond', '#6fe7ff', '#2c9bb5', '#ffffff'));
+  overlay.set(Block.Coal, ore('coal', '#2a2a33', '#0a0a0e', '#7a7a90'));
+  overlay.set(Block.Copper, ore('copper', '#d9803a', '#8f4f1f', '#ffc58a'));
+  overlay.set(Block.Iron, ore('iron', '#b9b4ae', '#6c625a', '#ffffff'));
+  overlay.set(Block.Gold, ore('gold', '#f5c542', '#a8780b', '#fff3a8'));
+  overlay.set(Block.Ruby, ore('ruby', '#e0334a', '#7a1020', '#ff9aa8'));
+  overlay.set(Block.Amethyst, ore('amethyst', '#b266ff', '#58259a', '#e6c8ff'));
+  overlay.set(Block.Diamond, ore('diamond', '#6fe7ff', '#2c8aa5', '#ffffff'));
   overlay.set(Block.Chest, fromSprite(ALL_SPRITES.CHEST as Sprite));
   overlay.set(Block.Crate, fromSprite(ALL_SPRITES.CRATE as Sprite));
   overlay.set(Block.Boulder, boulder());
@@ -265,7 +222,7 @@ export function createTextures(): Textures {
   };
   return {
     forZone,
-    bedrock: [0, 1, 2].map((i) => stone(`bed-${i}`, '#1d1d22', '#121216', '#2e2e36', 0.3)),
+    bedrock: [0, 1, 2].map((i) => realStone({ seed: `bed-${i}`, base: [34, 34, 40], dark: [16, 16, 20], light: [58, 58, 68], style: 'bedrock' })),
     overlay,
     grass: grass(),
     sky: sky.c,

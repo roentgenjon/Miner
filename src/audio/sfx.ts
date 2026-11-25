@@ -147,6 +147,9 @@ export class Sfx {
       case 'zone':
         [262, 330, 392].forEach((f, i) => this.tone(f, 0.35, 'triangle', 0.18, undefined, i * 0.1));
         break;
+      case 'layer':
+        [392, 523, 659].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.16, undefined, i * 0.08));
+        break;
       case 'mission':
         [523, 659, 784].forEach((f, i) => this.tone(f, 0.2, 'square', 0.12, undefined, i * 0.09));
         break;

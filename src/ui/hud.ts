@@ -1,6 +1,6 @@
 import type { GameState } from '../game/state';
 import { comboMult } from '../game/loot';
-import { HEART_DEPTH } from '../config';
+import { HEART_DEPTH, LAYER3 } from '../config';
 import { h, fmt } from './dom';
 import { fmtCoins } from '../format';
 
@@ -15,6 +15,9 @@ export class Hud {
   private readonly combo: HTMLElement;
   private readonly missions: HTMLElement;
   private readonly events: HTMLElement;
+  private readonly layer: HTMLElement;
+  private readonly layerFill: HTMLElement;
+  private readonly layerText: HTMLElement;
   private readonly toasts: HTMLElement;
   private cache = new Map<string, string>();
 
@@ -29,11 +32,16 @@ export class Hud {
     this.combo = h('div', { class: 'combo' });
     this.missions = h('ul', { class: 'missions' });
     this.events = h('div', { class: 'events' });
+    this.layerFill = h('i', {});
+    this.layerText = h('span', {});
+    this.layer = h('div', { class: 'layer-bar' }, this.layerText, h('div', { class: 'layer-track' }, this.layerFill));
+    this.layer.hidden = true;
     const pause = h('button', { class: 'pause-btn', title: 'Pause (P)', onclick: onPause }, 'II');
     pause.setAttribute('aria-label', 'Pause');
     root.append(
       h('div', { class: 'hud-row' }, this.hearts, h('div', { class: 'energy' }, this.energyFill), pause),
       h('div', { class: 'hud-row stats' }, this.depth, this.money, this.tnt),
+      this.layer,
       this.events,
       this.combo,
       this.missions,
@@ -53,6 +61,17 @@ export class Hud {
 
   update(s: GameState): void {
     const p = s.player;
+    this.layer.hidden = !s.d3;
+    if (s.d3) {
+      const d = s.d3;
+      const need = Math.round(LAYER3.clearFraction * 100);
+      const pct = Math.round(d.progress * 100);
+      this.set('layer', `${d.unlocked}:${pct}`, () => {
+        this.layerText.textContent = `Ebene ${fmt(d.unlocked)} · ${pct} % abgeräumt (ab ${need} % geht es tiefer)`;
+        this.layerFill.style.width = `${Math.min(100, (pct / need) * 100)}%`;
+        this.layer.classList.toggle('ready', pct >= need);
+      });
+    }
     this.set('hearts', `${p.hp}/${p.maxHp}`, () => {
       this.hearts.replaceChildren();
       if (p.maxHp > 12) {

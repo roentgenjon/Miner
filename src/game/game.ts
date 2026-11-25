@@ -1,4 +1,4 @@
-import { CHUNK_KEEP_AHEAD, CHUNK_KEEP_BEHIND, CHUNK_ROWS, ENERGY, ZONE_TOAST_EVERY, zoneAt } from '../config';
+import { LAYER3, CHUNK_KEEP_AHEAD, CHUNK_KEEP_BEHIND, CHUNK_ROWS, ENERGY, ZONE_TOAST_EVERY, zoneAt } from '../config';
 import { updateBats } from './bats';
 import { updatePhysics } from './physics';
 import { updatePlayer } from './player';
@@ -6,6 +6,8 @@ import { addBonus } from './loot';
 import { damagePlayer, emit, type GameState } from './state';
 import { updateAutoTnt, updateTnt } from './tnt';
 import { trimChunks } from './world';
+import { updateAutoTnt3, updatePlayer3, updateTnt3 } from '../game3d/logic3';
+import { trimWorld3 } from '../game3d/world3';
 import { updateMissions } from '../meta/missions';
 
 export { createGame, drainEvents } from './state';
@@ -16,17 +18,27 @@ export function step(s: GameState, dt: number): void {
   s.time += dt;
   s.tick++;
 
-  updatePlayer(s, dt);
-  if (s.status === 'playing') updateAutoTnt(s, dt);
-  if (s.status === 'playing') updateTnt(s, dt);
-  if (s.status === 'playing') updatePhysics(s, dt);
-  if (s.status === 'playing') updateBats(s, dt);
+  if (s.d3) {
+    // 3D-Welt: eigene Spieler-, Dynamit- und Ebenenlogik; keine Fledermäuse/Geröll
+    updatePlayer3(s, dt);
+    if (s.status === 'playing') updateAutoTnt3(s, dt);
+    if (s.status === 'playing') updateTnt3(s, dt);
+  } else {
+    updatePlayer(s, dt);
+    if (s.status === 'playing') updateAutoTnt(s, dt);
+    if (s.status === 'playing') updateTnt(s, dt);
+    if (s.status === 'playing') updatePhysics(s, dt);
+    if (s.status === 'playing') updateBats(s, dt);
+  }
   if (s.status === 'playing') updateEnergy(s, dt);
 
   if (s.status === 'playing') updateRegen(s, dt);
   updateCombo(s, dt);
   trackProgress(s);
-  if (s.tick % 60 === 0) trimChunks(s.world, Math.floor(s.player.y / CHUNK_ROWS), CHUNK_KEEP_BEHIND, CHUNK_KEEP_AHEAD);
+  if (s.tick % 60 === 0) {
+    if (s.d3) trimWorld3(s.d3.world, s.player.y, LAYER3.keepBehind, LAYER3.keepAhead);
+    else trimChunks(s.world, Math.floor(s.player.y / CHUNK_ROWS), CHUNK_KEEP_BEHIND, CHUNK_KEEP_AHEAD);
+  }
 }
 
 function updateEnergy(s: GameState, dt: number): void {
