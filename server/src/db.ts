@@ -23,4 +23,6 @@ export interface Env {
   ALLOWED_ORIGINS?: string;
   /** Online-Name des Administrators (Standard: Entity_2806). */
   ADMIN_NAME?: string;
+  /** „off“ = Notbremse: keine schreibenden Aufrufe mehr (spart D1-Writes). Alles andere = normal. */
+  WRITES?: string;
 }

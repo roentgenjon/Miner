@@ -53,6 +53,8 @@ export async function handle(request: Request, env: Env, now: number = Date.now(
   const path = url.pathname.replace(/\/+$/, '');
   const method = request.method;
   try {
+    // Notbremse: Solange WRITES=off ist, wird nichts mehr in die Datenbank geschrieben (nur Lesen bleibt möglich).
+    if (env.WRITES === 'off' && method !== 'GET' && method !== 'HEAD') throw new HttpError(503, 'maintenance');
     if (path === '/api/health' && method === 'GET') return json({ ok: true }, 200, request, env);
     if (path === '/api/register' && method === 'POST') return json(await register(env, await readJson(request), now), 201, request, env);
     if (path === '/api/login' && method === 'POST') return json(await login(env, await readJson(request), now), 200, request, env);

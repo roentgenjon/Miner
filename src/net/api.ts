@@ -118,6 +118,8 @@ export function describeApiError(status: number, error: string, data?: Record<st
       return 'Dieses Geschenk gibt es nicht mehr.';
     case 'invalid_gift':
       return 'Das Geschenk ist ungültig.';
+    case 'maintenance':
+      return 'Der Online-Dienst ist gerade pausiert. Dein Spielstand bleibt auf diesem Gerät erhalten.';
     case 'forbidden':
       return 'Das darf nur der Administrator.';
     case 'invalid_mult':

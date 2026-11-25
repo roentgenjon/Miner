@@ -57,3 +57,8 @@ Der Online-Konto-Name `Entity_2806` (Variable `ADMIN_NAME`, ohne Groß-/Kleinsch
 - `GET /api/admin/overview`, `POST /api/admin/global`, `/event`, `/event/stop`, `/broadcast`, `/message/delete`, `/user` (Münzen geben/setzen, Skin, Passwort zurücksetzen, abmelden, löschen).
 - Tabelle `settings` (siehe `schema.sql`): `npx wrangler d1 execute schacht-db --remote --file=server/schema.sql`.
 - Wichtig: Den Namen `Entity_2806` selbst **zuerst** registrieren, bevor ihn jemand anderes belegt.
+
+## Notbremse (D1-Writes sparen)
+
+`WRITES = "off"` in `wrangler.toml` (Abschnitt `[vars]`) sperrt alle schreibenden Aufrufe (POST/PUT: Registrieren, Anmelden, Sichern, Geschenke, Admin) mit `503 maintenance`; Lesen (`GET`) bleibt möglich. Die Daten bleiben unverändert erhalten.
+Wieder einschalten: `WRITES = "on"` setzen und `npx wrangler deploy` (oder die Variable im Cloudflare-Dashboard ändern: Workers → schacht-api → Settings → Variables).

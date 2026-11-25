@@ -120,3 +120,22 @@ describe('Admin: Spieler', () => {
     expect((await api('GET', '/api/admin/overview', undefined, admin)).json.users).toBe(1);
   });
 });
+
+describe('Notbremse (WRITES=off)', () => {
+  it('blockiert alle schreibenden Aufrufe, lässt Lesen zu und lässt sich wieder einschalten', async () => {
+    const token = await signup('Anna');
+    const off = { ...env, WRITES: 'off' } as typeof env;
+    const call = async (e: typeof env, method: string, path: string, body?: unknown): Promise<number> => {
+      const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+      if (body !== undefined) headers['Content-Type'] = 'application/json';
+      return (await handle(new Request(`https://api.test${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }), e, clock)).status;
+    };
+    for (const [m, p, b] of [['POST', '/api/register', { name: 'Neu', password: 'geheim1234' }], ['POST', '/api/login', { name: 'Anna', password: 'geheim1234' }], ['PUT', '/api/save', { save: { version: 1 }, baseVersion: 0 }], ['POST', '/api/send', {}], ['POST', '/api/logout', {}]] as const) {
+      expect(await call(off, m, p, b), p).toBe(503);
+    }
+    expect(await call(off, 'GET', '/api/me')).toBe(200);
+    expect(await call(off, 'GET', '/api/global')).toBe(200);
+    expect(await call(off, 'GET', '/api/health')).toBe(200);
+    expect(await call({ ...env, WRITES: 'on' } as typeof env, 'PUT', '/api/save', { save: { version: 1 }, baseVersion: 0 })).toBe(200);
+  });
+});
